@@ -26,6 +26,7 @@ namespace Bento.Variants.Api
             var settings = new ConnectionSettings(new Uri(url))
                 //.BasicAuthentication("elastic", $"{configuration["LOGS_PASSWORD"]}")
                 .DefaultIndex(indexMap);
+                //.EnableDebugMode();
                 //.DefaultMappingFor<dynamic>(m => m
                 //    .PropertyName(p => p.UnixTimestampUTC, "unixtimestamputc")
                 //    .PropertyName(p => p.Message, "message"))
