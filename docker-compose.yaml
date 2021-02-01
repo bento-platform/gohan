@@ -1,4 +1,4 @@
-version: '3.7'
+version: '2.4'
 
 #TODO: volumes
 
@@ -48,6 +48,7 @@ services:
 
   elasticsearch:
     image: elasticsearch:7.10.1
+    mem_limit: 8GB # <- for mem_limit to work, make sure docker-compose is v2.4
     container_name: elasticsearch
     ports:
       - "9200:9200"
@@ -56,6 +57,7 @@ services:
       - bridge-net
     environment:
       - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms7g -Xmx7g"
     # secrets:
     #   - source: metadata-app-secret
     #     target: metadata_app_secret

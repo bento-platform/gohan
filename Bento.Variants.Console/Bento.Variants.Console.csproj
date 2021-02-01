@@ -10,4 +10,10 @@
     <PackageReference Include="NEST" Version="7.7.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
