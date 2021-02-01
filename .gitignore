@@ -5,3 +5,5 @@
 
 # Volume directories
 data
+
+*.vcf
