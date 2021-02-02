@@ -1,8 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+
+using Newtonsoft.Json;
+
 using Bento.Variants.Api.Repositories.Interfaces;
 
 namespace Bento.Variants.Api.Controllers
@@ -22,35 +27,41 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
-        [Route("get")]
-        public async Task<IActionResult> GetVariantCounts([FromQuery] string variant) //, [FromQuery] int rowCount = 100)
+        [Route("count")]
+        public IActionResult CountVariantCounts([FromQuery] string labels) //, [FromQuery] int rowCount = 100)
         {
-            if (variant == null)
+            if (labels == null)
             {
                 return Json(new 
-                    {
-                        Error = "missing variant!" 
-                    });
+                {
+                    Error = "Missing variant labels!" 
+                });
             }
 
             try
             {
-                var count = await ElasticRepository.CountDocumentsContainingVariant(variant);
+                Dictionary<string,long> countResults = new Dictionary<string, long>();
 
+                var variantsList = labels.Split(",");
                 
-                return Json(new 
+                // TODO: optimize - make 1 repo call with all labels at once
+                Parallel.ForEach(variantsList, variant =>
                 {
-                    Count = count,
-                    //Documents = result
-                });            
+                    var count = ElasticRepository.CountDocumentsContainingVariant(variant).Result;
+                    countResults[variant] = count;
+                });
+
+                return Json(countResults);            
             }
             catch (System.Exception ex)
             {
                 Console.WriteLine($"Oops! : {ex.Message}");
                 
-                return Json(new {
-                    status=500,
-                    message= "Failed to get : " + ex.Message});
+                return Json(new 
+                {
+                    status = 500,
+                    message = "Failed to get : " + ex.Message
+                });
             }
         }
     }
