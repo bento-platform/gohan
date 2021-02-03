@@ -45,9 +45,24 @@ namespace Bento.Variants.Console
                 }
 
                 Dictionary<string, dynamic> doc = new Dictionary<string, dynamic>();
+                List<object> docParticipantsList = new List<object>();
 
                 var rowComponents = xLine.Split("\t").ToList();// Temp cap at x //.Take(500)
                 int columnNumber = 0;
+
+                List<string> defaultHeaderFields = new List<string>() 
+                {
+                    "CHROM",
+                    "POS",
+                    "ID",
+                    "REF",
+                    "ALT",
+                    "QUAL",
+                    "FILTER",
+                    "INFO",
+                    "FORMAT"
+                };
+
                 // Dynamically generate column names and type, and add column value
                 rowComponents.ForEach(rc =>
                 {
@@ -56,16 +71,31 @@ namespace Bento.Variants.Console
                         var key = headers[columnNumber].Trim().Replace("#", string.Empty);
                         var value = rc.Trim(); //.Replace("|", "--");
 
-                        // Filter field type by column name
-                        if(string.Equals(key, "POS") | string.Equals(key, "QUAL"))
-                            doc[key] = Int32.Parse(value);
-                        else
-                            // default: string
-                            doc[key] = value;
+                        if (defaultHeaderFields.Any(dhf => dhf == key))
+                        {
+                            // Filter field type by column name
+                            if (string.Equals(key, "CHROM") || string.Equals(key, "POS") || string.Equals(key, "QUAL"))
+                                doc[key] = Int32.Parse(value);
+                            else
+                                // default: string
+                                doc[key] = value;
 
+                        }
+                        else
+                        {
+                            // Assume it's a partipant header
+                            //doc["PARTICIPANTS"]
+                            docParticipantsList.Add(new {
+                                ParticipantId = key,
+                                Variation = value
+                            });
+                        }
+                        
                         columnNumber++ ;
                     }
                 });
+
+                doc["PARTICIPANTS"] = docParticipantsList.ToList();
 
                 lock(HttpCallLockObject)
                 {
