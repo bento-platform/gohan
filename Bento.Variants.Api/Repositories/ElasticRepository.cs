@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.Configuration;
 using Nest;
 
@@ -19,13 +20,56 @@ namespace Bento.Variants.Api.Repositories
             ElasticClient = elasticClient;
         }
 
-        public async Task<List<dynamic>> GetDocumentsContainingVariant(string variant, int rowCount = 100)
+        public async Task<List<dynamic>> GetDocumentsContainingVariant(double chromosome, string variant, int rowCount = 100)
         {
             var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")
                 .Query(q => q
-                    .QueryString(d => 
-                        d.Query($"{variant}:*")))
+                    .Bool(b => b
+                        .Must(m => m
+                            .QueryString(d => 
+                                d.Query($"CHROM:{chromosome}")
+                            )
+                        )
+                        .Must(m => m
+                            .QueryString(d => 
+                                d.Query($"ID:{variant}")
+                            )
+                        )
+                    )
+                )
+                .Size(rowCount)
+            );
+            //var rawQuery = searchResponse.DebugInformation;
+            //Console.WriteLine(rawQuery);
+
+            return searchResponse.Documents.ToList();
+        }
+        public async Task<List<dynamic>> GetDocumentsContainingVariantInPositionRange(double chromosome, string variant, double lowerBound, double upperBound, int rowCount = 100)
+        {
+            var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
+                .Index($"{Configuration["PrimaryIndex"]}")
+                .Query(q => q
+                    .Bool(b => b
+                        .Must(m => m
+                            .QueryString(d => 
+                                d.Query($"CHROM:{chromosome}")
+                            )
+                        )
+                        .Must(m => m
+                            .QueryString(d => 
+                                d.Query($"ID:{variant}")
+                            )
+                        )
+                        .Must(m => m
+                            .Range(r => r
+                                .Field("POS")
+                                .GreaterThanOrEquals(lowerBound)
+                                .LessThanOrEquals(upperBound)
+                            )
+                        )
+                    )
+                )
                 .Size(rowCount)
             );
             //var rawQuery = searchResponse.DebugInformation;
@@ -34,13 +78,53 @@ namespace Bento.Variants.Api.Repositories
             return searchResponse.Documents.ToList();
         }
 
-        public async Task<long> CountDocumentsContainingVariant(string variant)
+        public async Task<List<dynamic>> GetDocumentsInPositionRange(double chromosome, double lowerBound, double upperBound, int rowCount = 100)
+        {
+            var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
+                .Index($"{Configuration["PrimaryIndex"]}")                
+                .Query(q => q
+                    .Bool(b => b
+                        .Must(m => m
+                            .QueryString(d => 
+                                d.Query($"CHROM:{chromosome}")
+                            )
+                        )
+                        .Must(m => m
+                            .Range(r => r
+                                .Field("POS")
+                                .GreaterThanOrEquals(lowerBound)
+                                .LessThanOrEquals(upperBound)
+                            )
+                        )
+                    )
+                )
+                .Size(rowCount)
+            );
+            //var rawQuery = searchResponse.DebugInformation;
+            //Console.WriteLine(rawQuery);
+
+            return searchResponse.Documents.ToList();
+        }
+
+
+        public async Task<long> CountDocumentsContainingVariant(double chromosome, string variant)
         {
             var searchResponse = await ElasticClient.CountAsync<dynamic>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")
                 .Query(q => q
-                    .QueryString(d => 
-                        d.Query($"{variant}:*")))
+                    .Bool(b => b
+                        .Must(m => m
+                            .QueryString(d => 
+                                d.Query($"CHROM:{chromosome}")
+                            )
+                        )
+                        .Must(m => m
+                            .QueryString(d => 
+                                d.Query($"ID:{variant}")
+                            )
+                        )
+                    )
+                )
             );
             //var rawQuery = searchResponse.DebugInformation;
             //Console.WriteLine(rawQuery);
