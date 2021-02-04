@@ -28,12 +28,12 @@ namespace Bento.Variants.Api.Repositories
                     .Bool(b => b
                         .Must(m => m
                             .QueryString(d => 
-                                d.Query($"CHROM:{chromosome}")
+                                d.Query($"chrom:{chromosome}")
                             )
                         )
                         .Must(m => m
                             .QueryString(d => 
-                                d.Query($"ID:{variant}")
+                                d.Query($"id:{variant}")
                             )
                         )
                     )
@@ -53,17 +53,17 @@ namespace Bento.Variants.Api.Repositories
                     .Bool(b => b
                         .Must(m => m
                             .QueryString(d => 
-                                d.Query($"CHROM:{chromosome}")
+                                d.Query($"chrom:{chromosome}")
                             )
                         )
                         .Must(m => m
                             .QueryString(d => 
-                                d.Query($"ID:{variant}")
+                                d.Query($"id:{variant}")
                             )
                         )
                         .Must(m => m
                             .Range(r => r
-                                .Field("POS")
+                                .Field("pos")
                                 .GreaterThanOrEquals(lowerBound)
                                 .LessThanOrEquals(upperBound)
                             )
@@ -86,12 +86,12 @@ namespace Bento.Variants.Api.Repositories
                     .Bool(b => b
                         .Must(m => m
                             .QueryString(d => 
-                                d.Query($"CHROM:{chromosome}")
+                                d.Query($"chrom:{chromosome}")
                             )
                         )
                         .Must(m => m
                             .Range(r => r
-                                .Field("POS")
+                                .Field("pos")
                                 .GreaterThanOrEquals(lowerBound)
                                 .LessThanOrEquals(upperBound)
                             )
@@ -115,12 +115,12 @@ namespace Bento.Variants.Api.Repositories
                     .Bool(b => b
                         .Must(m => m
                             .QueryString(d => 
-                                d.Query($"CHROM:{chromosome}")
+                                d.Query($"chrom:{chromosome}")
                             )
                         )
                         .Must(m => m
                             .QueryString(d => 
-                                d.Query($"ID:{variant}")
+                                d.Query($"id:{variant}")
                             )
                         )
                     )
