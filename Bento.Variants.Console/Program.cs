@@ -75,18 +75,17 @@ namespace Bento.Variants.Console
                         {
                             // Filter field type by column name
                             if (string.Equals(key, "CHROM") || string.Equals(key, "POS") || string.Equals(key, "QUAL"))
-                                doc[key] = Int32.Parse(value);
+                                doc[key.ToLower()] = Int32.Parse(value);
                             else
                                 // default: string
-                                doc[key] = value;
+                                doc[key.ToLower()] = value;
 
                         }
                         else
                         {
                             // Assume it's a partipant header
-                            //doc["PARTICIPANTS"]
                             docParticipantsList.Add(new {
-                                ParticipantId = key,
+                                SampleId = key,
                                 Variation = value
                             });
                         }
@@ -95,7 +94,7 @@ namespace Bento.Variants.Console
                     }
                 });
 
-                doc["PARTICIPANTS"] = docParticipantsList.ToList();
+                doc["samples"] = docParticipantsList.ToList();
 
                 lock(HttpCallLockObject)
                 {
