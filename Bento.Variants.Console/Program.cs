@@ -2,7 +2,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Nest;
 
@@ -15,6 +15,10 @@ namespace Bento.Variants.Console
         {
             System.Console.WriteLine("Hello World!");
 
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+            
+
             // Establish connection with local Elasticsearch
             var url = "http://localhost:9200";
             var indexMap = "variants";
@@ -24,104 +28,181 @@ namespace Bento.Variants.Console
 
             var client = new ElasticClient(settings);
 
-            // Ingest 1000Genomes chr 22 into Elasticsearch
+            // Get all project vcf files
+            string[] files = System.IO.Directory.GetFiles($"{System.IO.Directory.GetCurrentDirectory()}/Bento.Variants.Console", "*.vcf");
 
-            List<string> headers = new List<string>();
-            List<dynamic> Documents = new List<dynamic>();
-
-            BulkDescriptor descriptor = new BulkDescriptor();
             int rowCount = 0;
-            Parallel.ForEach(File.ReadLines("Bento.Variants.Console/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf"), (xLine, _, lineNumber) =>
-            {
-                if (xLine.ElementAt(0)=='#')
+            ParallelOptions poFiles = new ParallelOptions {
+                MaxDegreeOfParallelism = 2 // only x files at a time
+            };
+            Parallel.ForEach(files, poFiles, (filepath, _, fileNumber) =>
+            {            
+                System.Console.WriteLine("Ingesting file {0}.", filepath);
+
+                bool fileIndexCreateSuccess = false;
+                int attempts = 0;
+                IndexResponse fileResponse = new IndexResponse();
+                while (fileIndexCreateSuccess == false && attempts < 100)
                 {
-                    // Grab the Header line
-                    if(xLine.Contains("CHROM"))
+                    System.Console.WriteLine($"Attempting to create ES index for {filepath}");
+
+                    // Create Elasticsearch documents for the filename
+                    fileResponse = client.Index(new 
                     {
-                        headers = xLine.Split("\t").ToList();
+                        filename = Path.GetFileName(filepath)
+                    }, 
+                    i => i.Index("files"));
+
+                    if (fileResponse.Id != null)
+                    {
+                        // Succeeded
+                        fileIndexCreateSuccess = true;
                     }
 
+                    attempts++;                    
+                }
+
+                if (fileIndexCreateSuccess == false) 
+                {
+                    // Abandon file
+                    System.Console.WriteLine($"Failed to create ES index for file {filepath} -- Aborting this file");
                     return;
                 }
-
-                Dictionary<string, dynamic> doc = new Dictionary<string, dynamic>();
-                List<object> docParticipantsList = new List<object>();
-
-                var rowComponents = xLine.Split("\t").ToList();// Temp cap at x //.Take(500)
-                int columnNumber = 0;
-
-                List<string> defaultHeaderFields = new List<string>() 
+                else
                 {
-                    "CHROM",
-                    "POS",
-                    "ID",
-                    "REF",
-                    "ALT",
-                    "QUAL",
-                    "FILTER",
-                    "INFO",
-                    "FORMAT"
-                };
-
-                // Dynamically generate column names and type, and add column value
-                rowComponents.ForEach(rc =>
-                {
-                    if (rc != "0|0")
-                    {   
-                        var key = headers[columnNumber].Trim().Replace("#", string.Empty);
-                        var value = rc.Trim(); //.Replace("|", "--");
-
-                        if (defaultHeaderFields.Any(dhf => dhf == key))
-                        {
-                            // Filter field type by column name
-                            if (string.Equals(key, "CHROM") || string.Equals(key, "POS") || string.Equals(key, "QUAL"))
-                                doc[key.ToLower()] = Int32.Parse(value);
-                            else
-                                // default: string
-                                doc[key.ToLower()] = value;
-
-                        }
-                        else
-                        {
-                            // Assume it's a partipant header
-                            docParticipantsList.Add(new {
-                                SampleId = key,
-                                Variation = value
-                            });
-                        }
-                        
-                        columnNumber++ ;
-                    }
-                });
-
-                doc["samples"] = docParticipantsList.ToList();
-
-                lock(HttpCallLockObject)
-                {
-                    // Pile all documents together
-                    descriptor.Index<object>(i => i
-                    .Index("variants")
-                    .Document(doc));
-
-                    // Push x at a time
-                    if (rowCount % 10000 == 0)
-                    {
-                        // TODO: check for errors
-                        BulkResponse response = client.Bulk(descriptor);
-                        descriptor = new BulkDescriptor();
-
-                        System.Console.WriteLine("{0} rows ingested on so far..", rowCount);
-                    }
+                    System.Console.WriteLine($"Succeeded to create ES index for file {filepath} after {attempts} attempt{(attempts > 1 ? "s" : string.Empty)} : id {fileResponse.Id}");
                 }
 
-                rowCount++;
+
+                // Create VCF documents
+                List<string> headers = new List<string>();
+                List<dynamic> Documents = new List<dynamic>();
+
+                BulkDescriptor descriptor = new BulkDescriptor();
+                Parallel.ForEach(File.ReadLines(filepath), (xLine, _x, lineNumber) =>
+                {
+                    if (xLine.ElementAt(0)=='#')
+                    {
+                        // Grab the Header line
+                        if(xLine.Contains("CHROM"))
+                        {
+                            headers = xLine.Split("\t").ToList();
+                        }
+
+                        return;
+                    }
+
+                    Dictionary<string, dynamic> doc = new Dictionary<string, dynamic>();
+                    
+                    // Associate variant with its original file
+                    doc["fileId"] = fileResponse.Id;
+
+                    List<object> docParticipantsList = new List<object>();
+
+                    var rowComponents = xLine.Split("\t").ToList();// Temp cap at x //.Take(500)
+                    int columnNumber = 0;
+
+                    List<string> defaultHeaderFields = new List<string>() 
+                    {
+                        "CHROM",
+                        "POS",
+                        "ID",
+                        "REF",
+                        "ALT",
+                        "QUAL",
+                        "FILTER",
+                        "INFO",
+                        "FORMAT"
+                    };
+
+                    // Dynamically generate column names and type, and add column value
+                    rowComponents.ForEach(rc =>
+                    {
+                        try
+                        {
+                            // Reduce storage cost by escaping 'empty' variations
+                            if (rc != "0|0")
+                            {   
+                                var key = headers[columnNumber].Trim().Replace("#", string.Empty);
+                                var value = rc.Trim();
+
+                                if (defaultHeaderFields.Any(dhf => dhf == key))
+                                {
+                                    // Filter field type by column name
+                                    if (string.Equals(key, "CHROM") || string.Equals(key, "POS") || string.Equals(key, "QUAL"))
+                                    {
+                                        int potentialIntValue;
+                                        if(Int32.TryParse(value, out potentialIntValue))
+                                            doc[key.ToLower()] = potentialIntValue;
+                                        else
+                                            doc[key.ToLower()] = -1; // equivalent to a null value (like a period '.')
+                                    }
+                                    // default: string
+                                    else
+                                        doc[key.ToLower()] = value;
+                                }
+                                else
+                                {
+                                    // Assume it's a partipant header
+                                    docParticipantsList.Add(new {
+                                        SampleId = key,
+                                        Variation = value
+                                    });
+                                }
+                                
+                                columnNumber++ ;
+                            }                        
+                        }
+                        catch(Exception ex)
+                        {
+                            System.Console.WriteLine($"Oops, something went wrong: {ex.Message}");
+                        }
+                    });
+
+                    doc["samples"] = docParticipantsList.ToList();
+
+                    lock(HttpCallLockObject)
+                    {
+                        // Pile all documents together
+                        descriptor.Index<object>(i => i
+                        .Index("variants")
+                        .Document(doc));
+
+                        // Push x at a time
+                        if (rowCount % 10000 == 0)
+                        {
+                            // TODO: check for errors
+                            BulkResponse response = client.Bulk(descriptor);
+
+                            if (response.Errors)
+                            {
+                                response.ItemsWithErrors.ToList().ForEach(iwe => 
+                                {
+                                    System.Console.WriteLine(iwe);
+                                });
+                            }
+                            descriptor = new BulkDescriptor();
+
+                            System.Console.WriteLine("{0} rows ingested on so far..", rowCount);
+                        }
+                    }
+
+                    rowCount++;
+                });
+
+                // Final bulk push
+                BulkResponse responseX = client.Bulk(descriptor);
             });
 
-            // Final bulk push
-            BulkResponse responseX = client.Bulk(descriptor);
 
+            stopWatch.Stop();
+            // Get the elapsed time as a TimeSpan value.
+            TimeSpan ts = stopWatch.Elapsed;
+            string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+            ts.Hours, ts.Minutes, ts.Seconds,
+            ts.Milliseconds / 10);
 
-            System.Console.WriteLine("Ingested {0} rows.", rowCount);
+            System.Console.WriteLine("Ingested {0} variant documents in time {1}.", rowCount, elapsedTime);
         }
     }
 }
