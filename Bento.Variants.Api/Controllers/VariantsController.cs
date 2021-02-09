@@ -27,6 +27,47 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
+        [Route("get/by/sampleIds")]
+        public IActionResult BySampleIds([FromQuery] string sampleIds, [FromQuery] int rowCount = 100)
+        {
+            if (string.IsNullOrEmpty(sampleIds))
+            {
+                string message = "missing sample ids!";
+
+                Console.WriteLine(message);
+                return Json(new 
+                {
+                    Error = message
+                });
+            } 
+            try
+            {
+                Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
+
+                var sampleIdList = sampleIds.Split(",");
+            
+                // TODO: optimize - make 1 repo call with all labels at once
+                Parallel.ForEach(sampleIdList, sampleId =>
+                {
+                    var docs = ElasticRepository.GetDocumentsBySampleId(sampleId, rowCount).Result;
+                    results[sampleId] = docs;                    
+                });
+
+                return Json(results);    
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"Oops! : {ex.Message}");
+                
+                return Json(new 
+                {
+                    status = 500,
+                    message = "Failed to get variants by sample ids : " + ex.Message
+                });
+            }
+        }
+
+        [HttpGet]
         [Route("count")]
         public IActionResult CountVariants(
             [FromQuery] double? chromosome, 

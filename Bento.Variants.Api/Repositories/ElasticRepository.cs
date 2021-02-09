@@ -20,6 +20,32 @@ namespace Bento.Variants.Api.Repositories
             ElasticClient = elasticClient;
         }
 
+        public async Task<List<dynamic>> GetDocumentsBySampleId(string sampleId, int rowCount = 100)
+        {
+            var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
+                .Index($"{Configuration["PrimaryIndex"]}")
+                .Query(q => q
+                    .Bool(b => b
+                        .Filter(f => f
+                            .Match(m => m
+                                .Field("samples.sampleId")
+                                .Query($"{sampleId}")
+                            )
+                        )
+                    )
+                )
+                .Source(src => src
+                    .IncludeAll()
+                    .Excludes(e => e
+                        .Field("samples")
+                    )
+                )
+                .Size(rowCount)
+            );
+
+            return searchResponse.Documents.ToList();
+        }
+
         public async Task<List<dynamic>> GetDocumentsContainingVariant(string chromosome, string variant, int rowCount = 100)
         {
             var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
