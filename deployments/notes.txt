@@ -1,8 +1,0 @@
-# [ OBSOLETE - USE DOCKER-COMPOSE INSTEAD ]
-# Deployments (beta)
-
-# Run ES (default)
-docker run -d --name elasticsearch --network bridge-net -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" elasticsearch:7.10.1
-
-# Run Kibana (default)
-docker run -d --name kibana --network bridge-net -e ELASTICSEARCH_URL= -p 5601:5601 kibana:7.10.1
