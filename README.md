@@ -1,6 +1,7 @@
 ## Prerequisites:
 
-- .NET Core 2.1
+- .NET Core 3.1
+  - install: https://dotnet.microsoft.com/download/dotnet-core/3.1
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
@@ -74,6 +75,10 @@ Run `dotnet run --project Bento.Variants.Api`
 
 - http://localhost:5000/variants/get?chromosome=22&labels=rs587678958,rs549011611,rs567408969
 
+<br />
+
+- http://localhost:5000/variants/get/by/sampleIds?sampleIds=HG00097&rowCount=1000
+  
 <br />
 
 - http://localhost:5000/variants/count?chromosome=8
