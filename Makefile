@@ -18,8 +18,8 @@ run-dev-api:
 run-dev-elasticsearch:
 	docker-compose up -d elasticsearch
 
-run-dev-kanban:
-	docker-compose up -d kanban
+run-dev-kibana:
+	docker-compose up -d kibana
 
 
 
