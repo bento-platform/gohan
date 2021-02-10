@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 using Bento.Variants.Api.Repositories;
 using Bento.Variants.Api.Repositories.Interfaces;
@@ -40,7 +41,7 @@ namespace Bento.Variants.Api
             services.AddElasticSearch(Configuration);
 
             // MVC
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
         
             // -- IoC configuration --
             ConfigureRepositoryIoC(services);
@@ -57,7 +58,7 @@ namespace Bento.Variants.Api
 
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
@@ -73,12 +74,13 @@ namespace Bento.Variants.Api
             app.UseStaticFiles();
             app.UseCookiePolicy();
 
-            app.UseMvc(routes =>
-            {
-                routes.MapRoute(
+            app.UseRouting();
+
+            app.UseEndpoints(e => 
+                e.MapControllerRoute(
                     name: "default",
-                    template: "{controller=Home}/{action=Index}/{id?}");
-            });
+                    pattern: "{controller=Home}/{action=Index}/{id?}")
+            );
         }
     }
 }
