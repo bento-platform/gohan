@@ -20,194 +20,163 @@ namespace Bento.Variants.Api.Repositories
             ElasticClient = elasticClient;
         }
 
-        public async Task<List<dynamic>> GetDocumentsBySampleId(string sampleId, int rowCount = 100)
+        public async Task<List<dynamic>> GetDocumentsBySampleId(double? chromosome, string sampleId, int rowCount = 100)
         {
-            var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
+            var searchResponse = (await ElasticClient.SearchAsync<dynamic>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")
                 .Query(q => q
-                    .Bool(b => b
-                        .Filter(f => f
-                            .Match(m => m
-                                .Field("samples.sampleId")
-                                .Query($"{sampleId}")
-                            )
-                        )
-                    )
-                )
+                    .Bool(bq => bq
+                        .Filter(fq =>
+                        {
+                            QueryContainer query = null;
+
+                            if (chromosome.HasValue && chromosome.Value > 0)
+                            {
+                                query &= fq
+                                    .QueryString(d => 
+                                        d.Query($"chrom:{chromosome}")
+                                    );
+                            }
+
+                            if (!string.IsNullOrEmpty(sampleId))
+                            {
+                                query &= fq
+                                    .Match(m => m
+                                        .Field("samples.sampleId")
+                                        .Query($"{sampleId}")
+                                    );
+                            }
+
+                            return query;
+                        }
+                    )                    
+                ))
                 .Source(src => src
                     .IncludeAll()
                     .Excludes(e => e
                         .Field("samples")
                     )
                 )
-                .Size(rowCount)
+                .Size(rowCount))
             );
-
-            return searchResponse.Documents.ToList();
-        }
-
-        public async Task<List<dynamic>> GetDocumentsContainingVariant(string chromosome, string variant, int rowCount = 100)
-        {
-            var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
-                .Index($"{Configuration["PrimaryIndex"]}")
-                .Query(q => q
-                    .Bool(b => b
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"chrom:{chromosome}")
-                            )
-                        )
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"id:{variant}")
-                            )
-                        )
-                    )
-                )
-                .Size(rowCount)
-            );
+            
             //var rawQuery = searchResponse.DebugInformation;
-            //Console.WriteLine(rawQuery);
+            //System.Console.WriteLine(rawQuery);
 
             return searchResponse.Documents.ToList();
         }
 
-        public async Task<List<dynamic>> GetDocumentsContainingVariantInPositionRange(string chromosome, string variant, double lowerBound, double upperBound, int rowCount = 100)
-        {
-            var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
+
+        public async Task<List<dynamic>> GetDocumentsContainingVariantInPositionRange(double? chromosome, string variant, double? lowerBound, double? upperBound, int rowCount = 100)
+        {      
+            var searchResponse = (await ElasticClient.SearchAsync<dynamic>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")
                 .Query(q => q
-                    .Bool(b => b
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"chrom:{chromosome}")
-                            )
-                        )
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"id:{variant}")
-                            )
-                        )
-                        .Must(m => m
-                            .Range(r => r
-                                .Field("pos")
-                                .GreaterThanOrEquals(lowerBound)
-                                .LessThanOrEquals(upperBound)
-                            )
-                        )
-                    )
-                )
-                .Size(rowCount)
+                    .Bool(bq => bq
+                        .Filter(fq =>
+                        {
+                            QueryContainer query = null;
+
+                            if (chromosome.HasValue && chromosome.Value > 0)
+                            {
+                                query &= fq
+                                    .QueryString(d => 
+                                        d.Query($"chrom:{chromosome}")
+                                    );
+                            }
+
+                            if (!string.IsNullOrEmpty(variant))
+                            {
+                                query &= fq
+                                    .QueryString(d => 
+                                        d.Query($"id:{variant}")
+                                    );
+                            }
+
+                            if (lowerBound.HasValue)
+                            {
+                                query &= fq
+                                    .Range(r => r
+                                        .Field("pos")
+                                        .GreaterThanOrEquals(lowerBound)
+                                );
+                            }
+
+                            if (upperBound.HasValue)
+                            {
+                                query &= fq
+                                    .Range(r => r
+                                        .Field("pos")
+                                        .LessThanOrEquals(upperBound)
+                                );
+                            }
+
+                            return query;
+                        }
+                    )                    
+                ))
+                .Size(rowCount))
             );
+            
             //var rawQuery = searchResponse.DebugInformation;
-            //Console.WriteLine(rawQuery);
+            //System.Console.WriteLine(rawQuery);
 
             return searchResponse.Documents.ToList();
         }
 
-        public async Task<List<dynamic>> GetDocumentsInPositionRange(string chromosome, double lowerBound, double upperBound, int rowCount = 100)
-        {
-            var searchResponse = await ElasticClient.SearchAsync<dynamic>(s => s
-                .Index($"{Configuration["PrimaryIndex"]}")                
+
+        public async Task<long> CountDocumentsContainingVariantInPositionRange(double? chromosome, string variant, double? lowerBound, double? upperBound)
+        {      
+            var searchResponse = (await ElasticClient.CountAsync<dynamic>(s => s
+                .Index($"{Configuration["PrimaryIndex"]}")
                 .Query(q => q
-                    .Bool(b => b
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"chrom:{chromosome}")
-                            )
-                        )
-                        .Must(m => m
-                            .Range(r => r
-                                .Field("pos")
-                                .GreaterThanOrEquals(lowerBound)
-                                .LessThanOrEquals(upperBound)
-                            )
-                        )
-                    )
-                )
-                .Size(rowCount)
+                    .Bool(bq => bq
+                        .Filter(fq =>
+                        {
+                            QueryContainer query = null;
+
+                            if (chromosome.HasValue && chromosome.Value > 0)
+                            {
+                                query &= fq
+                                    .QueryString(d => 
+                                        d.Query($"chrom:{chromosome}")
+                                    );
+                            }
+
+                            if (!string.IsNullOrEmpty(variant))
+                            {
+                                query &= fq
+                                    .QueryString(d => 
+                                        d.Query($"id:{variant}")
+                                    );
+                            }
+
+                            if (lowerBound.HasValue)
+                            {
+                                query &= fq
+                                    .Range(r => r
+                                        .Field("pos")
+                                        .GreaterThanOrEquals(lowerBound)
+                                );
+                            }
+
+                            if (upperBound.HasValue)
+                            {
+                                query &= fq
+                                    .Range(r => r
+                                        .Field("pos")
+                                        .LessThanOrEquals(upperBound)
+                                );
+                            }
+
+                            return query;
+                        }
+                    )                    
+                )))
             );
+            
             //var rawQuery = searchResponse.DebugInformation;
-            //Console.WriteLine(rawQuery);
-
-            return searchResponse.Documents.ToList();
-        }
-
-
-        public async Task<long> CountDocumentsContainingVariant(string chromosome, string variant)
-        {
-            var searchResponse = await ElasticClient.CountAsync<dynamic>(s => s
-                .Index($"{Configuration["PrimaryIndex"]}")
-                .Query(q => q
-                    .Bool(b => b
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"chrom:{chromosome}")
-                            )
-                        )
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"id:{variant}")
-                            )
-                        )
-                    )
-                )
-            );
-
-            return searchResponse.Count;
-        }
-
-        public async Task<long> CountDocumentsContainingVariantInPositionRange(string chromosome, string variant, double lowerBound, double upperBound)
-        {
-            var searchResponse = await ElasticClient.CountAsync<dynamic>(s => s
-                .Index($"{Configuration["PrimaryIndex"]}")
-                .Query(q => q
-                    .Bool(b => b
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"chrom:{chromosome}")
-                            )
-                        )
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"id:{variant}")
-                            )
-                        )
-                        .Must(m => m
-                            .Range(r => r
-                                .Field("pos")
-                                .GreaterThanOrEquals(lowerBound)
-                                .LessThanOrEquals(upperBound)
-                            )
-                        )
-                    )
-                )
-            );
-
-            return searchResponse.Count;
-        }
-
-        public async Task<long> CountDocumentsInPositionRange(string chromosome, double lowerBound, double upperBound)
-        {
-            var searchResponse = await ElasticClient.CountAsync<dynamic>(s => s
-                .Index($"{Configuration["PrimaryIndex"]}")                
-                .Query(q => q
-                    .Bool(b => b
-                        .Must(m => m
-                            .QueryString(d => 
-                                d.Query($"chrom:{chromosome}")
-                            )
-                        )
-                        .Must(m => m
-                            .Range(r => r
-                                .Field("pos")
-                                .GreaterThanOrEquals(lowerBound)
-                                .LessThanOrEquals(upperBound)
-                            )
-                        )
-                    )
-                )
-            );
+            //System.Console.WriteLine(rawQuery);
 
             return searchResponse.Count;
         }

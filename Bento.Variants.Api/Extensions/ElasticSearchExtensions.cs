@@ -25,14 +25,14 @@ namespace Bento.Variants.Api
 
             var settings = new ConnectionSettings(new Uri(url))
                 //.BasicAuthentication("elastic", $"{configuration["LOGS_PASSWORD"]}")
-                .DefaultIndex(indexMap);
-                //.EnableDebugMode();
+                .DefaultIndex(indexMap)
+                .EnableDebugMode();
                 //.DefaultMappingFor<dynamic>(m => m
                 //    .PropertyName(p => p.UnixTimestampUTC, "unixtimestamputc")
                 //    .PropertyName(p => p.Message, "message"))
                 // .ServerCertificateValidationCallback((sender, cert, chain, errors) =>
                 // {
-                //     if (cert.Subject == "CN=*.minote.app")
+                //     if (cert.Subject == "CN=*.bentov2.local")
                 //         return true;
 
                 //     Console.WriteLine($"Error - Invalid ElasticSearch SSL Certificate : Subject {cert.Subject}");
