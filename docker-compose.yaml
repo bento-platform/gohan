@@ -23,8 +23,8 @@ services:
     build:
       context: $PWD/Bento.Variants.Api
       args:
-        BASE_IMAGE: mcr.microsoft.com/dotnet/aspnet:2.1.23-alpine3.12
-        SRC_DIR: ./bin/Release/netcoreapp2.1/publish # run `dotnet publish -c Release` prior to this
+        BASE_IMAGE: mcr.microsoft.com/dotnet/aspnet:3.1.12-alpine3.12
+        SRC_DIR: ./bin/Release/netcoreapp3.1/publish # run `dotnet publish -c Release` prior to this
     image: variants-api:latest
     container_name: variants-api
     environment:
@@ -32,6 +32,7 @@ services:
       - ElasticSearch__Protocol=http
       - ElasticSearch__Host=elasticsearch
       - ElasticSearch__Port=9200
+      - DOTNET_CLI_TELEMETRY_OPTOUT=1
     ports:
       - 5000:5000
     networks:
