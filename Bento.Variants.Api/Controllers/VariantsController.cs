@@ -28,7 +28,10 @@ namespace Bento.Variants.Api.Controllers
 
         [HttpGet]
         [Route("get/by/sampleIds")]
-        public IActionResult BySampleIds([FromQuery] string sampleIds, [FromQuery] int rowCount = 100)
+        public IActionResult BySampleIds(
+            [FromQuery] double? chromosome, 
+            [FromQuery] string sampleIds, 
+            [FromQuery] int rowCount = 100)
         {
             if (string.IsNullOrEmpty(sampleIds))
             {
@@ -49,7 +52,7 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all labels at once
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
-                    var docs = ElasticRepository.GetDocumentsBySampleId(sampleId, rowCount).Result;
+                    var docs = ElasticRepository.GetDocumentsBySampleId(chromosome, sampleId, rowCount).Result;
                     results[sampleId] = docs;                    
                 });
 
@@ -90,43 +93,17 @@ namespace Bento.Variants.Api.Controllers
             {
                 Dictionary<string,long> countResults = new Dictionary<string, long>();
 
-                if (!string.IsNullOrEmpty(labels))
+                if (string.IsNullOrEmpty(labels))
+                    labels = "*";
+
+                var variantsList = labels.Split(",");
+            
+                // TODO: optimize - make 1 repo call with all labels at once
+                Parallel.ForEach(variantsList, variant =>
                 {
-                    var variantsList = labels.Split(",");
-                
-                    // TODO: optimize - make 1 repo call with all labels at once
-                    Parallel.ForEach(variantsList, variant =>
-                    {
-                        if (lowerBound != null && upperBound != null)
-                        {
-                            var count = ElasticRepository.CountDocumentsContainingVariantInPositionRange(
-                                (chromosome.HasValue ? chromosome.Value.ToString() : "*"), 
-                                variant, 
-                                lowerBound ?? 0, 
-                                upperBound ?? 0
-                            ).Result;
-
-                            countResults[variant] = count;
-                        }
-                        else
-                        {
-                            var count = ElasticRepository.CountDocumentsContainingVariant(
-                                (chromosome.HasValue ? chromosome.Value.ToString() : "*"), 
-                                variant).Result;
-
-                            countResults[variant] = count;
-                        }
-                    });
-                }
-                else{
-                    var count = ElasticRepository.CountDocumentsInPositionRange(
-                        (chromosome.HasValue ? chromosome.Value.ToString() : "*"), 
-                        lowerBound ?? 0, 
-                        upperBound ?? 0
-                    ).Result;
-                    
-                    countResults["*"] = count;
-                } 
+                    var count = ElasticRepository.CountDocumentsContainingVariantInPositionRange(chromosome, variant, lowerBound, upperBound).Result;
+                    countResults[variant] = count;
+                });
 
                 return Json(countResults);    
             }
@@ -165,49 +142,23 @@ namespace Bento.Variants.Api.Controllers
             {
                 Dictionary<string,dynamic> docResults = new Dictionary<string, dynamic>();
 
-                if (!string.IsNullOrEmpty(labels))
+                if (string.IsNullOrEmpty(labels))
+                    labels = "*";
+                
+                var variantsList = labels.Split(",");
+                
+                // TODO: optimize - make 1 repo call with all labels at once
+                Parallel.ForEach(variantsList, variant =>
                 {
-                    var variantsList = labels.Split(",");
-                    
-                    // TODO: optimize - make 1 repo call with all labels at once
-                    Parallel.ForEach(variantsList, variant =>
-                    {
-                        if (lowerBound != null && upperBound != null)
-                        {
-                            var docs = ElasticRepository.GetDocumentsContainingVariantInPositionRange(
-                                (chromosome.HasValue ? chromosome.Value.ToString() : "*"), 
-                                variant, lowerBound ?? 0, upperBound ?? 0, rowCount).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingVariantInPositionRange(chromosome, variant, lowerBound, upperBound, rowCount).Result;
+                    docResults[variant] = docs;
+                });
 
-                            docResults[variant] = docs;
-                        }
-                        else
-                        {
-                            var docs = ElasticRepository.GetDocumentsContainingVariant(
-                                (chromosome.HasValue ? chromosome.Value.ToString() : "*"), 
-                                variant, rowCount).Result;
-
-                            docResults[variant] = docs;
-                        }
-                    });
-
-                    return Json(new
-                    {
-                        Count = docResults.Count,
-                        Data = docResults
-                    });            
-                }
-                else
+                return Json(new
                 {
-                    var docs = ElasticRepository.GetDocumentsInPositionRange(
-                        (chromosome.HasValue ? chromosome.Value.ToString() : "*"), 
-                        lowerBound ?? 0, upperBound ?? 0, rowCount).Result;
-
-                    return Json(new 
-                    {
-                        Count = docs.Count,
-                        Data = docs
-                    });            
-                }
+                    Count = docResults.Count,
+                    Data = docResults
+                });
             }
             catch (System.Exception ex)
             {
@@ -222,7 +173,3 @@ namespace Bento.Variants.Api.Controllers
         }
     }
 }
-
-
-
-
