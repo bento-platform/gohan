@@ -15,6 +15,9 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
+		ReleaseAlpine|Any CPU = ReleaseAlpine|Any CPU
+		ReleaseAlpine|x64 = ReleaseAlpine|x64
+		ReleaseAlpine|x86 = ReleaseAlpine|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
