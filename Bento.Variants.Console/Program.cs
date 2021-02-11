@@ -2,8 +2,10 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Tasks;
+
 using Nest;
 
 namespace Bento.Variants.Console
@@ -29,11 +31,17 @@ namespace Bento.Variants.Console
             var client = new ElasticClient(settings);
 
             // Get all project vcf files
-            string[] files = System.IO.Directory.GetFiles($"{System.IO.Directory.GetCurrentDirectory()}/Bento.Variants.Console", "*.vcf");
+            string[] files = System.IO.Directory.GetFiles($"{System.IO.Directory.GetCurrentDirectory()}/Bento.Variants.Console/vcf", "*.vcf");
 
             int rowCount = 0;
             ParallelOptions poFiles = new ParallelOptions {
                 MaxDegreeOfParallelism = 2 // only x files at a time
+            };
+            ParallelOptions poRows = new ParallelOptions {
+                MaxDegreeOfParallelism = 6
+            };
+            ParallelOptions poColumns = new ParallelOptions {
+                MaxDegreeOfParallelism = 6
             };
             Parallel.ForEach(files, poFiles, (filepath, _, fileNumber) =>
             {            
@@ -79,7 +87,7 @@ namespace Bento.Variants.Console
                 List<dynamic> Documents = new List<dynamic>();
 
                 BulkDescriptor descriptor = new BulkDescriptor();
-                Parallel.ForEach(File.ReadLines(filepath), (xLine, _x, lineNumber) =>
+                Parallel.ForEach(File.ReadLines(filepath), poRows, (xLine, _x, lineNumber) =>
                 {
                     if (xLine.ElementAt(0)=='#')
                     {
@@ -92,15 +100,37 @@ namespace Bento.Variants.Console
                         return;
                     }
 
-                    Dictionary<string, dynamic> doc = new Dictionary<string, dynamic>();
+                    //Dictionary<string, dynamic> doc = new Dictionary<string, dynamic>();
                     
-                    // Associate variant with its original file
-                    doc["fileId"] = fileResponse.Id;
+                    // see: https://docs.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentdictionary-2?redirectedfrom=MSDN&view=net-5.0
+                    
+                    // We know how many items we want to insert into the ConcurrentDictionary.
+                    // So set the initial capacity to some prime number above that, to ensure that
+                    // the ConcurrentDictionary does not need to be resized while initializing it.
+                    //int NUMITEMS = 64;
+                    int initialCapacity = 11;
 
-                    List<object> docParticipantsList = new List<object>();
+                    // The higher the concurrencyLevel, the higher the theoretical number of operations
+                    // that could be performed concurrently on the ConcurrentDictionary.  However, global
+                    // operations like resizing the dictionary take longer as the concurrencyLevel rises.
+                    // For the purposes of this example, we'll compromise at numCores * 2.
+                    int numProcs = Environment.ProcessorCount;
+                    int concurrencyLevel = numProcs * 2;
+
+                    // Construct the dictionary with the desired concurrencyLevel and initialCapacity
+                    ConcurrentDictionary<string, dynamic> cd = new ConcurrentDictionary<string, dynamic>(concurrencyLevel, initialCapacity);
+
+
+                    // Associate variant with its original file
+                    cd["fileId"] = fileResponse.Id;
+
+                    //List<object> docParticipantsList = new List<object>();
+                    
+                    // see: https://docs.microsoft.com/en-us/dotnet/api/system.collections.concurrent.concurrentbag-1?view=net-5.0
+                    ConcurrentBag<object> docParticipantsBag = new ConcurrentBag<object>();
 
                     var rowComponents = xLine.Split("\t").ToList();// Temp cap at x //.Take(500)
-                    int columnNumber = 0;
+                    //int columnNumber = 0;
 
                     List<string> defaultHeaderFields = new List<string>() 
                     {
@@ -116,14 +146,15 @@ namespace Bento.Variants.Console
                     };
 
                     // Dynamically generate column names and type, and add column value
-                    rowComponents.ForEach(rc =>
+                    //rowComponents.ForEach(rc =>
+                    Parallel.ForEach(rowComponents, poColumns, (rc, _r, columnNumber) =>
                     {
                         try
                         {
                             // Reduce storage cost by escaping 'empty' variations
                             if (rc != "0|0")
                             {   
-                                var key = headers[columnNumber].Trim().Replace("#", string.Empty);
+                                var key = headers[(int)columnNumber].Trim().Replace("#", string.Empty);
                                 var value = rc.Trim();
 
                                 if (defaultHeaderFields.Any(dhf => dhf == key))
@@ -133,24 +164,24 @@ namespace Bento.Variants.Console
                                     {
                                         int potentialIntValue;
                                         if(Int32.TryParse(value, out potentialIntValue))
-                                            doc[key.ToLower()] = potentialIntValue;
+                                            cd[key.ToLower()] = potentialIntValue;
                                         else
-                                            doc[key.ToLower()] = -1; // equivalent to a null value (like a period '.')
+                                            cd[key.ToLower()] = -1; // equivalent to a null value (like a period '.')
                                     }
                                     // default: string
                                     else
-                                        doc[key.ToLower()] = value;
+                                        cd[key.ToLower()] = value;
                                 }
                                 else
                                 {
                                     // Assume it's a partipant header
-                                    docParticipantsList.Add(new {
+                                    docParticipantsBag.Add(new {
                                         SampleId = key,
                                         Variation = value
                                     });
                                 }
                                 
-                                columnNumber++ ;
+                                //columnNumber++ ;
                             }                        
                         }
                         catch(Exception ex)
@@ -159,14 +190,14 @@ namespace Bento.Variants.Console
                         }
                     });
 
-                    doc["samples"] = docParticipantsList.ToList();
+                    cd["samples"] = docParticipantsBag.ToList();
 
                     lock(HttpCallLockObject)
                     {
                         // Pile all documents together
                         descriptor.Index<object>(i => i
                         .Index("variants")
-                        .Document(doc));
+                        .Document(cd));
 
                         // Push x at a time
                         if (rowCount % 10000 == 0)
@@ -183,7 +214,7 @@ namespace Bento.Variants.Console
                             }
                             descriptor = new BulkDescriptor();
 
-                            System.Console.WriteLine("{0} rows ingested on so far..", rowCount);
+                            System.Console.Write("\r{0} rows ingested on so far..", rowCount);
                         }
                     }
 
