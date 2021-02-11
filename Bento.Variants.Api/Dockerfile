@@ -4,9 +4,11 @@ FROM $BASE_IMAGE
 # Maintainer
 LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics.ca>"
 
-# Alpine Updates
+# Alpine updates and executable dependencies
 #RUN apk update
-RUN apk update && apk add libstdc++ && apk add libintl
+RUN apk update \
+    && apk add --no-cache libstdc++ \
+    && apk add --no-cache libintl
 RUN apk upgrade
 
 # Copy pre-built executeables
