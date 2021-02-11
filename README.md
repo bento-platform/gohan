@@ -84,3 +84,17 @@ Run `dotnet run --project Bento.Variants.Api`
 - http://localhost:5000/variants/count?chromosome=8
 
 - http://localhost:5000/variants/count?chromosome=22&lowerBound=10000000&upperBound=25000000
+
+<br />
+
+### **Builds :**
+### API :
+Local Release: `dotnet publish -c Release --self-contained` 
+
+Containerized Release: 
+- `dotnet publish -c ReleaseAlpine --self-contained` 
+
+<br />
+
+### **Deploments :**
+### Coming soon..
