@@ -58,8 +58,7 @@ namespace Bento.Variants.Console
                     fileResponse = client.Index(new 
                     {
                         filename = Path.GetFileName(filepath)
-                    }, 
-                    i => i.Index("files"));
+                    }, i => i.Index("files"));
 
                     if (fileResponse.Id != null)
                     {
@@ -196,8 +195,8 @@ namespace Bento.Variants.Console
                     {
                         // Pile all documents together
                         descriptor.Index<object>(i => i
-                        .Index("variants")
-                        .Document(cd));
+                            .Index("variants")
+                            .Document(cd));
 
                         // Push x at a time
                         if (rowCount % 10000 == 0)
@@ -225,13 +224,12 @@ namespace Bento.Variants.Console
                 BulkResponse responseX = client.Bulk(descriptor);
             });
 
-
             stopWatch.Stop();
+
             // Get the elapsed time as a TimeSpan value.
             TimeSpan ts = stopWatch.Elapsed;
-            string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
-            ts.Hours, ts.Minutes, ts.Seconds,
-            ts.Milliseconds / 10);
+            string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}", 
+                ts.Hours, ts.Minutes, ts.Seconds, ts.Milliseconds / 10);
 
             System.Console.WriteLine("Ingested {0} variant documents in time {1}.", rowCount, elapsedTime);
         }
