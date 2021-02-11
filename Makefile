@@ -36,3 +36,7 @@ clean-dev: clean-dev-api
 clean-dev-api:
 	docker rm variants-api --force; \
 	docker rmi variants-api:latest --force;
+
+clean-dev-elastic-data:
+	docker-compose down
+	rm -rf data/elasticsearch/nodes

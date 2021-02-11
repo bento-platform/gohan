@@ -5,7 +5,8 @@ FROM $BASE_IMAGE
 LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics.ca>"
 
 # Alpine Updates
-RUN apk update
+#RUN apk update
+RUN apk update && apk add libstdc++ && apk add libintl
 RUN apk upgrade
 
 # Copy pre-built executeables
@@ -14,4 +15,5 @@ COPY $SRC_DIR /app/
 
 # Run
 WORKDIR /app
-ENTRYPOINT dotnet Bento.Variants.Api.dll --urls http://0.0.0.0:5000
+ENTRYPOINT ./Bento.Variants.Api --urls http://0.0.0.0:5000
+#dotnet Bento.Variants.Api.dll --urls http://0.0.0.0:5000
