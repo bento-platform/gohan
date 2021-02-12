@@ -17,32 +17,67 @@ namespace Bento.Variants.Console
         {
             System.Console.WriteLine("Hello World!");
 
+            string vcfFilesPath = null;
+            string url = null; //"http://localhost:9200";
+
+            // Validate arguments
+            int argNum = 0;
+            foreach (string arg in args)
+            {
+                if (arg.StartsWith("--"))
+                {
+                    switch(arg)
+                    {
+                        case "--vcfPath":
+                            if(args.Length >= argNum+1)    
+                                vcfFilesPath = $"{System.IO.Directory.GetCurrentDirectory()}/{args[argNum+1]}";
+                            break;
+                            
+                        case "--elasticsearchUrl":
+                            if(args.Length >= argNum+1)    
+                                url = $"{args[argNum+1]}";
+                            break;
+                    }
+                }
+
+                argNum++;
+            }
+
+            if(string.IsNullOrEmpty(vcfFilesPath))
+                throw new Exception("Missing --vcfPath argument!");
+
+            if(string.IsNullOrEmpty(url))
+                throw new Exception("Missing --elasticsearchUrl argument!");
+
+
+            // Begin !
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
             
-
             // Establish connection with local Elasticsearch
-            var url = "http://localhost:9200";
             var indexMap = "variants";
 
             var settings = new ConnectionSettings(new Uri(url))
                 .DefaultIndex(indexMap);
-
             var client = new ElasticClient(settings);
 
             // Get all project vcf files
-            string[] files = System.IO.Directory.GetFiles($"{System.IO.Directory.GetCurrentDirectory()}/Bento.Variants.Console/vcf", "*.vcf");
+            string[] files = System.IO.Directory.GetFiles(vcfFilesPath, "*.vcf");
 
-            int rowCount = 0;
+
+            int rowCount = 0;            
             ParallelOptions poFiles = new ParallelOptions {
                 MaxDegreeOfParallelism = 2 // only x files at a time
             };
+            
             ParallelOptions poRows = new ParallelOptions {
                 MaxDegreeOfParallelism = 6
             };
+            
             ParallelOptions poColumns = new ParallelOptions {
                 MaxDegreeOfParallelism = 6
             };
+
             Parallel.ForEach(files, poFiles, (filepath, _, fileNumber) =>
             {            
                 System.Console.WriteLine("Ingesting file {0}.", filepath);

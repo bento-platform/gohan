@@ -1,5 +1,4 @@
-## Prerequisites:
-
+## Prerequisites
 - .NET Core 3.1
   - install: https://dotnet.microsoft.com/download/dotnet-core/3.1
 - Elasticsearch
@@ -11,30 +10,32 @@
 <br /><br />
 
 
-
 ## Getting started
 
 ### **Elasticsearch & Kibana :**
 
-Run `docker-compose up -d`
+Run 
+- `make run-dev-elasticsearch`
+- `make run-dev-kibana` *(optional)*
 
 <br />
 
 
+## Development
 
-### **Console :**
+### **Console**
 
-Purpose: to ingest a VCF into Elasticsearch.<br />
-Copy the VCF to the Bento.Variants.Console directory, and run `dotnet run --project Bento.Variants.Console`.<br />
-> Note: It is assumed Elasticsearch is running on localhost:9200
+*Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
+Copy the VCFs to a directory local to the project (*i.e. .../Bento.Variants/**vcfs***), and, from the project root, run 
+- `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchURL http://localhost:9200`.
 
 <br />
 
 
+### **API**
 
-### **API :**
-
-Run `dotnet run --project Bento.Variants.Api`
+From the project root, run 
+- `dotnet run --project Bento.Variants.Api`
 
 <b>Endpoints :</b>
 
@@ -45,8 +46,6 @@ Run `dotnet run --project Bento.Variants.Api`
   - upperBound : **number**
   - labels : **string** `(comma-deliminated list of variant alphanumeric codes)`
   - size : **number** `(maximum number of results per label if one or more labels are specified)`
-
-> Note: the `lower/upperBound` and `labels` parameters used together is redundant and may result in clashing elasticsearch query logic
 
 <br/>
 
@@ -63,9 +62,6 @@ Run `dotnet run --project Bento.Variants.Api`
   - lowerBound : **number**
   - upperBound : **number**
   - labels : **string** `(comma-deliminated list of variant alphanumeric codes)`
- 
-> Note: the `lower/upperBound` and `labels` parameters used together is redundant and may result in clashing elasticsearch query logic
-
 
 <br />
 
@@ -85,16 +81,38 @@ Run `dotnet run --project Bento.Variants.Api`
 
 - http://localhost:5000/variants/count?chromosome=22&lowerBound=10000000&upperBound=25000000
 
+
 <br />
 
-### **Builds :**
-### API :
-Local Release: `dotnet publish -c Release --self-contained` 
 
-Containerized Release: 
+## Releases
+### **Console :**
+Local Release: 
+
+&nbsp;From ***Bento.Variants.Console/***, run 
+- `dotnet publish -c Release --self-contained` 
+> The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Console*
+
+&nbsp;Containerized Release: 
 - `dotnet publish -c ReleaseAlpine --self-contained` 
+> The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Console*
 
 <br />
 
-### **Deploments :**
-### Coming soon..
+### **API :**
+Local Release: 
+
+&nbsp;From ***Bento.Variants.Api/***, run 
+- `dotnet publish -c Release --self-contained` 
+> The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Api*
+
+&nbsp;Containerized Release: 
+- `dotnet publish -c ReleaseAlpine --self-contained` 
+> The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Api*<br /><br />Once the release is ready, build the docker image and spawn the container by running
+> - `make run-dev-api` 
+
+<br />
+
+
+## Deployments :
+### **Coming soon..**
