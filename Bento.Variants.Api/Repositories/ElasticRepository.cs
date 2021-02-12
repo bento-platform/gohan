@@ -20,7 +20,7 @@ namespace Bento.Variants.Api.Repositories
             ElasticClient = elasticClient;
         }
 
-        public async Task<List<dynamic>> GetDocumentsBySampleId(double? chromosome, string sampleId, int rowCount = 100)
+        public async Task<List<dynamic>> GetDocumentsContainingSampleId(double? chromosome, string sampleId, double? lowerBound, double? upperBound, int rowCount = 100)
         {
             var searchResponse = (await ElasticClient.SearchAsync<dynamic>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")
@@ -47,6 +47,24 @@ namespace Bento.Variants.Api.Repositories
                                     );
                             }
 
+                            if (lowerBound.HasValue)
+                            {
+                                query &= fq
+                                    .Range(r => r
+                                        .Field("pos")
+                                        .GreaterThanOrEquals(lowerBound)
+                                );
+                            }
+
+                            if (upperBound.HasValue)
+                            {
+                                query &= fq
+                                    .Range(r => r
+                                        .Field("pos")
+                                        .LessThanOrEquals(upperBound)
+                                );
+                            }
+
                             return query;
                         }
                     )                    
@@ -67,7 +85,7 @@ namespace Bento.Variants.Api.Repositories
         }
 
 
-        public async Task<List<dynamic>> GetDocumentsContainingVariantInPositionRange(double? chromosome, string variant, double? lowerBound, double? upperBound, int rowCount = 100)
+        public async Task<List<dynamic>> GetDocumentsContainingVariantId(double? chromosome, string variant, double? lowerBound, double? upperBound, int rowCount = 100)
         {      
             var searchResponse = (await ElasticClient.SearchAsync<dynamic>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")

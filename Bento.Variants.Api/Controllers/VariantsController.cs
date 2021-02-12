@@ -28,9 +28,11 @@ namespace Bento.Variants.Api.Controllers
 
         [HttpGet]
         [Route("get/by/sampleIds")]
-        public IActionResult BySampleIds(
+        public IActionResult GetVariantsBySampleIds(
             [FromQuery] double? chromosome, 
             [FromQuery] string sampleIds, 
+            [FromQuery] double? lowerBound,
+            [FromQuery] double? upperBound,
             [FromQuery] int rowCount = 100)
         {
             if (string.IsNullOrEmpty(sampleIds))
@@ -43,6 +45,17 @@ namespace Bento.Variants.Api.Controllers
                     Error = message
                 });
             } 
+
+            if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
+                (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
+                upperBound < lowerBound)
+            {
+                return Json(new 
+                {
+                    Error = "Invalid lower and upper bounds!!" 
+                });
+            }
+
             try
             {
                 Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
@@ -52,7 +65,7 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all labels at once
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
-                    var docs = ElasticRepository.GetDocumentsBySampleId(chromosome, sampleId, rowCount).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingSampleId(chromosome, sampleId, lowerBound, upperBound, rowCount).Result;
                     results[sampleId] = docs;                    
                 });
 
@@ -120,10 +133,10 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
-        [Route("get")]
-        public IActionResult GetVariantsInRange(
+        [Route("get/by/variantIds")]
+        public IActionResult GetVariantsByVariantIds(
             [FromQuery] double? chromosome, 
-            [FromQuery] string labels, 
+            [FromQuery] string variantIds, 
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
             [FromQuery] int rowCount = 100)
@@ -142,15 +155,15 @@ namespace Bento.Variants.Api.Controllers
             {
                 Dictionary<string,dynamic> docResults = new Dictionary<string, dynamic>();
 
-                if (string.IsNullOrEmpty(labels))
-                    labels = "*";
+                if (string.IsNullOrEmpty(variantIds))
+                    variantIds = "*";
                 
-                var variantsList = labels.Split(",");
+                var variantIdList = variantIds.Split(",");
                 
                 // TODO: optimize - make 1 repo call with all labels at once
-                Parallel.ForEach(variantsList, variant =>
+                Parallel.ForEach(variantIdList, variant =>
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingVariantInPositionRange(chromosome, variant, lowerBound, upperBound, rowCount).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingVariantId(chromosome, variant, lowerBound, upperBound, rowCount).Result;
                     docResults[variant] = docs;
                 });
 
