@@ -33,7 +33,8 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] string sampleIds, 
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
-            [FromQuery] int rowCount = 100)
+            [FromQuery] int size = 100,
+            [FromQuery] string sortByPosition = null)
         {
             if (string.IsNullOrEmpty(sampleIds))
             {
@@ -65,7 +66,7 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all labels at once
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingSampleId(chromosome, sampleId, lowerBound, upperBound, rowCount).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingSampleId(chromosome, sampleId, lowerBound, upperBound, size, sortByPosition).Result;
                     results[sampleId] = docs;                    
                 });
 
@@ -90,7 +91,7 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] string labels, 
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
-            [FromQuery] int rowCount = 100)
+            [FromQuery] int size = 100)
         {
             if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
                 (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
@@ -139,7 +140,8 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] string variantIds, 
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
-            [FromQuery] int rowCount = 100)
+            [FromQuery] int size = 100,
+            [FromQuery] string sortByPosition = null)
         {
             if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
                 (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
@@ -163,7 +165,7 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all labels at once
                 Parallel.ForEach(variantIdList, variant =>
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingVariantId(chromosome, variant, lowerBound, upperBound, rowCount).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingVariantId(chromosome, variant, lowerBound, upperBound, size, sortByPosition).Result;
                     docResults[variant] = docs;
                 });
 
