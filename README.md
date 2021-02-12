@@ -7,7 +7,8 @@
 - Docker
   - getting started: https://www.docker.com/get-started
 
-<br /><br />
+<br />
+<br />
 
 
 ## Getting started
@@ -18,6 +19,7 @@ Run
 - `make run-dev-elasticsearch`
 - `make run-dev-kibana` *(optional)*
 
+<br />
 <br />
 
 
@@ -85,6 +87,7 @@ From the project root, run
 
 
 <br />
+<br />
 
 
 ## Releases
@@ -93,11 +96,19 @@ Local Release:
 
 &nbsp;From ***Bento.Variants.Console/***, run 
 - `dotnet publish -c Release --self-contained` 
-> The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Console*
 
-&nbsp;Containerized Release: 
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Console* and executed with
+
+> `cd bin/Release/netcoreapp3.1/linux-x64/publish`
+>
+> `./Bento.Variants.Console --vcfPath vcfs --elasticsearchURL http://localhost:9200`
+
+Local Alpine Release: 
 - `dotnet publish -c ReleaseAlpine --self-contained` 
-> The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Console*
+
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Console*
+
+> **Note:** this method is not recommended unless you are running your host machine on Alpine Linux. Unlike the **API** (seen below), this binary has no utility in being containerized. If you need to use this, run the same command as you would above with just a `Release`
 
 <br />
 
@@ -105,14 +116,37 @@ Local Release:
 Local Release: 
 
 &nbsp;From ***Bento.Variants.Api/***, run 
-- `dotnet publish -c Release --self-contained` 
-> The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Api*
 
-&nbsp;Containerized Release: 
-- `dotnet publish -c ReleaseAlpine --self-contained` 
-> The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Api*<br /><br />Once the release is ready, build the docker image and spawn the container by running
-> - `make run-dev-api` 
+> `dotnet publish -c Release --self-contained` 
 
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Api* and executed with
+
+> `export ElasticSearch__PrimaryIndex=variants`<br />
+> `export ElasticSearch__Protocol=http`<br />
+> `export ElasticSearch__Host=localhost`<br />
+> `export ElasticSearch__Port=9200`
+>
+> `cd bin/Release/netcoreapp3.1/linux-x64/publish`
+>
+> `./Bento.Variants.Api --urls http://localhost:5000`
+
+<br />
+
+Containerized Alpine Release: 
+
+&nbsp; If all is well with the `Release`, from ***Bento.Variants.Api/***, run 
+
+> `dotnet publish -c ReleaseAlpine --self-contained` 
+
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Api*
+
+&nbsp;When ready, build the `docker image` and spawn the `container` by running
+
+> `make run-dev-api`
+
+&nbsp;and the `docker-compose.yaml` file will handle the configuration.
+
+<br />
 <br />
 
 
