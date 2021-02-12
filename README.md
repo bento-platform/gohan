@@ -95,7 +95,7 @@ From the project root, run
 Local Release: 
 
 &nbsp;From ***Bento.Variants.Console/***, run 
-- `dotnet publish -c Release --self-contained` 
+> `dotnet publish -c Release --self-contained` 
 
 &nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Console* and executed with
 
@@ -104,7 +104,7 @@ Local Release:
 > `./Bento.Variants.Console --vcfPath vcfs --elasticsearchURL http://localhost:9200`
 
 Local Alpine Release: 
-- `dotnet publish -c ReleaseAlpine --self-contained` 
+> `dotnet publish -c ReleaseAlpine --self-contained` 
 
 &nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Console*
 
