@@ -39,12 +39,12 @@ From the project root, run
 
 <b>Endpoints :</b>
 
-&nbsp;&nbsp;**GET** /variants/get<br/>
+&nbsp;&nbsp;**GET** /variants/get/by/variantIds<br/>
 &nbsp;&nbsp;&nbsp;params: 
   - chromosome : **number** `(default is "*" if not specified)`
   - lowerBound : **number**
   - upperBound : **number**
-  - labels : **string** `(comma-deliminated list of variant alphanumeric codes)`
+  - variantIds : **string** `(comma-deliminated list of variant alphanumeric codes)`
   - size : **number** `(maximum number of results per label if one or more labels are specified)`
 
 <br/>
@@ -67,9 +67,9 @@ From the project root, run
 
 <b>Examples :</b>
 
-- http://localhost:5000/variants/get?lowerBound=25911206&upperBound=45911206&rowCount=1000
+- http://localhost:5000/variants/get/by/variantIds?lowerBound=25911206&upperBound=45911206&rowCount=1000
 
-- http://localhost:5000/variants/get?chromosome=22&labels=rs587678958,rs549011611,rs567408969
+- http://localhost:5000/variants/get/by/variantIds?chromosome=22&variantIds=rs587678958,rs549011611,rs567408969
 
 <br />
 
