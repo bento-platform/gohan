@@ -29,7 +29,7 @@ Run
 
 *Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
 Copy the VCFs to a directory local to the project (*i.e. .../Bento.Variants/**vcfs***), and, from the project root, run 
-- `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchURL http://localhost:9200`.
+> `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchURL http://localhost:9200`.
 
 <br />
 
@@ -37,7 +37,7 @@ Copy the VCFs to a directory local to the project (*i.e. .../Bento.Variants/**vc
 ### **API**
 
 From the project root, run 
-- `dotnet run --project Bento.Variants.Api`
+> `dotnet run --project Bento.Variants.Api`
 
 <b>Endpoints :</b>
 
