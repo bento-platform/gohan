@@ -49,8 +49,8 @@ From the project root, run
   - chromosome : **number** `(default is "*" if not specified)`
   - lowerBound : **number**
   - upperBound : **number**
-  - variantIds : **string** `(comma-deliminated list of variant alphanumeric codes)`
-  - size : **number** `(maximum number of results per label if one or more labels are specified)`
+  - variantIds : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
+  - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br/>
@@ -58,7 +58,7 @@ From the project root, run
 &nbsp;&nbsp;**GET** /variants/get/by/sampleIds<br/>
 &nbsp;&nbsp;&nbsp;params: 
   - sampleIds : **string** `(comma-deliminated list of sampleId alphanumeric codes)`
-  - size : **number** `(maximum number of results per label if one or more labels are specified)`
+  - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
 
 <br/>
 
@@ -67,7 +67,7 @@ From the project root, run
   - chromosome : **number** `(default is "*" if not specified)`
   - lowerBound : **number**
   - upperBound : **number**
-  - labels : **string** `(comma-deliminated list of variant alphanumeric codes)`
+  - variantIds : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br />
