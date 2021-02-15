@@ -107,7 +107,6 @@ namespace Bento.Variants.Api.Repositories
             return searchResponse.Documents.ToList();
         }
 
-
         public async Task<List<dynamic>> GetDocumentsContainingVariantId(double? chromosome, string variant, double? lowerBound, double? upperBound, int size = 100, string sortByPosition = null)
         {      
             var searchResponse = (await ElasticClient.SearchAsync<dynamic>(s => s
@@ -188,7 +187,6 @@ namespace Bento.Variants.Api.Repositories
             return searchResponse.Documents.ToList();
         }
 
-
         public async Task<long> CountDocumentsContainingVariantInPositionRange(double? chromosome, string variant, double? lowerBound, double? upperBound)
         {      
             var searchResponse = (await ElasticClient.CountAsync<dynamic>(s => s
@@ -242,6 +240,60 @@ namespace Bento.Variants.Api.Repositories
             //var rawQuery = searchResponse.DebugInformation;
             //System.Console.WriteLine(rawQuery);
 
+            return searchResponse.Count;
+        }
+
+        public async Task<long> CountDocumentsContainingSampleIdInPositionRange(double? chromosome, string sampleId, double? lowerBound, double? upperBound)
+        {      
+            var searchResponse = (await ElasticClient.CountAsync<dynamic>(s => s
+                .Index($"{Configuration["PrimaryIndex"]}")
+                .Query(q => q
+                    .Bool(bq => bq
+                        .Filter(fq =>
+                        {
+                            QueryContainer query = null;
+
+                            if (chromosome.HasValue && chromosome.Value > 0)
+                            {
+                                query &= fq
+                                    .QueryString(d => 
+                                        d.Query($"chrom:{chromosome}")
+                                    );
+                            }
+
+                            if (!string.IsNullOrEmpty(sampleId))
+                            {
+                                query &= fq
+                                    .Match(m => m
+                                        .Field("samples.sampleId")
+                                        .Query($"{sampleId}")
+                                    );
+                            }
+
+                            if (lowerBound.HasValue)
+                            {
+                                query &= fq
+                                    .Range(r => r
+                                        .Field("pos")
+                                        .GreaterThanOrEquals(lowerBound)
+                                );
+                            }
+
+                            if (upperBound.HasValue)
+                            {
+                                query &= fq
+                                    .Range(r => r
+                                        .Field("pos")
+                                        .LessThanOrEquals(upperBound)
+                                );
+                            }
+
+                            return query;
+                        }
+                    )                    
+                )))
+            );
+            
             return searchResponse.Count;
         }
     }
