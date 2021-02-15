@@ -1,10 +1,10 @@
 # Makefile for Bento Variants
 
-# # import global variables
-# env ?= .env
+# import global variables
+env ?= .env
 
-# include $(env)
-# export $(shell sed 's/=.*//' $(env))
+include $(env)
+export $(shell sed 's/=.*//' $(env))
 
 
 
@@ -36,13 +36,14 @@ stop:
 # Clean up
 clean: clean-api
 
-# TODO: use env variables for container versions
 clean-api:
-	docker rm variants-api --force; \
-	docker rmi variants-api:latest --force;
+	docker rm ${BENTO_VARIANTS_API_CONTAINER_NAME} --force; \
+	docker rmi ${BENTO_VARIANTS_API_IMAGE}:${BENTO_VARIANTS_API_VERSION} --force;
 
+# --
 
 ## WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
 clean-elastic-data:
 	docker-compose -f docker-compose.yaml down
-	rm -rf data/elasticsearch/nodes
+	rm -rf ${BENTO_VARIANTS_ES_DATA_DIR}/nodes
+
