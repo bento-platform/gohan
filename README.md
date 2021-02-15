@@ -62,7 +62,7 @@ From the project root, run
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - ids : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
->   - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
+>   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br/>
@@ -73,7 +73,7 @@ From the project root, run
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
->   - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
+>   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br/>
@@ -99,13 +99,13 @@ From the project root, run
 
 <b>Examples :</b>
 
-- http://localhost:5000/variants/get/by/variantIds?lowerBound=25911206&upperBound=45911206&size=1000&sortByPosition=desc
+- http://localhost:5000/variants/get/by/variantId?lowerBound=25911206&upperBound=45911206&size=1000&sortByPosition=desc
 
-- http://localhost:5000/variants/get/by/variantIds?chromosome=22&variantIds=rs587678958,rs549011611,rs567408969
+- http://localhost:5000/variants/get/by/variantId?chromosome=22&ids=rs587678958,rs549011611,rs567408969
 
 <br />
 
-- http://localhost:5000/variants/get/by/sampleIds?sampleIds=HG00097&size=1000&sortByPosition=asc
+- http://localhost:5000/variants/get/by/sampleId?ids=HG00097&size=1000&sortByPosition=asc
   
 <br />
 
