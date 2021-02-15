@@ -16,8 +16,8 @@
 ### **Elasticsearch & Kibana :**
 
 Run 
-- `make run-dev-elasticsearch`
-- `make run-dev-kibana` *(optional)*
+- `make run-elasticsearch`
+- `make run-kibana` *(optional)*
 
 <br />
 <br />
@@ -149,7 +149,7 @@ Containerized Alpine Release:
 
 &nbsp;When ready, build the `docker image` and spawn the `container` by running
 
-> `make run-dev-api`
+> `make run-api`
 
 &nbsp;and the `docker-compose.yaml` file will handle the configuration.
 

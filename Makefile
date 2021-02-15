@@ -9,34 +9,40 @@
 
 
 # Run
-run-dev:
-	docker-compose up -d
+run:
+	docker-compose -f docker-compose.yaml up -d
 
-run-dev-api:
-	docker-compose up -d api
+run-api:
+	docker-compose -f docker-compose.yaml up -d api
 
-run-dev-elasticsearch:
-	docker-compose up -d elasticsearch
+run-elasticsearch:
+	docker-compose -f docker-compose.yaml up -d elasticsearch
 
-run-dev-kibana:
-	docker-compose up -d kibana
+run-kibana:
+	docker-compose -f docker-compose.yaml up -d kibana
 
 
 
 # Build
-build-dev-api:
-	docker-compose build api
+build-api:
+	docker-compose -f docker-compose.yaml build api
 
+
+# Stop
+stop:
+	docker-compose -f docker-compose.yaml down
 
 
 # Clean up
-clean-dev: clean-dev-api
+clean: clean-api
 
 # TODO: use env variables for container versions
-clean-dev-api:
+clean-api:
 	docker rm variants-api --force; \
 	docker rmi variants-api:latest --force;
 
-clean-dev-elastic-data:
-	docker-compose down
+
+## WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
+clean-elastic-data:
+	docker-compose -f docker-compose.yaml down
 	rm -rf data/elasticsearch/nodes

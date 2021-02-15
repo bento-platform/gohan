@@ -3,6 +3,8 @@
 */bin
 */obj
 
+.env
+
 # Volume directories
 data
 
