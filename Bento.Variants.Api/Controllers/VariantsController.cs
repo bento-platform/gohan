@@ -66,7 +66,7 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingSampleId(chromosome, sampleId, lowerBound, upperBound, size, sortByPosition).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, null, sampleId, lowerBound, upperBound, size, sortByPosition).Result;
                     results[sampleId] = docs;                    
                 });
 
@@ -115,7 +115,7 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all ids at once
                 Parallel.ForEach(variantIdList, variantId =>
                 {
-                    var count = ElasticRepository.CountDocumentsContainingVariantInPositionRange(chromosome, variantId, lowerBound, upperBound).Result;
+                    var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, variantId, null, lowerBound, upperBound).Result;
                     countResults[variantId] = count;
                 });
 
@@ -165,7 +165,7 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
-                    var count = ElasticRepository.CountDocumentsContainingSampleIdInPositionRange(chromosome, sampleId, lowerBound, upperBound).Result;
+                    var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, null, sampleId, lowerBound, upperBound).Result;
                     countResults[sampleId] = count;
                 });
 
@@ -215,7 +215,7 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(variantIdList, variant =>
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingVariantId(chromosome, variant, lowerBound, upperBound, size, sortByPosition).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, variant, null, lowerBound, upperBound, size, sortByPosition).Result;
                     docResults[variant] = docs;
                 });
 
