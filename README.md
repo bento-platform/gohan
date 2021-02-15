@@ -109,9 +109,9 @@ From the project root, run
   
 <br />
 
-- http://localhost:5000/variants/count?chromosome=8
+- http://localhost:5000/variants/count/by/variantId?chromosome=8
 
-- http://localhost:5000/variants/count?chromosome=22&lowerBound=10000000&upperBound=25000000
+- http://localhost:5000/variants/count/by/variantId?chromosome=22&lowerBound=10000000&upperBound=25000000
 
 
 <br />
