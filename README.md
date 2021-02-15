@@ -56,34 +56,45 @@ From the project root, run
 
 <b>Endpoints :</b>
 
-> &nbsp;&nbsp;**GET** /variants/get/by/variantIds<br/>
+> &nbsp;&nbsp;**GET** /variants/get/by/variantId<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
 >   - upperBound : **number**
->   - variantIds : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
+>   - ids : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br/>
 
-> &nbsp;&nbsp;**GET** /variants/get/by/sampleIds<br/>
+> &nbsp;&nbsp;**GET** /variants/get/by/sampleId<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
 >   - upperBound : **number**
->   - sampleIds : **string** `(comma-deliminated list of sampleId alphanumeric codes)`
+>   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br/>
 
-> &nbsp;&nbsp;**GET** /variants/count<br/>
+> &nbsp;&nbsp;**GET** /variants/count/by/variantId<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
 >   - upperBound : **number**
->   - variantIds : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
+>   - ids : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
+>   - sortByPosition : **string** `(<empty> | asc | desc)`
+
+<br />
+
+
+> &nbsp;&nbsp;**GET** /variants/count/by/sampleId<br/>
+> &nbsp;&nbsp;&nbsp;params: 
+>   - chromosome : **number** `(default is "*" if not specified)`
+>   - lowerBound : **number**
+>   - upperBound : **number**
+>   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br />
