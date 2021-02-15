@@ -84,7 +84,6 @@ From the project root, run
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - ids : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
->   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br />
 
@@ -95,7 +94,6 @@ From the project root, run
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
->   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br />
 
