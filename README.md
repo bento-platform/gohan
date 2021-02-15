@@ -25,7 +25,7 @@ Run
 
 ## Development
 
-![Architecture](https://github.com/bento-platform/Bento.Variants/tree/master/images/architecture.png)
+![Architecture](https://github.com/bento-platform/Bento.Variants/blob/master/images/architecture.png?raw=true)
 
 
 ### **Console**
