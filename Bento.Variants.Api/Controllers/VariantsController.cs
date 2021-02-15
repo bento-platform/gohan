@@ -27,16 +27,16 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
-        [Route("get/by/sampleIds")]
+        [Route("get/by/sampleId")]
         public IActionResult GetVariantsBySampleIds(
             [FromQuery] double? chromosome, 
-            [FromQuery] string sampleIds, 
+            [FromQuery] string ids, 
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
             [FromQuery] int size = 100,
             [FromQuery] string sortByPosition = null)
         {
-            if (string.IsNullOrEmpty(sampleIds))
+            if (string.IsNullOrEmpty(ids))
             {
                 string message = "missing sample ids!";
 
@@ -61,7 +61,7 @@ namespace Bento.Variants.Api.Controllers
             {
                 Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
 
-                var sampleIdList = sampleIds.Split(",");
+                var sampleIdList = ids.Split(",");
             
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(sampleIdList, sampleId =>
@@ -85,10 +85,10 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
-        [Route("count")]
-        public IActionResult CountVariants(
+        [Route("count/by/variantId")]
+        public IActionResult CountVariantsByVariantIds(
             [FromQuery] double? chromosome, 
-            [FromQuery] string variantIds, 
+            [FromQuery] string ids, 
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
             [FromQuery] int size = 100)
@@ -107,16 +107,66 @@ namespace Bento.Variants.Api.Controllers
             {
                 Dictionary<string,long> countResults = new Dictionary<string, long>();
 
-                if (string.IsNullOrEmpty(variantIds))
-                    variantIds = "*";
+                if (string.IsNullOrEmpty(ids))
+                    ids = "*";
 
-                var variantsList = variantIds.Split(",");
+                var variantIdList = ids.Split(",");
+            
+                // TODO: optimize - make 1 repo call with all ids at once
+                Parallel.ForEach(variantIdList, variantId =>
+                {
+                    var count = ElasticRepository.CountDocumentsContainingVariantInPositionRange(chromosome, variantId, lowerBound, upperBound).Result;
+                    countResults[variantId] = count;
+                });
+
+                return Json(countResults);    
+            }
+            catch (System.Exception ex)
+            {
+                Console.WriteLine($"Oops! : {ex.Message}");
+                
+                return Json(new 
+                {
+                    status = 500,
+                    message = "Failed to count : " + ex.Message
+                });
+            }
+        }
+
+
+        [HttpGet]
+        [Route("count/by/sampleId")]
+        public IActionResult CountVariantsBySampleIds(
+            [FromQuery] double? chromosome, 
+            [FromQuery] string ids, 
+            [FromQuery] double? lowerBound,
+            [FromQuery] double? upperBound,
+            [FromQuery] int size = 100)
+        {
+            if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
+                (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
+                upperBound < lowerBound)
+            {
+                return Json(new 
+                {
+                    Error = "Invalid lower and upper bounds!!" 
+                });
+            }
+
+            try
+            {
+                Dictionary<string,long> countResults = new Dictionary<string, long>();
+
+                if (string.IsNullOrEmpty(ids))
+                    ids = "*";
+
+                var sampleIdList = ids.Split(",");
             
                 // TODO: optimize - make 1 repo call with all variantIds at once
-                Parallel.ForEach(variantsList, variant =>
+                Parallel.ForEach(sampleIdList, sampleId =>
                 {
-                    var count = ElasticRepository.CountDocumentsContainingVariantInPositionRange(chromosome, variant, lowerBound, upperBound).Result;
-                    countResults[variant] = count;
+                    var count = ElasticRepository.CountDocumentsContainingSampleIdInPositionRange(chromosome, sampleId, lowerBound, upperBound).Result;
+                    countResults[sampleId] = count;
                 });
 
                 return Json(countResults);    
@@ -137,7 +187,7 @@ namespace Bento.Variants.Api.Controllers
         [Route("get/by/variantIds")]
         public IActionResult GetVariantsByVariantIds(
             [FromQuery] double? chromosome, 
-            [FromQuery] string variantIds, 
+            [FromQuery] string ids, 
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
             [FromQuery] int size = 100,
@@ -157,10 +207,10 @@ namespace Bento.Variants.Api.Controllers
             {
                 Dictionary<string,dynamic> docResults = new Dictionary<string, dynamic>();
 
-                if (string.IsNullOrEmpty(variantIds))
-                    variantIds = "*";
+                if (string.IsNullOrEmpty(ids))
+                    ids = "*";
                 
-                var variantIdList = variantIds.Split(",");
+                var variantIdList = ids.Split(",");
                 
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(variantIdList, variant =>
