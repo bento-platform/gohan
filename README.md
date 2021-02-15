@@ -44,31 +44,35 @@ From the project root, run
 
 <b>Endpoints :</b>
 
-&nbsp;&nbsp;**GET** /variants/get/by/variantIds<br/>
-&nbsp;&nbsp;&nbsp;params: 
-  - chromosome : **number** `(default is "*" if not specified)`
-  - lowerBound : **number**
-  - upperBound : **number**
-  - variantIds : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
-  - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
-  - sortByPosition : **string** `(<empty> | asc | desc)`
+> &nbsp;&nbsp;**GET** /variants/get/by/variantIds<br/>
+> &nbsp;&nbsp;&nbsp;params: 
+>   - chromosome : **number** `(default is "*" if not specified)`
+>   - lowerBound : **number**
+>   - upperBound : **number**
+>   - variantIds : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
+>   - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
+>   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br/>
 
-&nbsp;&nbsp;**GET** /variants/get/by/sampleIds<br/>
-&nbsp;&nbsp;&nbsp;params: 
-  - sampleIds : **string** `(comma-deliminated list of sampleId alphanumeric codes)`
-  - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
+> &nbsp;&nbsp;**GET** /variants/get/by/sampleIds<br/>
+> &nbsp;&nbsp;&nbsp;params: 
+>   - chromosome : **number** `(default is "*" if not specified)`
+>   - lowerBound : **number**
+>   - upperBound : **number**
+>   - sampleIds : **string** `(comma-deliminated list of sampleId alphanumeric codes)`
+>   - size : **number** `(maximum number of results per label if one or more variant IDs are specified)`
+>   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br/>
 
-&nbsp;&nbsp;**GET** /variants/count<br/>
-&nbsp;&nbsp;&nbsp;params: 
-  - chromosome : **number** `(default is "*" if not specified)`
-  - lowerBound : **number**
-  - upperBound : **number**
-  - variantIds : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
-  - sortByPosition : **string** `(<empty> | asc | desc)`
+> &nbsp;&nbsp;**GET** /variants/count<br/>
+> &nbsp;&nbsp;&nbsp;params: 
+>   - chromosome : **number** `(default is "*" if not specified)`
+>   - lowerBound : **number**
+>   - upperBound : **number**
+>   - variantIds : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
+>   - sortByPosition : **string** `(<empty> | asc | desc)`
 
 <br />
 
