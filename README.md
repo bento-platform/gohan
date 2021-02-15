@@ -25,6 +25,9 @@ Run
 
 ## Development
 
+![Architecture](https://github.com/bento-platform/Bento.Variants/tree/master/images/architecture.png)
+
+
 ### **Console**
 
 *Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
@@ -108,7 +111,7 @@ Local Alpine Release:
 
 &nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Console*
 
-> **Note:** this method is not recommended unless you are running your host machine on Alpine Linux. Unlike the **API** (seen below), this binary has no utility in being containerized. If you need to use this, run the same command as you would above with just a `Release`
+> **Note:** this method is not recommended unless you are running your host machine on Alpine Linux. Unlike the **API** (seen below), this binary has no utility in being containerized. If you need to use this, run the same commands as you would with just a `Release` above but with `ReleaseAlpine` instead
 
 <br />
 
@@ -148,6 +151,7 @@ Containerized Alpine Release:
 
 <br />
 <br />
+
 
 
 ## Deployments :
