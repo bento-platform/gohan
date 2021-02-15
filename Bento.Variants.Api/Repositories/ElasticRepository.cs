@@ -20,7 +20,11 @@ namespace Bento.Variants.Api.Repositories
             ElasticClient = elasticClient;
         }
 
-        public async Task<List<dynamic>> GetDocumentsContainingVariantOrSampleIdInPositionRange(double? chromosome, string variantId, string sampleId, double? lowerBound, double? upperBound, int size = 100, string sortByPosition = null)
+        public async Task<List<dynamic>> GetDocumentsContainingVariantOrSampleIdInPositionRange(double? chromosome, 
+            string variantId, string sampleId, 
+            double? lowerBound, double? upperBound, 
+            int size = 100, string sortByPosition = null,
+            bool includeSamplesInResultSet = true)
         {
             var searchResponse = (await ElasticClient.SearchAsync<dynamic>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")
@@ -79,9 +83,14 @@ namespace Bento.Variants.Api.Repositories
                 ))
                 .Source(src => src
                     .IncludeAll()
-                    .Excludes(e => e
-                        .Field("samples")
-                    )
+                    .Excludes(e => 
+                    {
+                        if (includeSamplesInResultSet == false)
+                        {
+                            e.Field("samples");
+                        }
+                        return e;
+                    })
                 )
                 .Sort(sort => sort
                     .Field(f =>

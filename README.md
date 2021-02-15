@@ -64,6 +64,7 @@ From the project root, run
 >   - ids : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
+>   - includeSamplesInResultSet : **boolean** `(true | false)`
 
 <br/>
 
@@ -75,6 +76,7 @@ From the project root, run
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
+>   - includeSamplesInResultSet : **boolean** `(true | false)`
 
 <br/>
 

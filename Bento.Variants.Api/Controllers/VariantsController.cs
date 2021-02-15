@@ -34,7 +34,8 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
             [FromQuery] int size = 100,
-            [FromQuery] string sortByPosition = null)
+            [FromQuery] string sortByPosition = null,
+            [FromQuery] bool includeSamplesInResultSet = true)
         {
             if (string.IsNullOrEmpty(ids))
             {
@@ -66,7 +67,11 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, null, sampleId, lowerBound, upperBound, size, sortByPosition).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                        null, sampleId, 
+                        lowerBound, upperBound, 
+                        size, sortByPosition,
+                        includeSamplesInResultSet).Result;
                     results[sampleId] = docs;                    
                 });
 
@@ -92,7 +97,8 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] double? lowerBound,
             [FromQuery] double? upperBound,
             [FromQuery] int size = 100,
-            [FromQuery] string sortByPosition = null)
+            [FromQuery] string sortByPosition = null,
+            [FromQuery] bool includeSamplesInResultSet = false)
         {
             if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
                 (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
@@ -116,7 +122,11 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(variantIdList, variant =>
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, variant, null, lowerBound, upperBound, size, sortByPosition).Result;
+                    var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                        variant, null, 
+                        lowerBound, upperBound, 
+                        size, sortByPosition,
+                        includeSamplesInResultSet).Result;
                     docResults[variant] = docs;
                 });
 
