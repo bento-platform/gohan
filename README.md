@@ -13,11 +13,23 @@
 
 ## Getting started
 
+### **Environment :**
+
+First, from the project root, create a local file for environment variables with default settings by running
+
+> `cp ./etc/example.env .env`
+
+ and make any necessary changes.
+
+<br >
+
+
 ### **Elasticsearch & Kibana :**
 
 Run 
-- `make run-elasticsearch`
-- `make run-kibana` *(optional)*
+> `make run-elasticsearch`
+
+> `make run-kibana` *(optional)*
 
 <br />
 <br />
