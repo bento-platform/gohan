@@ -15,7 +15,11 @@ RUN apk upgrade
 ARG SRC_DIR
 COPY $SRC_DIR /app/
 
+ARG INTERNAL_PORT
+ENV internal_port=$INTERNAL_PORT
+
+EXPOSE $INTERNAL_PORT
+
 # Run
 WORKDIR /app
-ENTRYPOINT ./Bento.Variants.Api --urls http://0.0.0.0:5000
-#dotnet Bento.Variants.Api.dll --urls http://0.0.0.0:5000
+ENTRYPOINT ./Bento.Variants.Api --urls http://0.0.0.0:$internal_port
