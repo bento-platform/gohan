@@ -34,6 +34,8 @@ services:
       - ElasticSearch__Username=${BENTO_VARIANTS_ES_USERNAME}
       - ElasticSearch__Password=${BENTO_VARIANTS_ES_PASSWORD}
 
+      - ElasticSearch__GatewayPath=${BENTO_VARIANTS_ES_GATEWAY_PATH}
+
       - ElasticSearch__PrimaryIndex=${BENTO_VARIANTS_API_ES_PI}
       - ElasticSearch__Protocol=${BENTO_VARIANTS_API_ES_PROTO}
       - ElasticSearch__Host=${BENTO_VARIANTS_API_ES_HOST}
