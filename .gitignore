@@ -13,3 +13,6 @@ data
 
 # dev executables
 console
+
+# ingress certs
+ingress/certs/*
