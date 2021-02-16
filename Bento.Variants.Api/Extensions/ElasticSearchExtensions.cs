@@ -24,20 +24,21 @@ namespace Bento.Variants.Api
             }
 
             var settings = new ConnectionSettings(new Uri(url))
-                //.BasicAuthentication("elastic", $"{configuration["LOGS_PASSWORD"]}")
+                .BasicAuthentication($"{configuration["ElasticSearch:Username"]}", $"{configuration["ElasticSearch:Password"]}")
                 .DefaultIndex(indexMap)
-                .EnableDebugMode();
+                //.EnableDebugMode()
                 //.DefaultMappingFor<dynamic>(m => m
                 //    .PropertyName(p => p.UnixTimestampUTC, "unixtimestamputc")
                 //    .PropertyName(p => p.Message, "message"))
                 // .ServerCertificateValidationCallback((sender, cert, chain, errors) =>
                 // {
-                //     if (cert.Subject == "CN=*.bentov2.local")
+                //     if (cert.Subject == "CN=variants.local")
                 //         return true;
 
                 //     Console.WriteLine($"Error - Invalid ElasticSearch SSL Certificate : Subject {cert.Subject}");
                 //     return false;
-                // });
+                // })
+                ;
 
             var client = new ElasticClient(settings);
 

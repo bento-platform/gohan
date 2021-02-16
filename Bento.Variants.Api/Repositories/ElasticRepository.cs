@@ -121,12 +121,15 @@ namespace Bento.Variants.Api.Repositories
             //var rawQuery = searchResponse.DebugInformation;
             //System.Console.WriteLine(rawQuery);
 
+            if (!searchResponse.IsValid)
+                throw new System.Exception("Cannot connect to Elasticsearch!");
+            
             return searchResponse.Documents.ToList();
         }
 
         public async Task<long> CountDocumentsContainingVariantOrSampleIdInPositionRange(double? chromosome, string variantId, string sampleId, double? lowerBound, double? upperBound)
         {      
-            var searchResponse = (await ElasticClient.CountAsync<dynamic>(s => s
+            var countResponse = (await ElasticClient.CountAsync<dynamic>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")
                 .Query(q => q
                     .Bool(bq => bq
@@ -182,8 +185,14 @@ namespace Bento.Variants.Api.Repositories
                     )                    
                 )))
             );
+
+            //var rawQuery = searchResponse.DebugInformation;
+            //System.Console.WriteLine(rawQuery);
+
+            if (!countResponse.IsValid)
+                throw new System.Exception("Cannot connect to Elasticsearch!");
             
-            return searchResponse.Count;
+            return countResponse.Count;
         }
     }
 }
