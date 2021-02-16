@@ -14,5 +14,5 @@ data
 # dev executables
 console
 
-# ingress certs
-ingress/certs/*
+# gateway certs
+gateway/certs/*

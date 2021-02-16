@@ -19,7 +19,9 @@ First, from the project root, create a local file for environment variables with
 
 > `cp ./etc/example.env .env`
 
- and make any necessary changes.
+ and make any necessary changes, such as the Elasticsearch `BENTO_VARIANTS_ES_USERNAME` and `BENTO_VARIANTS_ES_PASSWORD` when in production.
+
+ > Note: if `BENTO_VARIANTS_ES_USERNAME` and `BENTO_VARIANTS_ES_PASSWORD` are to be modified for development, be sure to mirror the changes done in `.env` in the `Bento.Variants.Api/appsettings.Development.json` to give the API access, as the dev username and password is hard-coded in both files.
 
 <br >
 
@@ -40,11 +42,22 @@ Run
 ![Architecture](https://github.com/bento-platform/Bento.Variants/blob/master/images/architecture.png?raw=true)
 
 
+### **Gateway**
+To create and use development certs from the project root, run
+
+> `mkdir -p gateway/certs/dev`
+> 
+> `openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/variants_privkey1.key -x509 -days 365 -out gateway/certs/dev/variants_fullchain1.crt`
+
+These will be incorporated into the **Gateway** service (using NGINX by default, see `gateway/Dockerfile` and `gateway/nginx.conf` for details)
+
+<br />
+
 ### **Console**
 
 *Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
 Copy the VCFs to a directory local to the project (*i.e. .../Bento.Variants/**vcfs***), and, from the project root, run 
-> `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchURL http://localhost:9200`.
+> `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchURL ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}`.
 
 <br />
 
@@ -131,7 +144,7 @@ Local Release:
 
 > `cd bin/Release/netcoreapp3.1/linux-x64/publish`
 >
-> `./Bento.Variants.Console --vcfPath vcfs --elasticsearchURL http://localhost:9200`
+> `./Bento.Variants.Console --vcfPath vcfs --elasticsearchURL ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT} --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}`
 
 Local Alpine Release: 
 > `dotnet publish -c ReleaseAlpine --self-contained` 
@@ -144,17 +157,26 @@ Local Alpine Release:
 
 ### **API :**
 Local Release: 
+&nbsp;First, edit the `.env` and set
 
-&nbsp;From ***Bento.Variants.Api/***, run 
+> `BENTO_VARIANTS_ES_GATEWAY_PATH=/es`
+
+&nbsp;then, from ***Bento.Variants.Api/***, run 
 
 > `dotnet publish -c Release --self-contained` 
 
+
+
 &nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Api* and executed with
 
-> `export ElasticSearch__PrimaryIndex=variants`<br />
-> `export ElasticSearch__Protocol=http`<br />
-> `export ElasticSearch__Host=localhost`<br />
-> `export ElasticSearch__Port=9200`
+
+> `export ElasticSearch__Username=${BENTO_VARIANTS_ES_USERNAME}`<br />
+> `export ElasticSearch__Password=${BENTO_VARIANTS_ES_PASSWORD}`<br />
+> `export ElasticSearch__GatewayPath=${BENTO_VARIANTS_ES_GATEWAY_PATH}`<br />
+> `export ElasticSearch__PrimaryIndex=${BENTO_VARIANTS_ES_PASSWORD}`<br />
+> `export ElasticSearch__Protocol=${BENTO_VARIANTS_PUBLIC_PROTO}`<br />
+> `export ElasticSearch__Host=${BENTO_VARIANTS_PUBLIC_HOSTNAME}`<br />
+> `export ElasticSearch__Port=${BENTO_VARIANTS_PUBLIC_PORT}`
 >
 > `cd bin/Release/netcoreapp3.1/linux-x64/publish`
 >

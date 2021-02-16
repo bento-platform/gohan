@@ -18,7 +18,9 @@ namespace Bento.Variants.Console
             System.Console.WriteLine("Hello World!");
 
             string vcfFilesPath = null;
-            string url = null; //"http://localhost:9200";
+            string url = null;
+            string esUsername = null;
+            string esPassword = null;
 
             // Validate arguments
             int argNum = 0;
@@ -37,6 +39,16 @@ namespace Bento.Variants.Console
                             if(args.Length >= argNum+1)    
                                 url = $"{args[argNum+1]}";
                             break;
+
+                        case "--elasticsearchUsername":
+                            if(args.Length >= argNum+1)    
+                                esUsername = $"{args[argNum+1]}";
+                            break;
+                            
+                        case "--elasticsearchPassword":
+                            if(args.Length >= argNum+1)    
+                                esPassword = $"{args[argNum+1]}";
+                            break;
                     }
                 }
 
@@ -49,6 +61,12 @@ namespace Bento.Variants.Console
             if(string.IsNullOrEmpty(url))
                 throw new Exception("Missing --elasticsearchUrl argument!");
 
+            if(string.IsNullOrEmpty(esUsername))
+                throw new Exception("Missing --elasticsearchUsername argument!");
+
+            if(string.IsNullOrEmpty(esPassword))
+                throw new Exception("Missing --elasticsearchPassword argument!");
+
 
             // Begin !
             Stopwatch stopWatch = new Stopwatch();
@@ -58,24 +76,28 @@ namespace Bento.Variants.Console
             var indexMap = "variants";
 
             var settings = new ConnectionSettings(new Uri(url))
+                .BasicAuthentication(esUsername, esPassword)
                 .DefaultIndex(indexMap);
+
             var client = new ElasticClient(settings);
+
 
             // Get all project vcf files
             string[] files = System.IO.Directory.GetFiles(vcfFilesPath, "*.vcf");
 
-
             int rowCount = 0;            
             ParallelOptions poFiles = new ParallelOptions {
-                MaxDegreeOfParallelism = 2 // only x files at a time
+                // Process ~3 times fewer files simultaneously 
+                // as there are processors on the host machine
+                MaxDegreeOfParallelism = (int)Math.Round((double)Environment.ProcessorCount / 3)
             };
             
             ParallelOptions poRows = new ParallelOptions {
-                MaxDegreeOfParallelism = 6
+                MaxDegreeOfParallelism = Environment.ProcessorCount 
             };
             
             ParallelOptions poColumns = new ParallelOptions {
-                MaxDegreeOfParallelism = 6
+                MaxDegreeOfParallelism = Environment.ProcessorCount 
             };
 
             Parallel.ForEach(files, poFiles, (filepath, _, fileNumber) =>
