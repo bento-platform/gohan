@@ -15,6 +15,7 @@ services:
       - "80:80"
       - "443:443"
 
+
   api:
     build:
       context: $PWD/Bento.Variants.Api
@@ -29,10 +30,14 @@ services:
       - bridge-net
     environment:
       # Elasticsearch
+      - ElasticSearch__Username=${BENTO_VARIANTS_ES_USERNAME}
+      - ElasticSearch__Password=${BENTO_VARIANTS_ES_PASSWORD}
+
       - ElasticSearch__PrimaryIndex=${BENTO_VARIANTS_API_ES_PI}
       - ElasticSearch__Protocol=${BENTO_VARIANTS_API_ES_PROTO}
       - ElasticSearch__Host=${BENTO_VARIANTS_API_ES_HOST}
       - ElasticSearch__Port=${BENTO_VARIANTS_API_ES_PORT}
+
       # .NET
       - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
       - DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -49,10 +54,14 @@ services:
     networks: 
       - bridge-net
     environment:
-      - discovery.type=${BENTO_VARIANTS_ES_DISC_TYP}
+      - ELASTIC_USERNAME=${BENTO_VARIANTS_ES_USERNAME}
+      - ELASTIC_PASSWORD=${BENTO_VARIANTS_ES_PASSWORD}
       - ${BENTO_VARIANTS_ES_JAVA_OPTS}
+      - xpack.security.enabled=true
+      - discovery.type=${BENTO_VARIANTS_ES_DISC_TYP}
     volumes: 
       - ${BENTO_VARIANTS_ES_DATA_DIR}:/usr/share/elasticsearch/data
+
 
   kibana:
     image: ${BENTO_VARIANTS_KB_BASE_IMAGE}:${BENTO_VARIANTS_KB_BASE_VERSION}
@@ -63,6 +72,7 @@ services:
       - ELASTICSEARCH_URL=${BENTO_VARIANTS_KB_ES_HOST}:${BENTO_VARIANTS_KB_ES_PORT}
     ports: 
       - ${BENTO_VARIANTS_KB_EXTERNAL_PORT}:${BENTO_VARIANTS_KB_INTERNAL_PORT}
+
 
 networks: 
   bridge-net:
