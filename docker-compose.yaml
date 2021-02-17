@@ -79,8 +79,8 @@ services:
       - bridge-net
     environment:
       - ELASTICSEARCH_URL=${BENTO_VARIANTS_KB_ES_HOST}:${BENTO_VARIANTS_KB_ES_PORT}
-    ports: 
-      - ${BENTO_VARIANTS_KB_EXTERNAL_PORT}:${BENTO_VARIANTS_KB_INTERNAL_PORT}
+    # ports: 
+    #   - ${BENTO_VARIANTS_KB_EXTERNAL_PORT}:${BENTO_VARIANTS_KB_INTERNAL_PORT}
 
 
 networks: 
