@@ -14,5 +14,7 @@ namespace Bento.Variants.Api.Repositories.Interfaces
             double? lowerBound, double? upperBound, 
             int size = 100, string sortByPosition = null,
             bool includeSamplesInResultSet = true);
+
+        Task<dynamic> GetFileByFileId(string fileId);
     }
 }

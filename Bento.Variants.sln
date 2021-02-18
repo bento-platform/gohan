@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bento.Variants.Api", "Bento
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bento.Variants.Console", "Bento.Variants.Console\Bento.Variants.Console.csproj", "{E634D808-DBC5-48FF-B207-89F6A7708330}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bento.Variants.XCC", "Bento.Variants.XCC\Bento.Variants.XCC.csproj", "{2A52A074-28FD-41FF-B5C1-56DA3006E691}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,5 +61,23 @@ Global
 		{E634D808-DBC5-48FF-B207-89F6A7708330}.ReleaseAlpine|x64.Build.0 = ReleaseAlpine|Any CPU
 		{E634D808-DBC5-48FF-B207-89F6A7708330}.ReleaseAlpine|x86.ActiveCfg = ReleaseAlpine|Any CPU
 		{E634D808-DBC5-48FF-B207-89F6A7708330}.ReleaseAlpine|x86.Build.0 = ReleaseAlpine|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Debug|x64.Build.0 = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Debug|x86.Build.0 = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Release|x64.ActiveCfg = Release|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Release|x64.Build.0 = Release|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Release|x86.ActiveCfg = Release|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.Release|x86.Build.0 = Release|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.ReleaseAlpine|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.ReleaseAlpine|Any CPU.Build.0 = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.ReleaseAlpine|x64.ActiveCfg = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.ReleaseAlpine|x64.Build.0 = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.ReleaseAlpine|x86.ActiveCfg = Debug|Any CPU
+		{2A52A074-28FD-41FF-B5C1-56DA3006E691}.ReleaseAlpine|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal
