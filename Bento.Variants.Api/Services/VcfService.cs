@@ -31,43 +31,55 @@ namespace Bento.Variants.Api.Repositories
             string vcfHeaders = Utils.Unzip(Convert.FromBase64String(originalFile["compressedHeaderBlockBase64"]));
         
             // Synthetize VCF
-            var keys = ((IDictionary<string, object>)docs.First()).Keys
-                .Select(k => k?.ToUpper());
+            var firstDoc = docs.FirstOrDefault();
+            if (firstDoc == null)
+                throw new Exception("Invalid VCF - No variants!");
 
+
+            var keys = ((IDictionary<string, object>)firstDoc).Keys
+                .Select(k => k?.ToUpper());
 
             StringBuilder synthesizedVcfBuilder = new StringBuilder();
 
+            // Order the keys according to the formalized sequence VCF columns arrive in,
+            // and exclude the ad hoc "samples" and "fileid" fields
             var orderedKeys = keys.Except(new List<string>(){"SAMPLES", "FILEID"})
                 .OrderBy(d => Utils.VCFColumnOrder.IndexOf(d))
-            .ToList();
+                .ToList();
+            
+            // Create our the VCF column row
             var keysHeaderString = string.Join("\t", orderedKeys);
 
 
             // Append sample IDs to header or
-            var firstDoc = docs.First();
             foreach(var sample in firstDoc["samples"])
             {
                 if (sample["sampleId"] == sampleId)
                     keysHeaderString += $"\t{sample["sampleId"]}";
             }
 
-            // Add the headers
+            // Add the headers to create our first block of VCF text
             synthesizedVcfBuilder.AppendLine(keysHeaderString);
 
             // Add the docs
             foreach(var doc in docs)
             {
+                // Order the  document keys according to the formalized sequence VCF columns arrive in
                 var orderedDoc = ((IDictionary<string, dynamic>)doc)
                     .OrderBy(b => 
                         Utils.VCFColumnOrder.FindIndex(a => a == b.Key.ToUpper()))
                     .ToDictionary(pair => pair.Key, pair => pair.Value);
 
+
+                // exclude the ad hoc "fileid" field
                 var _didRemove = orderedDoc.Remove("fileId");
 
+                // retrieve the "samples" for later use..
                 dynamic poppedSamples;
                 orderedDoc.Remove("samples", out poppedSamples);
 
-                // listB.OrderBy(b => listA.FindIndex(a => a.id == b.id));
+                // Iterate over each key-value pair in the ordered document, 
+                // and append the values appropriately to the line
                 var docLine = "";
                 foreach(var pair in orderedDoc)
                 {
@@ -101,10 +113,11 @@ namespace Bento.Variants.Api.Repositories
                         docLine += $"\t{sample["variation"]}";
                 }
             
-                
+                // Create the variant row
                 synthesizedVcfBuilder.AppendLine(docLine);
             }
             
+            // return the full VCF
             return string.Join(string.Empty, 
                 vcfHeaders, 
                 synthesizedVcfBuilder.ToString()

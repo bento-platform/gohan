@@ -29,10 +29,10 @@ namespace Bento.Variants.Api.Controllers
         [HttpGet]
         [Route("get/by/sampleId")]
         public IActionResult GetVariantsBySampleIds(
-            [FromQuery] double? chromosome, 
+            [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
-            [FromQuery] double? lowerBound,
-            [FromQuery] double? upperBound,
+            [FromQuery] long? lowerBound,
+            [FromQuery] long? upperBound,
             [FromQuery] int size = 100,
             [FromQuery] string sortByPosition = null,
             [FromQuery] bool includeSamplesInResultSet = true)
@@ -48,8 +48,8 @@ namespace Bento.Variants.Api.Controllers
                 });
             } 
 
-            if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
+            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
+                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
                 return Json(new 
@@ -92,16 +92,16 @@ namespace Bento.Variants.Api.Controllers
         [HttpGet]
         [Route("get/by/variantId")]
         public IActionResult GetVariantsByVariantIds(
-            [FromQuery] double? chromosome, 
+            [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
-            [FromQuery] double? lowerBound,
-            [FromQuery] double? upperBound,
+            [FromQuery] long? lowerBound,
+            [FromQuery] long? upperBound,
             [FromQuery] int size = 100,
             [FromQuery] string sortByPosition = null,
             [FromQuery] bool includeSamplesInResultSet = false)
         {
-            if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
+            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
+                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
                 return Json(new 
@@ -151,13 +151,13 @@ namespace Bento.Variants.Api.Controllers
         [HttpGet]
         [Route("count/by/variantId")]
         public IActionResult CountVariantsByVariantIds(
-            [FromQuery] double? chromosome, 
+            [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
-            [FromQuery] double? lowerBound,
-            [FromQuery] double? upperBound)
+            [FromQuery] long? lowerBound,
+            [FromQuery] long? upperBound)
         {
-            if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
+            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
+                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
                 return Json(new 
@@ -200,13 +200,13 @@ namespace Bento.Variants.Api.Controllers
         [HttpGet]
         [Route("count/by/sampleId")]
         public IActionResult CountVariantsBySampleIds(
-            [FromQuery] double? chromosome, 
+            [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
-            [FromQuery] double? lowerBound,
-            [FromQuery] double? upperBound)
+            [FromQuery] long? lowerBound,
+            [FromQuery] long? upperBound)
         {
-            if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
+            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
+                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
                 return Json(new 

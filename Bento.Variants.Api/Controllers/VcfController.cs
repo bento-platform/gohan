@@ -34,12 +34,24 @@ namespace Bento.Variants.Api.Controllers
         [HttpGet]
         [Route("get/by/sampleId")]
         public async Task<IActionResult> GetVariantsBySampleIds(
-            [FromQuery] double chromosome, 
+            [FromQuery] long? chromosome, 
             [FromQuery] string id, 
-            [FromQuery] double? lowerBound,
-            [FromQuery] double? upperBound,
+            [FromQuery] long? lowerBound,
+            [FromQuery] long? upperBound,
             [FromQuery] int size = 100)
         {
+             // Filter query parameters
+            if ((!chromosome.HasValue) || chromosome.Value <= 0)
+            {
+                string message = "missing chromosome!";
+
+                Console.WriteLine(message);
+                return Json(new 
+                {
+                    Error = message
+                });
+            } 
+
             if (string.IsNullOrEmpty(id))
             {
                 string message = "missing sample ID!";
@@ -51,8 +63,8 @@ namespace Bento.Variants.Api.Controllers
                 });
             } 
 
-            if ((upperBound?.GetType() == typeof(double) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(double) && upperBound == null) ||
+            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
+                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
                 return Json(new 
@@ -61,6 +73,7 @@ namespace Bento.Variants.Api.Controllers
                 });
             }
 
+            // Force ascending sort order
             string sortByPosition = "asc";
 
             try
@@ -77,7 +90,7 @@ namespace Bento.Variants.Api.Controllers
 
                 if (fileId == null)
                     return Content("No VCF available!", "application/octet-stream"); 
-                    
+
                 var recombinedVcfFile = await this.VcfService.SynthesizeSingleSampleIdVcf(id, fileId, docs);
                 
                 return Content(recombinedVcfFile, "application/octet-stream"); 

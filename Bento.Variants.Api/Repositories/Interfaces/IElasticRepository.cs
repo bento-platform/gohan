@@ -6,12 +6,12 @@ namespace Bento.Variants.Api.Repositories.Interfaces
 {
     public interface IElasticRepository
     {
-        Task<long> CountDocumentsContainingVariantOrSampleIdInPositionRange(double? chromosome, string variantId, string sampleId, double? lowerBound, double? upperBound);
+        Task<long> CountDocumentsContainingVariantOrSampleIdInPositionRange(long? chromosome, string variantId, string sampleId, long? lowerBound, long? upperBound);
         
         Task<List<dynamic>> GetDocumentsContainingVariantOrSampleIdInPositionRange(
-            double? chromosome, 
+            long? chromosome, 
             string variantId, string sampleId, 
-            double? lowerBound, double? upperBound, 
+            long? lowerBound, long? upperBound, 
             int size = 100, string sortByPosition = null,
             bool includeSamplesInResultSet = true);
 
