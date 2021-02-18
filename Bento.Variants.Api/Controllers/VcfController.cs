@@ -73,9 +73,12 @@ namespace Bento.Variants.Api.Controllers
                     size, sortByPosition
                 ).Result;
 
-                string fileId = docs.First()["fileId"];
+                string fileId = docs.FirstOrDefault()?["fileId"];
 
-                var recombinedVcfFile = await this.VcfService.SynthesizeSingleSampleIdVcf(fileId, docs);
+                if (fileId == null)
+                    return Content("No VCF available!", "application/octet-stream"); 
+                    
+                var recombinedVcfFile = await this.VcfService.SynthesizeSingleSampleIdVcf(id, fileId, docs);
                 
                 return Content(recombinedVcfFile, "application/octet-stream"); 
             }
