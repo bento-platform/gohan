@@ -69,6 +69,7 @@ From the project root, run
 
 <b>Endpoints :</b>
 
+ ***/variants***
 > &nbsp;&nbsp;**GET** /variants/get/by/variantId<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
@@ -112,6 +113,19 @@ From the project root, run
 
 <br />
 
+
+ ***/vcfs***
+> &nbsp;&nbsp;**GET** /vcfs/get/by/sampleId<br/>
+> &nbsp;&nbsp;&nbsp;params: 
+>   - chromosome : **number** `(required)`
+>   - lowerBound : **number**
+>   - upperBound : **number**
+>   - id : **string** `(a single sample ID alphanumeric code)`
+>   - size : **number** `(maximum number of results per id)`
+
+<br/>
+
+
 <b>Examples :</b>
 
 - http://localhost:5000/variants/get/by/variantId?lowerBound=25911206&upperBound=45911206&size=1000&sortByPosition=desc
@@ -128,6 +142,12 @@ From the project root, run
 
 - http://localhost:5000/variants/count/by/variantId?chromosome=22&lowerBound=10000000&upperBound=25000000
 
+
+<br />
+
+- http://localhost:5000/vcfs/get/by/sampleId?chromosome=2&id=NA12815&size=10000
+
+- http://localhost:5000/vcfs/get/by/sampleId?chromosome=2&id=NA12815&size=1000&lowerBound=1000&upperBound=100000
 
 <br />
 <br />
