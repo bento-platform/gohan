@@ -24,7 +24,7 @@ namespace Bento.Variants.Api.Repositories
             this.Configuration = configuration;
             this.ElasticRepository = elasticRepository;
         }
-        public async Task<string> SynthesizeSingleSampleIdVcf(string fileId, List<dynamic> docs)
+        public async Task<string> SynthesizeSingleSampleIdVcf(string sampleId, string fileId, List<dynamic> docs)
         {
             var originalFile = await ElasticRepository.GetFileByFileId(fileId);
             
@@ -47,7 +47,8 @@ namespace Bento.Variants.Api.Repositories
             var firstDoc = docs.First();
             foreach(var sample in firstDoc["samples"])
             {
-                keysHeaderString += $"\t{sample["sampleId"]}";
+                if (sample["sampleId"] == sampleId)
+                    keysHeaderString += $"\t{sample["sampleId"]}";
             }
 
             // Add the headers
@@ -96,7 +97,8 @@ namespace Bento.Variants.Api.Repositories
                 // Appened variations in order at the end of the line
                 foreach(var sample in poppedSamples)
                 {
-                    docLine += $"\t{sample["variation"]}";
+                    if (sample["sampleId"] == sampleId)
+                        docLine += $"\t{sample["variation"]}";
                 }
             
                 
