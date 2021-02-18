@@ -194,5 +194,40 @@ namespace Bento.Variants.Api.Repositories
             
             return countResponse.Count;
         }
+    
+        public async Task<dynamic> GetFileByFileId(string fileId)
+        {
+            var searchResponse = (await ElasticClient.SearchAsync<dynamic>(s => s
+                .Index($"files")
+                .Query(q => q
+                    .Bool(bq => bq
+                        .Filter(fq =>
+                        {
+                            QueryContainer query = null;
+
+                            if (!string.IsNullOrEmpty(fileId))
+                            {
+                                query &= fq
+                                    .QueryString(d => 
+                                        d.Query($"_id:{fileId}")
+                                    );
+                            }
+                            return query;
+                        }
+                    )                    
+                ))
+                .Source(src => src
+                    .IncludeAll()
+                ))
+            );
+            
+            //var rawQuery = searchResponse.DebugInformation;
+            //System.Console.WriteLine(rawQuery);
+
+            if (!searchResponse.IsValid)
+                throw new System.Exception("Cannot connect to Elasticsearch!");
+            
+            return searchResponse.Documents.FirstOrDefault();
+        }
     }
 }

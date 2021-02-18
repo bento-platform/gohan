@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Text;
+using System.Linq;
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -6,11 +7,13 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
+using Bento.Variants.XCC;
+
 using Nest;
 
 namespace Bento.Variants.Console
 {
-    class Program
+    public class Program
     {
         public static object HttpCallLockObject = new object();
         static void Main(string[] args)
@@ -76,6 +79,7 @@ namespace Bento.Variants.Console
             var indexMap = "variants";
 
             var settings = new ConnectionSettings(new Uri(url))
+                .ServerCertificateValidationCallback((o, certificate, chain, errors) => true) // allow self-signed certs
                 .BasicAuthentication(esUsername, esPassword)
                 .DefaultIndex(indexMap);
 
@@ -104,6 +108,24 @@ namespace Bento.Variants.Console
             {            
                 System.Console.WriteLine("Ingesting file {0}.", filepath);
 
+                // Collect all '#' lines as one header-block
+                var headerStringBuilder = new StringBuilder();
+                foreach(var line in File.ReadLines(filepath))
+                {
+                    if (line.ElementAt(0)=='#')
+                    {
+                        // Grab the Header line
+                        if(line.Contains("#CHROM"))
+                        {
+                            break;
+                        }
+                        else
+                        {
+                            headerStringBuilder.AppendLine(line);
+                        }
+                    }
+                }
+
                 bool fileIndexCreateSuccess = false;
                 int attempts = 0;
                 IndexResponse fileResponse = new IndexResponse();
@@ -114,7 +136,8 @@ namespace Bento.Variants.Console
                     // Create Elasticsearch documents for the filename
                     fileResponse = client.Index(new 
                     {
-                        filename = Path.GetFileName(filepath)
+                        filename = Path.GetFileName(filepath),
+                        compressedHeaderBlockBase64 = Convert.ToBase64String(Utils.Zip(headerStringBuilder.ToString()))
                     }, i => i.Index("files"));
 
                     if (fileResponse.Id != null)
@@ -270,7 +293,7 @@ namespace Bento.Variants.Console
                             }
                             descriptor = new BulkDescriptor();
 
-                            System.Console.Write("\r{0} rows ingested on so far..", rowCount);
+                            System.Console.Write("{0} rows ingested on so far..", rowCount);
                         }
                     }
 

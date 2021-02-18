@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <!-- Releases -->
@@ -35,6 +37,10 @@
 
   <ItemGroup>
     <PackageReference Include="NEST" Version="7.7.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bento.Variants.XCC\Bento.Variants.XCC.csproj" />
   </ItemGroup>
   
 </Project>
