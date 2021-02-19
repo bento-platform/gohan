@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 using Microsoft.Extensions.Configuration;
 
-using Bento.Variants.XCC;
+using Bento.Variants.Api.Models.DTOs;
 using Bento.Variants.Api.Services.Interfaces;
 using Bento.Variants.Api.Repositories.Interfaces;
+using Bento.Variants.XCC;
 
 namespace Bento.Variants.Api.Repositories
 {

@@ -7,20 +7,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
 using Bento.Variants.Api.Services.Interfaces;
-
 using Bento.Variants.Api.Repositories.Interfaces;
+
+using Bento.Variants.XCC;
 
 namespace Bento.Variants.Api.Controllers
 {
     [Route("vcfs")]
     public class VcfController : Controller
     {
-
         private readonly IConfiguration Configuration;
         private readonly IElasticRepository ElasticRepository;
         private readonly IVcfService VcfService;
         
-
         public VcfController(
             IVcfService vcfService,
             IElasticRepository elasticRepository,
@@ -48,7 +47,8 @@ namespace Bento.Variants.Api.Controllers
                 Console.WriteLine(message);
                 return Json(new 
                 {
-                    Error = message
+                    status = 500,
+                    message = message
                 });
             } 
 
@@ -59,7 +59,8 @@ namespace Bento.Variants.Api.Controllers
                 Console.WriteLine(message);
                 return Json(new 
                 {
-                    Error = message
+                    status = 500,
+                    message = message
                 });
             } 
 
@@ -69,7 +70,8 @@ namespace Bento.Variants.Api.Controllers
             {
                 return Json(new 
                 {
-                    Error = "Invalid lower and upper bounds!!" 
+                    status = 500,
+                    message = "Invalid lower and upper bounds!!" 
                 });
             }
 

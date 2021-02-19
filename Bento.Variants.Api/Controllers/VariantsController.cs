@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -6,7 +8,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
 using Bento.Variants.Api.Repositories.Interfaces;
+using Bento.Variants.Api.Models.DTOs;
 
+using Bento.Variants.XCC;
+// TODO: refactor paramter filtering code
 namespace Bento.Variants.Api.Controllers
 {
     [Route("variants")]
@@ -25,7 +30,7 @@ namespace Bento.Variants.Api.Controllers
 
         [HttpGet]
         [Route("get/by/sampleId")]
-        public IActionResult GetVariantsBySampleIds(
+        public VariantsResponseDTO GetVariantsBySampleIds(
             [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
             [FromQuery] long? lowerBound,
@@ -34,25 +39,29 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] string sortByPosition = null,
             [FromQuery] bool includeSamplesInResultSet = true)
         {
+            var response = new VariantsResponseDTO();
+
             if (string.IsNullOrEmpty(ids))
             {
                 string message = "missing sample ids!";
 
                 Console.WriteLine(message);
-                return Json(new 
-                {
-                    Error = message
-                });
+
+                response.Status = 500;
+                response.Message = message;
+
+                return response;
+            
             } 
 
             if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
                 (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
-                return Json(new 
-                {
-                    Error = "Invalid lower and upper bounds!!" 
-                });
+                response.Status = 500;
+                response.Message = "Invalid lower and upper bounds!!";
+
+                return response;
             }
 
             try
@@ -62,6 +71,7 @@ namespace Bento.Variants.Api.Controllers
                 var sampleIdList = ids.Split(",");
             
                 // TODO: optimize - make 1 repo call with all variantIds at once
+                var tempResultsList = new ConcurrentBag<dynamic>();
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
                     var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
@@ -70,25 +80,36 @@ namespace Bento.Variants.Api.Controllers
                         size, sortByPosition,
                         includeSamplesInResultSet).Result;
                     results[sampleId] = docs;                    
+                
+                    tempResultsList.Add(new VariantResponseDataModel()
+                    {
+                        SampleId = sampleId,
+                        Count = docs.Count,
+                        Results = docs
+                    });
                 });
 
-                return Json(results);    
+                response.Status = 200;
+                response.Message = "Success";
+                response.Data = tempResultsList.ToList();
+
+                return response;
+  
             }
             catch (System.Exception ex)
             {
                 Console.WriteLine($"Oops! : {ex.Message}");
                 
-                return Json(new 
-                {
-                    status = 500,
-                    message = "Failed to get variants by sample ids : " + ex.Message
-                });
+                response.Status = 500;
+                response.Message = "Failed to get : " + ex.Message;
+
+                return response;
             }
         }
 
         [HttpGet]
         [Route("get/by/variantId")]
-        public IActionResult GetVariantsByVariantIds(
+        public VariantsResponseDTO GetVariantsByVariantIds(
             [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
             [FromQuery] long? lowerBound,
@@ -97,14 +118,16 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] string sortByPosition = null,
             [FromQuery] bool includeSamplesInResultSet = false)
         {
+            var response = new VariantsResponseDTO();
+
             if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
                 (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
-                return Json(new 
-                {
-                    Error = "Invalid lower and upper bounds!!" 
-                });
+                response.Status = 500;
+                response.Message = "Invalid lower and upper bounds!!";
+
+                return response;
             }
 
             try
@@ -117,6 +140,7 @@ namespace Bento.Variants.Api.Controllers
                 var variantIdList = ids.Split(",");
                 
                 // TODO: optimize - make 1 repo call with all variantIds at once
+                var tempResultsList = new ConcurrentBag<dynamic>();
                 Parallel.ForEach(variantIdList, variant =>
                 {
                     var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
@@ -124,121 +148,146 @@ namespace Bento.Variants.Api.Controllers
                         lowerBound, upperBound, 
                         size, sortByPosition,
                         includeSamplesInResultSet).Result;
-                    docResults[variant] = docs;
+                
+                    tempResultsList.Add(new VariantResponseDataModel()
+                    {
+                        VariantId = variant,
+                        Count = docs.Count,
+                        Results = docs
+                    });
                 });
 
-                return Json(new
-                {
-                    Count = docResults.Count,
-                    Data = docResults
-                });
+                response.Status = 200;
+                response.Message = "Success";
+                response.Data = tempResultsList.ToList();
+
+                return response;
             }
             catch (System.Exception ex)
             {
                 Console.WriteLine($"Oops! : {ex.Message}");
                 
-                return Json(new 
-                {
-                    status = 500,
-                    message = "Failed to get : " + ex.Message
-                });
+                response.Status = 500;
+                response.Message = "Failed to get : " + ex.Message;
+
+                return response;
             }
         }
 
         [HttpGet]
         [Route("count/by/variantId")]
-        public IActionResult CountVariantsByVariantIds(
+        public VariantsResponseDTO CountVariantsByVariantIds(
             [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
             [FromQuery] long? lowerBound,
             [FromQuery] long? upperBound)
         {
+            var response = new VariantsResponseDTO();
+
             if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
                 (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
-                return Json(new 
-                {
-                    Error = "Invalid lower and upper bounds!!" 
-                });
+                response.Status = 500;
+                response.Message = "Invalid lower and upper bounds!!";
+
+                return response;
             }
 
             try
             {
-                Dictionary<string,long> countResults = new Dictionary<string, long>();
-
                 if (string.IsNullOrEmpty(ids))
                     ids = "*";
 
                 var variantIdList = ids.Split(",");
             
                 // TODO: optimize - make 1 repo call with all ids at once
+                var tempResultsList = new ConcurrentBag<dynamic>();
                 Parallel.ForEach(variantIdList, variantId =>
                 {
                     var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, variantId, null, lowerBound, upperBound).Result;
-                    countResults[variantId] = count;
+                                    
+                    tempResultsList.Add(new VariantResponseDataModel()
+                    {
+                        VariantId = variantId,
+                        Count = (int)count,
+                        Results = null
+                    });
                 });
 
-                return Json(countResults);    
+                response.Status = 200;
+                response.Message = "Success";
+                response.Data = tempResultsList.ToList();
+
+                return response;
             }
             catch (System.Exception ex)
             {
                 Console.WriteLine($"Oops! : {ex.Message}");
                 
-                return Json(new 
-                {
-                    status = 500,
-                    message = "Failed to count : " + ex.Message
-                });
+                response.Status = 500;
+                response.Message = "Failed to count : " + ex.Message;
+
+                return response;
             }
         }
 
 
         [HttpGet]
         [Route("count/by/sampleId")]
-        public IActionResult CountVariantsBySampleIds(
+        public VariantsResponseDTO CountVariantsBySampleIds(
             [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
             [FromQuery] long? lowerBound,
             [FromQuery] long? upperBound)
         {
+            var response = new VariantsResponseDTO();
+
             if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
                 (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
                 upperBound < lowerBound)
             {
-                return Json(new 
-                {
-                    Error = "Invalid lower and upper bounds!!" 
-                });
+                response.Status = 500;
+                response.Message = "Invalid lower and upper bounds!!";
+
+                return response;
             }
 
             try
             {
-                Dictionary<string,long> countResults = new Dictionary<string, long>();
-
                 if (string.IsNullOrEmpty(ids))
                     ids = "*";
 
                 var sampleIdList = ids.Split(",");
             
+                var tempResultsList = new ConcurrentBag<dynamic>();
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
                     var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, null, sampleId, lowerBound, upperBound).Result;
-                    countResults[sampleId] = count;
+
+                    tempResultsList.Add(new VariantResponseDataModel()
+                    {
+                        SampleId = sampleId,
+                        Count = (int)count,
+                        Results = null
+                    });
                 });
 
-                return Json(countResults);    
+                response.Status = 200;
+                response.Message = "Success";
+                response.Data = tempResultsList.ToList();
+
+                return response;
             }
             catch (System.Exception ex)
             {
                 Console.WriteLine($"Oops! : {ex.Message}");
                 
-                return Json(new 
-                {
-                    status = 500,
-                    message = "Failed to count : " + ex.Message
-                });
+                response.Status = 500;
+                response.Message = "Failed to count : " + ex.Message;
+
+                return response;
             }
         }
     }
