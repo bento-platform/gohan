@@ -69,7 +69,8 @@ From the project root, run
 
 <b>Endpoints :</b>
 
- ***/variants***
+ ***/variants*** <br />
+Requests
 > &nbsp;&nbsp;**GET** /variants/get/by/variantId<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
@@ -110,6 +111,43 @@ From the project root, run
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
+
+<br />
+Response
+
+>```json  
+>{
+>     "status":  `number` (200 - 500),
+>     "message": `string` ("Success" | "Error"),
+>     "data": [
+>         {
+>             "variantId":  `string`,
+>             "sampleId":  `string`,
+>             "count":  `number`,
+>             "results": [
+>                 {
+>                    "filter": `string`,
+>                    "ref": `string`, ( "A" | "C" | "G" | "T" )
+>                    "pos": `number`,
+>                    "alt": `string`, ( "A" | "C" | "G" | "T" )
+>                    "format":`string`,
+>                    "qual": `number`,
+>                    "id": `string`,
+>                    "samples": [
+>                        {
+>                            "sampleId": `string`,
+>                            "variation": `string`,
+>                        },
+>                        ...
+>                    ]
+>                 },
+>                 ...
+>             ]
+>         },
+>     ]
+> }
+> ```
+
 
 <br />
 
