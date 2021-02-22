@@ -75,10 +75,10 @@ namespace Bento.Variants.Api.Controllers
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
                     var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                        null, sampleId, 
                         lowerBound, upperBound, 
-                        size, sortByPosition,
-                        includeSamplesInResultSet).Result;
+                        variantId: null, sampleId: sampleId,
+                        size: size, sortByPosition: sortByPosition,
+                        includeSamplesInResultSet: includeSamplesInResultSet).Result;
                     results[sampleId] = docs;                    
                 
                     tempResultsList.Add(new VariantResponseDataModel()
@@ -144,10 +144,10 @@ namespace Bento.Variants.Api.Controllers
                 Parallel.ForEach(variantIdList, variant =>
                 {
                     var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                        variant, null, 
                         lowerBound, upperBound, 
-                        size, sortByPosition,
-                        includeSamplesInResultSet).Result;
+                        variantId: variant, sampleId: null,
+                        size: size, sortByPosition: sortByPosition,
+                        includeSamplesInResultSet: includeSamplesInResultSet).Result;
                 
                     tempResultsList.Add(new VariantResponseDataModel()
                     {
@@ -205,7 +205,9 @@ namespace Bento.Variants.Api.Controllers
                 var tempResultsList = new ConcurrentBag<dynamic>();
                 Parallel.ForEach(variantIdList, variantId =>
                 {
-                    var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, variantId, null, lowerBound, upperBound).Result;
+                    var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                        lowerBound, upperBound,
+                        variantId: variantId, sampleId: null).Result;
                                     
                     tempResultsList.Add(new VariantResponseDataModel()
                     {
@@ -264,7 +266,9 @@ namespace Bento.Variants.Api.Controllers
                 // TODO: optimize - make 1 repo call with all variantIds at once
                 Parallel.ForEach(sampleIdList, sampleId =>
                 {
-                    var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, null, sampleId, lowerBound, upperBound).Result;
+                    var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                        lowerBound, upperBound,
+                        variantId: null, sampleId: sampleId).Result;
 
                     tempResultsList.Add(new VariantResponseDataModel()
                     {

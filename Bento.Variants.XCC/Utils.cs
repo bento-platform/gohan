@@ -12,22 +12,27 @@ namespace Bento.Variants.XCC
             "CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT"
         };
  
-        public static void CopyTo(Stream src, Stream dest) {
+        public static void CopyTo(Stream src, Stream dest)
+        {
             byte[] bytes = new byte[4096];
 
             int cnt;
 
-            while ((cnt = src.Read(bytes, 0, bytes.Length)) != 0) {
+            while ((cnt = src.Read(bytes, 0, bytes.Length)) != 0)
+            {
                 dest.Write(bytes, 0, cnt);
             }
         }
 
-        public static byte[] Zip(string str) {
+        public static byte[] Zip(string str)
+        {
             var bytes = Encoding.UTF8.GetBytes(str);
 
             using (var msi = new MemoryStream(bytes))
-            using (var mso = new MemoryStream()) {
-                using (var gs = new GZipStream(mso, CompressionMode.Compress)) {
+            using (var mso = new MemoryStream())
+            {
+                using (var gs = new GZipStream(mso, CompressionMode.Compress))
+                {
                     //msi.CopyTo(gs);
                     CopyTo(msi, gs);
                 }
@@ -36,10 +41,13 @@ namespace Bento.Variants.XCC
             }
         }
 
-        public static string Unzip(byte[] bytes) {
+        public static string Unzip(byte[] bytes)
+        {
             using (var msi = new MemoryStream(bytes))
-            using (var mso = new MemoryStream()) {
-                using (var gs = new GZipStream(msi, CompressionMode.Decompress)) {
+            using (var mso = new MemoryStream()) 
+            {
+                using (var gs = new GZipStream(msi, CompressionMode.Decompress))
+                {
                     //gs.CopyTo(mso);
                     CopyTo(gs, mso);
                 }

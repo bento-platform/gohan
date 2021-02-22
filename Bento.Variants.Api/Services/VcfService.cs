@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 using Microsoft.Extensions.Configuration;
 
-using Bento.Variants.Api.Models.DTOs;
 using Bento.Variants.Api.Services.Interfaces;
 using Bento.Variants.Api.Repositories.Interfaces;
 using Bento.Variants.XCC;
@@ -25,6 +24,7 @@ namespace Bento.Variants.Api.Repositories
             this.Configuration = configuration;
             this.ElasticRepository = elasticRepository;
         }
+        
         public async Task<string> SynthesizeSingleSampleIdVcf(string sampleId, string fileId, List<dynamic> docs)
         {
             var originalFile = await ElasticRepository.GetFileByFileId(fileId);
