@@ -69,9 +69,9 @@ From the project root, run
 
 <b>Endpoints :</b>
 
- ***/variants*** <br />
+***/variants*** <br />
 Requests
-> &nbsp;&nbsp;**GET** /variants/get/by/variantId<br/>
+> &nbsp;&nbsp;**GET** `/variants/get/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
@@ -83,7 +83,7 @@ Requests
 
 <br/>
 
-> &nbsp;&nbsp;**GET** /variants/get/by/sampleId<br/>
+> &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
@@ -95,7 +95,7 @@ Requests
 
 <br/>
 
-> &nbsp;&nbsp;**GET** /variants/count/by/variantId<br/>
+> &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
@@ -105,7 +105,7 @@ Requests
 <br />
 
 
-> &nbsp;&nbsp;**GET** /variants/count/by/sampleId<br/>
+> &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
@@ -152,8 +152,9 @@ Response
 <br />
 
 
- ***/vcfs***
-> &nbsp;&nbsp;**GET** /vcfs/get/by/sampleId<br/>
+***/vcfs*** <br />
+Request
+> &nbsp;&nbsp;**GET** `/vcfs/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(required)`
 >   - lowerBound : **number**
@@ -162,7 +163,12 @@ Response
 >   - size : **number** `(maximum number of results per id)`
 
 <br/>
+Response
 
+*`- A VCF file -`*
+
+<br/>
+<br/>
 
 <b>Examples :</b>
 
