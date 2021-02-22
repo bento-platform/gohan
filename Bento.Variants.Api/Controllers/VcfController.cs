@@ -83,9 +83,9 @@ namespace Bento.Variants.Api.Controllers
                 Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
 
                 var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                    null, id, 
                     lowerBound, upperBound, 
-                    size, sortByPosition
+                    variantId: null, sampleId: id,
+                    size: size, sortByPosition: sortByPosition
                 ).Result;
 
                 string fileId = docs.FirstOrDefault()?["fileId"];
