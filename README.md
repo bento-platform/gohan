@@ -29,9 +29,12 @@ First, from the project root, create a local file for environment variables with
 ### **Elasticsearch & Kibana :**
 
 Run 
-> `make run-elasticsearch`
-
+> `make run-elasticsearch` <br />
 > `make run-kibana` *(optional)*
+
+
+The first startup may fail on an `AccessDeniedException[/usr/share/elasticsearch/data/nodes];` and can be resolved by setting the data directory to have less strict permissions with
+> `sudo chmod -R 777 data/`
 
 <br />
 <br />
@@ -49,7 +52,7 @@ To create and use development certs from the project root, run
 > 
 > `openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/variants_privkey1.key -x509 -days 365 -out gateway/certs/dev/variants_fullchain1.crt`
 
-These will be incorporated into the **Gateway** service (using NGINX by default, see `gateway/Dockerfile` and `gateway/nginx.conf` for details)
+These will be incorporated into the **Gateway** service (using NGINX by default, see `gateway/Dockerfile` and `gateway/nginx.conf` for details). Be sure to update your local `/etc/hosts` file with the name of your choice.
 
 <br />
 
