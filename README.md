@@ -54,6 +54,12 @@ To create and use development certs from the project root, run
 
 These will be incorporated into the **Gateway** service (using NGINX by default, see `gateway/Dockerfile` and `gateway/nginx.conf` for details). Be sure to update your local `/etc/hosts` file with the name of your choice.
 
+Next, run
+
+> `make build-gateway` <br />
+> `make run-gateway`
+
+
 <br />
 
 ### **Console**
