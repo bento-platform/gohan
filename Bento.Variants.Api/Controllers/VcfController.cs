@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
+using Bento.Variants.Api.Filters;
 using Bento.Variants.Api.Services.Interfaces;
 using Bento.Variants.Api.Repositories.Interfaces;
 
@@ -31,6 +32,9 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
+        [MandateChromosome]
+        [MandateCalibratedBoundsAttribute]
+        [MandateSampleIdSingularAttribute]
         [Route("get/by/sampleId")]
         public async Task<IActionResult> GetVariantsBySampleIds(
             [FromQuery] long? chromosome, 
@@ -39,42 +43,6 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] long? upperBound,
             [FromQuery] int size = 100)
         {
-             // Filter query parameters
-            if ((!chromosome.HasValue) || chromosome.Value <= 0)
-            {
-                string message = "missing chromosome!";
-
-                Console.WriteLine(message);
-                return Json(new 
-                {
-                    status = 500,
-                    message = message
-                });
-            } 
-
-            if (string.IsNullOrEmpty(id))
-            {
-                string message = "missing sample ID!";
-
-                Console.WriteLine(message);
-                return Json(new 
-                {
-                    status = 500,
-                    message = message
-                });
-            } 
-
-            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
-                upperBound < lowerBound)
-            {
-                return Json(new 
-                {
-                    status = 500,
-                    message = "Invalid lower and upper bounds!!" 
-                });
-            }
-
             // Force ascending sort order
             string sortByPosition = "asc";
 

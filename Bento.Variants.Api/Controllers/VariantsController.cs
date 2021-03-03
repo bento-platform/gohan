@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
+using Bento.Variants.Api.Filters;
 using Bento.Variants.Api.Repositories.Interfaces;
 using Bento.Variants.Api.Models.DTOs;
 
-using Bento.Variants.XCC;
+
 // TODO: refactor paramter filtering code
 namespace Bento.Variants.Api.Controllers
 {
@@ -29,6 +30,8 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
+        [MandateSampleIdsPluralAttribute]
+        [MandateCalibratedBoundsAttribute]
         [Route("get/by/sampleId")]
         public VariantsResponseDTO GetVariantsBySampleIds(
             [FromQuery] long? chromosome, 
@@ -40,29 +43,6 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] bool includeSamplesInResultSet = true)
         {
             var response = new VariantsResponseDTO();
-
-            if (string.IsNullOrEmpty(ids))
-            {
-                string message = "missing sample ids!";
-
-                Console.WriteLine(message);
-
-                response.Status = 500;
-                response.Message = message;
-
-                return response;
-            
-            } 
-
-            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
-                upperBound < lowerBound)
-            {
-                response.Status = 500;
-                response.Message = "Invalid lower and upper bounds!!";
-
-                return response;
-            }
 
             try
             {
@@ -108,6 +88,7 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
+        [MandateCalibratedBoundsAttribute]
         [Route("get/by/variantId")]
         public VariantsResponseDTO GetVariantsByVariantIds(
             [FromQuery] long? chromosome, 
@@ -119,16 +100,6 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] bool includeSamplesInResultSet = false)
         {
             var response = new VariantsResponseDTO();
-
-            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
-                upperBound < lowerBound)
-            {
-                response.Status = 500;
-                response.Message = "Invalid lower and upper bounds!!";
-
-                return response;
-            }
 
             try
             {
@@ -175,6 +146,7 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
+        [MandateCalibratedBoundsAttribute]
         [Route("count/by/variantId")]
         public VariantsResponseDTO CountVariantsByVariantIds(
             [FromQuery] long? chromosome, 
@@ -183,16 +155,6 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] long? upperBound)
         {
             var response = new VariantsResponseDTO();
-
-            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
-                upperBound < lowerBound)
-            {
-                response.Status = 500;
-                response.Message = "Invalid lower and upper bounds!!";
-
-                return response;
-            }
 
             try
             {
@@ -236,6 +198,7 @@ namespace Bento.Variants.Api.Controllers
 
 
         [HttpGet]
+        [MandateCalibratedBoundsAttribute]
         [Route("count/by/sampleId")]
         public VariantsResponseDTO CountVariantsBySampleIds(
             [FromQuery] long? chromosome, 
@@ -244,16 +207,6 @@ namespace Bento.Variants.Api.Controllers
             [FromQuery] long? upperBound)
         {
             var response = new VariantsResponseDTO();
-
-            if ((upperBound?.GetType() == typeof(long) && lowerBound == null) ||
-                (lowerBound?.GetType() == typeof(long) && upperBound == null) ||
-                upperBound < lowerBound)
-            {
-                response.Status = 500;
-                response.Message = "Invalid lower and upper bounds!!";
-
-                return response;
-            }
 
             try
             {
