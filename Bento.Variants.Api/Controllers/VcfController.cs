@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
-using Bento.Variants.Api.Filters;
-using Bento.Variants.Api.Services.Interfaces;
+using Bento.Variants.Api.Middleware;
 using Bento.Variants.Api.Repositories.Interfaces;
+using Bento.Variants.Api.Services.Interfaces;
 
 using Bento.Variants.XCC;
 
@@ -46,35 +46,22 @@ namespace Bento.Variants.Api.Controllers
             // Force ascending sort order
             string sortByPosition = "asc";
 
-            try
-            {
-                Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
+            Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
 
-                var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                    lowerBound, upperBound, 
-                    variantId: null, sampleId: id,
-                    size: size, sortByPosition: sortByPosition
-                ).Result;
+            var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                lowerBound, upperBound, 
+                variantId: null, sampleId: id,
+                size: size, sortByPosition: sortByPosition
+            ).Result;
 
-                string fileId = docs.FirstOrDefault()?["fileId"];
+            string fileId = docs.FirstOrDefault()?["fileId"];
 
-                if (fileId == null)
-                    return Content("No VCF available!", "application/octet-stream"); 
+            if (fileId == null)
+                throw new Exception("No VCF available!");
 
-                var recombinedVcfFile = await this.VcfService.SynthesizeSingleSampleIdVcf(id, fileId, docs);
-                
-                return Content(recombinedVcfFile, "application/octet-stream"); 
-            }
-            catch (System.Exception ex)
-            {
-                Console.WriteLine($"Oops! : {ex.Message}");
-                
-                return Json(new 
-                {
-                    status = 500,
-                    message = "Failed to get variants by sample ids : " + ex.Message
-                });
-            }
+            var recombinedVcfFile = await this.VcfService.SynthesizeSingleSampleIdVcf(id, fileId, docs);
+            
+            return Content(recombinedVcfFile, "application/octet-stream");             
         }
     }
 }

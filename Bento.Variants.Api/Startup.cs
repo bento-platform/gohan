@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
+using Bento.Variants.Api.Middleware;
 using Bento.Variants.Api.Repositories;
 using Bento.Variants.Api.Repositories.Interfaces;
 
@@ -77,6 +78,9 @@ namespace Bento.Variants.Api
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
+
+            // global error handler
+            app.UseMiddleware<GlobalErrorHandlingMiddleware>();
 
             app.UseRouting();
 

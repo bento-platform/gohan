@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
-using Bento.Variants.Api.Filters;
+using Bento.Variants.Api.Middleware;
 using Bento.Variants.Api.Repositories.Interfaces;
 using Bento.Variants.Api.Models.DTOs;
 
@@ -44,47 +44,34 @@ namespace Bento.Variants.Api.Controllers
         {
             var response = new VariantsResponseDTO();
 
-            try
-            {
-                Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
+            Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
 
-                var sampleIdList = ids.Split(",");
+            var sampleIdList = ids.Split(",");
+        
+            // TODO: optimize - make 1 repo call with all variantIds at once
+            var tempResultsList = new ConcurrentBag<dynamic>();
+            Parallel.ForEach(sampleIdList, sampleId =>
+            {
+                var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                    lowerBound, upperBound, 
+                    variantId: null, sampleId: sampleId,
+                    size: size, sortByPosition: sortByPosition,
+                    includeSamplesInResultSet: includeSamplesInResultSet).Result;
+                results[sampleId] = docs;                    
             
-                // TODO: optimize - make 1 repo call with all variantIds at once
-                var tempResultsList = new ConcurrentBag<dynamic>();
-                Parallel.ForEach(sampleIdList, sampleId =>
+                tempResultsList.Add(new VariantResponseDataModel()
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                        lowerBound, upperBound, 
-                        variantId: null, sampleId: sampleId,
-                        size: size, sortByPosition: sortByPosition,
-                        includeSamplesInResultSet: includeSamplesInResultSet).Result;
-                    results[sampleId] = docs;                    
-                
-                    tempResultsList.Add(new VariantResponseDataModel()
-                    {
-                        SampleId = sampleId,
-                        Count = docs.Count,
-                        Results = docs
-                    });
+                    SampleId = sampleId,
+                    Count = docs.Count,
+                    Results = docs
                 });
+            });
 
-                response.Status = 200;
-                response.Message = "Success";
-                response.Data = tempResultsList.ToList();
+            response.Status = 200;
+            response.Message = "Success";
+            response.Data = tempResultsList.ToList();
 
-                return response;
-  
-            }
-            catch (System.Exception ex)
-            {
-                Console.WriteLine($"Oops! : {ex.Message}");
-                
-                response.Status = 500;
-                response.Message = "Failed to get : " + ex.Message;
-
-                return response;
-            }
+            return response;
         }
 
         [HttpGet]
@@ -101,48 +88,36 @@ namespace Bento.Variants.Api.Controllers
         {
             var response = new VariantsResponseDTO();
 
-            try
-            {
-                Dictionary<string,dynamic> docResults = new Dictionary<string, dynamic>();
+            Dictionary<string,dynamic> docResults = new Dictionary<string, dynamic>();
 
-                if (string.IsNullOrEmpty(ids))
-                    ids = "*";
-                
-                var variantIdList = ids.Split(",");
-                
-                // TODO: optimize - make 1 repo call with all variantIds at once
-                var tempResultsList = new ConcurrentBag<dynamic>();
-                Parallel.ForEach(variantIdList, variant =>
+            if (string.IsNullOrEmpty(ids))
+                ids = "*";
+            
+            var variantIdList = ids.Split(",");
+            
+            // TODO: optimize - make 1 repo call with all variantIds at once
+            var tempResultsList = new ConcurrentBag<dynamic>();
+            Parallel.ForEach(variantIdList, variant =>
+            {
+                var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                    lowerBound, upperBound, 
+                    variantId: variant, sampleId: null,
+                    size: size, sortByPosition: sortByPosition,
+                    includeSamplesInResultSet: includeSamplesInResultSet).Result;
+            
+                tempResultsList.Add(new VariantResponseDataModel()
                 {
-                    var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                        lowerBound, upperBound, 
-                        variantId: variant, sampleId: null,
-                        size: size, sortByPosition: sortByPosition,
-                        includeSamplesInResultSet: includeSamplesInResultSet).Result;
-                
-                    tempResultsList.Add(new VariantResponseDataModel()
-                    {
-                        VariantId = variant,
-                        Count = docs.Count,
-                        Results = docs
-                    });
+                    VariantId = variant,
+                    Count = docs.Count,
+                    Results = docs
                 });
+            });
 
-                response.Status = 200;
-                response.Message = "Success";
-                response.Data = tempResultsList.ToList();
+            response.Status = 200;
+            response.Message = "Success";
+            response.Data = tempResultsList.ToList();
 
-                return response;
-            }
-            catch (System.Exception ex)
-            {
-                Console.WriteLine($"Oops! : {ex.Message}");
-                
-                response.Status = 500;
-                response.Message = "Failed to get : " + ex.Message;
-
-                return response;
-            }
+            return response;
         }
 
         [HttpGet]
@@ -156,44 +131,32 @@ namespace Bento.Variants.Api.Controllers
         {
             var response = new VariantsResponseDTO();
 
-            try
-            {
-                if (string.IsNullOrEmpty(ids))
-                    ids = "*";
+            if (string.IsNullOrEmpty(ids))
+                ids = "*";
 
-                var variantIdList = ids.Split(",");
-            
-                // TODO: optimize - make 1 repo call with all ids at once
-                var tempResultsList = new ConcurrentBag<dynamic>();
-                Parallel.ForEach(variantIdList, variantId =>
+            var variantIdList = ids.Split(",");
+        
+            // TODO: optimize - make 1 repo call with all ids at once
+            var tempResultsList = new ConcurrentBag<dynamic>();
+            Parallel.ForEach(variantIdList, variantId =>
+            {
+                var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                    lowerBound, upperBound,
+                    variantId: variantId, sampleId: null).Result;
+                                
+                tempResultsList.Add(new VariantResponseDataModel()
                 {
-                    var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                        lowerBound, upperBound,
-                        variantId: variantId, sampleId: null).Result;
-                                    
-                    tempResultsList.Add(new VariantResponseDataModel()
-                    {
-                        VariantId = variantId,
-                        Count = (int)count,
-                        Results = null
-                    });
+                    VariantId = variantId,
+                    Count = (int)count,
+                    Results = null
                 });
+            });
 
-                response.Status = 200;
-                response.Message = "Success";
-                response.Data = tempResultsList.ToList();
+            response.Status = 200;
+            response.Message = "Success";
+            response.Data = tempResultsList.ToList();
 
-                return response;
-            }
-            catch (System.Exception ex)
-            {
-                Console.WriteLine($"Oops! : {ex.Message}");
-                
-                response.Status = 500;
-                response.Message = "Failed to count : " + ex.Message;
-
-                return response;
-            }
+            return response;            
         }
 
 
@@ -208,44 +171,33 @@ namespace Bento.Variants.Api.Controllers
         {
             var response = new VariantsResponseDTO();
 
-            try
-            {
-                if (string.IsNullOrEmpty(ids))
-                    ids = "*";
+            if (string.IsNullOrEmpty(ids))
+                ids = "*";
 
-                var sampleIdList = ids.Split(",");
-            
-                var tempResultsList = new ConcurrentBag<dynamic>();
-                // TODO: optimize - make 1 repo call with all variantIds at once
-                Parallel.ForEach(sampleIdList, sampleId =>
+            var sampleIdList = ids.Split(",");
+        
+            var tempResultsList = new ConcurrentBag<dynamic>();
+            // TODO: optimize - make 1 repo call with all variantIds at once
+            Parallel.ForEach(sampleIdList, sampleId =>
+            {
+                var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
+                    lowerBound, upperBound,
+                    variantId: null, sampleId: sampleId).Result;
+
+                tempResultsList.Add(new VariantResponseDataModel()
                 {
-                    var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                        lowerBound, upperBound,
-                        variantId: null, sampleId: sampleId).Result;
-
-                    tempResultsList.Add(new VariantResponseDataModel()
-                    {
-                        SampleId = sampleId,
-                        Count = (int)count,
-                        Results = null
-                    });
+                    SampleId = sampleId,
+                    Count = (int)count,
+                    Results = null
                 });
+            });
 
-                response.Status = 200;
-                response.Message = "Success";
-                response.Data = tempResultsList.ToList();
+            response.Status = 200;
+            response.Message = "Success";
+            response.Data = tempResultsList.ToList();
 
-                return response;
-            }
-            catch (System.Exception ex)
-            {
-                Console.WriteLine($"Oops! : {ex.Message}");
-                
-                response.Status = 500;
-                response.Message = "Failed to count : " + ex.Message;
-
-                return response;
-            }
+            return response;
+            
         }
     }
 }
