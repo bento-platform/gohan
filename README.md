@@ -283,3 +283,7 @@ All in all, run
 > `make run-kibana` *(optional)* <br />
 > `make build-gateway && make run-gateway` <br />
 > `make build-api && make run-api`
+
+<br />
+
+For other handy tools, see the Makefile. Among these, you'll find build, start, stop and clean-up commands.
