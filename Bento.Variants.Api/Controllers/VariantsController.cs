@@ -30,8 +30,8 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
-        [MandateSampleIdsPluralAttribute]
-        [MandateCalibratedBoundsAttribute]
+        [MandateSampleIdsPlural]
+        [MandateCalibratedBounds]
         [Route("get/by/sampleId")]
         public VariantsResponseDTO GetVariantsBySampleIds(
             [FromQuery] long? chromosome, 
@@ -88,7 +88,7 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
-        [MandateCalibratedBoundsAttribute]
+        [MandateCalibratedBounds]
         [Route("get/by/variantId")]
         public VariantsResponseDTO GetVariantsByVariantIds(
             [FromQuery] long? chromosome, 
@@ -146,7 +146,7 @@ namespace Bento.Variants.Api.Controllers
         }
 
         [HttpGet]
-        [MandateCalibratedBoundsAttribute]
+        [MandateCalibratedBounds]
         [Route("count/by/variantId")]
         public VariantsResponseDTO CountVariantsByVariantIds(
             [FromQuery] long? chromosome, 
@@ -198,7 +198,7 @@ namespace Bento.Variants.Api.Controllers
 
 
         [HttpGet]
-        [MandateCalibratedBoundsAttribute]
+        [MandateCalibratedBounds]
         [Route("count/by/sampleId")]
         public VariantsResponseDTO CountVariantsBySampleIds(
             [FromQuery] long? chromosome, 

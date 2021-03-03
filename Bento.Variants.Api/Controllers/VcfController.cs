@@ -33,8 +33,8 @@ namespace Bento.Variants.Api.Controllers
 
         [HttpGet]
         [MandateChromosome]
-        [MandateCalibratedBoundsAttribute]
-        [MandateSampleIdSingularAttribute]
+        [MandateCalibratedBounds]
+        [MandateSampleIdSingular]
         [Route("get/by/sampleId")]
         public async Task<IActionResult> GetVariantsBySampleIds(
             [FromQuery] long? chromosome, 
