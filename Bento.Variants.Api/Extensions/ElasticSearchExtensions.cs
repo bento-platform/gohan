@@ -55,12 +55,6 @@ namespace Bento.Variants.Api
                 ;
 
             var client = new ElasticClient(settings);
-
-            // // Map and Ensure Minote Load-Balancer Logs Index is created
-            // var createIndexResponse = client.Indices.Create("minote-load-balancer-logs", c => c
-            //     .Map<MinoteLoadBalancerIndexMap>(m => m)
-            // );
-
             services.AddSingleton<IElasticClient>(client);
         }
     }
