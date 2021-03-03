@@ -66,7 +66,8 @@ Next, run
 
 *Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
 Copy the VCFs to a directory local to the project (*i.e. .../Bento.Variants/**vcfs***), and, from the project root, run 
-> `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchURL ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}`.
+> `source .env`
+> `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_GATEWAY_PATH}`.
 
 <br />
 
@@ -215,9 +216,11 @@ Local Release:
 
 &nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Console* and executed with
 
+> `source .env`
+> 
 > `cd bin/Release/netcoreapp3.1/linux-x64/publish`
 >
-> `./Bento.Variants.Console --vcfPath vcfs --elasticsearchURL ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT} --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}`
+> `./Bento.Variants.Console --vcfPath vcfs --elasticsearchURL ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_GATEWAY_PATH} --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}`
 
 Local Alpine Release: 
 > `dotnet publish -c ReleaseAlpine --self-contained` 

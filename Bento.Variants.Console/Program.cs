@@ -293,7 +293,7 @@ namespace Bento.Variants.Console
                             }
                             descriptor = new BulkDescriptor();
 
-                            System.Console.Write("{0} rows ingested on so far..", rowCount);
+                            System.Console.Write("\r{0} rows ingested on so far..", rowCount);
                         }
                     }
 

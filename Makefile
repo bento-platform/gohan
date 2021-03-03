@@ -67,5 +67,5 @@ clean-api:
 ## -- WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
 clean-elastic-data:
 	docker-compose -f docker-compose.yaml down
-	rm -rf ${BENTO_VARIANTS_ES_DATA_DIR}/nodes
+	sudo rm -rf ${BENTO_VARIANTS_ES_DATA_DIR}/nodes
 

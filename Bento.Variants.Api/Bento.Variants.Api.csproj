@@ -20,10 +20,9 @@
       <PublishSingleFile>true</PublishSingleFile>
       <SelfContained>true</SelfContained>
       <RuntimeIdentifier>linux-musl-x64</RuntimeIdentifier>
+      <PublishTrimmed>true</PublishTrimmed>
       <!-- 
-        * Architecture unsupported
-        
-        <PublishTrimmed>true</PublishTrimmed>
+        * Architecture unsupported *        
         <PublishReadyToRun>true</PublishReadyToRun> 
       -->
     </PropertyGroup>  
