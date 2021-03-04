@@ -69,3 +69,17 @@ clean-elastic-data:
 	docker-compose -f docker-compose.yaml down
 	sudo rm -rf ${BENTO_VARIANTS_ES_DATA_DIR}/nodes
 
+
+
+
+## Tests
+test-api-dev:
+	
+	# TODO: Fix this somehow (doens't yet work)
+	set DOTNET_TEST_USERNAME=${BENTO_VARIANTS_ES_USERNAME}
+	set DOTNET_TEST_PASSWORD=${BENTO_VARIANTS_ES_PASSWORD}
+
+	dotnet test -c Debug Bento.Variants.Tests/Bento.Variants.Tests.csproj
+
+test-api-release:
+	dotnet test -c Release Bento.Variants.Tests/Bento.Variants.Tests.csproj
