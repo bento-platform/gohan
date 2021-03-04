@@ -290,3 +290,9 @@ All in all, run
 <br />
 
 For other handy tools, see the Makefile. Among these, you'll find build, start, stop and clean-up commands.
+
+
+<br />
+
+## Tests :
+Coming soon..
