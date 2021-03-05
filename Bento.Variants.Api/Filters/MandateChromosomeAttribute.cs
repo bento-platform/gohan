@@ -4,7 +4,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-using Bento.Variants.Api.Models.DTOs;
+using Bento.Variants.XCC.Models.DTOs;
 
 namespace Bento.Variants.Api.Middleware
 {

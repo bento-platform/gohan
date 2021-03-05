@@ -8,43 +8,24 @@ using System.Net.Http;
 using Xunit;
 using Xunit.Repeat;
 
+using Newtonsoft.Json;
+
 using Bento.Variants.XCC;
+using Bento.Variants.XCC.Models.DTOs;
 
 namespace Bento.Variants.Tests
 {
-    public class UnitTest1 : IClassFixture<ApiTestFixture>
+    public class ElasticsearchTests : IClassFixture<IntegrationTestFixture>
     {
-        public ApiTestFixture fixture;
+        public IntegrationTestFixture fixture;
 
-        public UnitTest1(ApiTestFixture fixture)
+        public ElasticsearchTests(IntegrationTestFixture fixture)
         {
             this.fixture = fixture;
         }
 
-        [Fact]
-        public async void IsApiRunning()
-        {
-            bool didSucceed = false;
-
-            try	
-            {
-                HttpResponseMessage response = await fixture.client.GetAsync(fixture.ApiUrl);
-
-                didSucceed = response.StatusCode == HttpStatusCode.OK;
-            }
-            catch(HttpRequestException e)
-            {
-                Console.WriteLine("\nException Caught!");	
-                Console.WriteLine("Message :{0} ", e.Message);
-
-                didSucceed = false;
-            }
-
-            Assert.True(didSucceed);                    
-        }
-
         [Theory]
-        [Repeat(10)]
+        [Repeat(100)]
         public async void IsElasticSearchRunningAndSecure(int x)
         {
             bool didSucceed = false;
