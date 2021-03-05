@@ -50,7 +50,8 @@ namespace Bento.Variants.Tests
             {
                 // Create Basic Authentication header
                 var byteArray = Encoding.ASCII.GetBytes($"{username}:{password}");
-                fixture.client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+                fixture.client.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
 
                 // Make the call
                 HttpResponseMessage response = await fixture.client.GetAsync($"{fixture.ApiUrl}{fixture.PublicFacingElasticPath}");
