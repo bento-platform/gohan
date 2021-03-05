@@ -105,16 +105,11 @@ namespace Bento.Variants.Tests
         {
             var dto = await GetVariantsInOrder("asc");
 
-            Assert.True(dto != null);
-
-            Assert.Equal(dto.Status, 200);
-            Assert.Equal(dto.Message, "Success");
-
             var data = dto.Data.FirstOrDefault();
 
             Assert.True(data != null, "Data is null!");
             
-            var expectedList = data.Results.OrderBy(x => x["pos"]);
+            var expectedList = data.Results.OrderBy(x => x.Pos);
 
             Assert.True(
                 expectedList.SequenceEqual(data.Results), 
@@ -130,16 +125,11 @@ namespace Bento.Variants.Tests
         {
             var dto = await GetVariantsInOrder("desc");
 
-            Assert.True(dto != null);
-
-            Assert.Equal(dto.Status, 200);
-            Assert.Equal(dto.Message, "Success");
-
             var data = dto.Data.FirstOrDefault();
 
             Assert.True(data != null);
             
-            var expectedList = data.Results.OrderByDescending(x => x["pos"]);
+            var expectedList = data.Results.OrderByDescending(x => x.Pos);
 
             Assert.True(
                 expectedList.SequenceEqual(data.Results), 
@@ -147,7 +137,7 @@ namespace Bento.Variants.Tests
         }
 
         ///<summary>
-        /// Common function to handle ordered-by-position variants calls 
+        /// Common function to handle ordered-by-position get-variants calls 
         ///</summary>
         private async Task<VariantsResponseDTO> GetVariantsInOrder(string order)
         {
@@ -166,6 +156,11 @@ namespace Bento.Variants.Tests
                     Assert.Equal(response.StatusCode, HttpStatusCode.OK);
 
                     dto = JsonConvert.DeserializeObject<VariantsResponseDTO>(responseContent);
+                    
+                    Assert.True(dto != null);
+
+                    Assert.Equal(dto.Status, 200);
+                    Assert.Equal(dto.Message, "Success");
                 }
                 
                 return dto;

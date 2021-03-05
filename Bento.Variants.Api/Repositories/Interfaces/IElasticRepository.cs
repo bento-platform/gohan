@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using Bento.Variants.XCC.Models.Indexes;
+
 namespace Bento.Variants.Api.Repositories.Interfaces
 {
     public interface IElasticRepository
@@ -10,7 +12,7 @@ namespace Bento.Variants.Api.Repositories.Interfaces
             long? lowerBound, long? upperBound, 
             string variantId = null, string sampleId = null);
         
-        Task<List<dynamic>> GetDocumentsContainingVariantOrSampleIdInPositionRange(
+        Task<List<VariantIndex>> GetDocumentsContainingVariantOrSampleIdInPositionRange(
             long? chromosome,
             long? lowerBound, long? upperBound, 
             string variantId = null, string sampleId = null,  

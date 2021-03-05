@@ -8,7 +8,10 @@ using Microsoft.Extensions.Configuration;
 
 using Bento.Variants.Api.Services.Interfaces;
 using Bento.Variants.Api.Repositories.Interfaces;
+
 using Bento.Variants.XCC;
+using Bento.Variants.XCC.Models.Indexes;
+
 
 namespace Bento.Variants.Api.Repositories
 {
@@ -25,7 +28,7 @@ namespace Bento.Variants.Api.Repositories
             this.ElasticRepository = elasticRepository;
         }
         
-        public async Task<string> SynthesizeSingleSampleIdVcf(string sampleId, string fileId, List<dynamic> docs)
+        public async Task<string> SynthesizeSingleSampleIdVcf(string sampleId, string fileId, List<VariantIndex> docs)
         {
             var originalFile = await ElasticRepository.GetFileByFileId(fileId);
             
@@ -53,10 +56,10 @@ namespace Bento.Variants.Api.Repositories
 
 
             // Append sample IDs to header or
-            foreach(var sample in firstDoc["samples"])
+            foreach(var sample in firstDoc.Samples)
             {
-                if (sample["sampleId"] == sampleId)
-                    keysHeaderString += $"\t{sample["sampleId"]}";
+                if (sample.SampleId == sampleId)
+                    keysHeaderString += $"\t{sample.SampleId}";
             }
 
             // Add the headers to create our first block of VCF text

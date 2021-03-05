@@ -54,7 +54,7 @@ namespace Bento.Variants.Api.Controllers
                 size: size, sortByPosition: sortByPosition
             ).Result;
 
-            string fileId = docs.FirstOrDefault()?["fileId"];
+            string fileId = docs.FirstOrDefault()?.FileId;
 
             if (fileId == null)
                 throw new Exception("No VCF available!");

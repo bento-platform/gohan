@@ -24,8 +24,13 @@ namespace Bento.Variants.Tests
             this.fixture = fixture;
         }
 
+        ///<summary>
+        /// Ensures that Elasticsearch is secured behind the proxy
+        /// and requires a valid set of credentials by testing a 
+        /// set of valid credentials against a small set of invalid credentials
+        ///</summary>
         [Theory]
-        [Repeat(5)]
+        [Repeat(10)]
         public async void IsElasticSearchRunningAndSecure(int x)
         {
             bool didSucceed = false;
@@ -34,6 +39,7 @@ namespace Bento.Variants.Tests
             string username = RandomUtil.GetRandomString();
             string password = RandomUtil.GetRandomString();
 
+            // First test the valid credentials
             if (x == 1)
             {
                 username = fixture.ElasticUsername;
@@ -50,6 +56,7 @@ namespace Bento.Variants.Tests
             {
                 // Create Basic Authentication header
                 var byteArray = Encoding.ASCII.GetBytes($"{username}:{password}");
+                
                 fixture.client.DefaultRequestHeaders.Authorization = 
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
 
