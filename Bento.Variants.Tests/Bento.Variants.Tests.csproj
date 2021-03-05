@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+     <!-- Condition="'$(Configuration)' == 'Debug'" -->
+    <None Update="appsettings.test.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.repeat" Versiodn="1.1.26" />
