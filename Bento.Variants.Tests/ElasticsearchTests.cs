@@ -25,7 +25,7 @@ namespace Bento.Variants.Tests
         }
 
         [Theory]
-        [Repeat(100)]
+        [Repeat(5)]
         public async void IsElasticSearchRunningAndSecure(int x)
         {
             bool didSucceed = false;
@@ -55,14 +55,15 @@ namespace Bento.Variants.Tests
                 // Make the call
                 HttpResponseMessage response = await fixture.client.GetAsync($"{fixture.ApiUrl}{fixture.PublicFacingElasticPath}");
 
-                // Ensure random credentials are blocked
-                didSucceed = response.StatusCode == HttpStatusCode.Unauthorized;
+                if (x == 1)    
+                    // Ensure actual credentials get through
+                    Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+                
+                else
+                    // Ensure random credentials are blocked
+                    Assert.Equal(response.StatusCode, HttpStatusCode.Unauthorized);
 
-                if (x == 1)
-                {
-                    // .. and that the actual credentials get through
-                    didSucceed = response.StatusCode == HttpStatusCode.OK;
-                }
+                didSucceed = true;
             }
             catch(HttpRequestException e)
             {
