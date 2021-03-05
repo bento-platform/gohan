@@ -74,12 +74,15 @@ clean-elastic-data:
 
 ## Tests
 test-api-dev:
-	
-	# TODO: Fix this somehow (doens't yet work)
-	set DOTNET_TEST_USERNAME=${BENTO_VARIANTS_ES_USERNAME}
-	set DOTNET_TEST_PASSWORD=${BENTO_VARIANTS_ES_PASSWORD}
+	# Load environment variables (because xUnit doens't support simply loading ENV)
+	envsubst < ./etc/appsettings.test.json.tpl > ./Bento.Variants.Tests/appsettings.test.json
 
+	# Run the tests
 	dotnet test -c Debug Bento.Variants.Tests/Bento.Variants.Tests.csproj
 
 test-api-release:
 	dotnet test -c Release Bento.Variants.Tests/Bento.Variants.Tests.csproj
+
+clean-tests:
+	# Clean up
+	rm ./Bento.Variants.Tests/appsettings.test.json
