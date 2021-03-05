@@ -48,7 +48,7 @@ namespace Bento.Variants.Api.Controllers
             var sampleIdList = ids.Split(",");
         
             // TODO: optimize - make 1 repo call with all variantIds at once
-            var tempResultsList = new ConcurrentBag<dynamic>();
+            var tempResultsList = new ConcurrentBag<VariantResponseDataModel>();
             Parallel.ForEach(sampleIdList, sampleId =>
             {
                 var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
@@ -95,7 +95,7 @@ namespace Bento.Variants.Api.Controllers
             var variantIdList = ids.Split(",");
             
             // TODO: optimize - make 1 repo call with all variantIds at once
-            var tempResultsList = new ConcurrentBag<dynamic>();
+            var tempResultsList = new ConcurrentBag<VariantResponseDataModel>();
             Parallel.ForEach(variantIdList, variant =>
             {
                 var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
@@ -136,7 +136,7 @@ namespace Bento.Variants.Api.Controllers
             var variantIdList = ids.Split(",");
         
             // TODO: optimize - make 1 repo call with all ids at once
-            var tempResultsList = new ConcurrentBag<dynamic>();
+            var tempResultsList = new ConcurrentBag<VariantResponseDataModel>();
             Parallel.ForEach(variantIdList, variantId =>
             {
                 var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
@@ -175,7 +175,7 @@ namespace Bento.Variants.Api.Controllers
 
             var sampleIdList = ids.Split(",");
         
-            var tempResultsList = new ConcurrentBag<dynamic>();
+            var tempResultsList = new ConcurrentBag<VariantResponseDataModel>();
             // TODO: optimize - make 1 repo call with all variantIds at once
             Parallel.ForEach(sampleIdList, sampleId =>
             {

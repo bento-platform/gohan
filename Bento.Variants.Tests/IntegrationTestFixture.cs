@@ -29,21 +29,17 @@ namespace Bento.Variants.Tests
                 .AddJsonFile("appsettings.test.json")
                 .Build();
 
+            // Set up test-wide http configuration
             ApiUrl = config["ApiUrl"];
             PublicFacingElasticPath = config["PublicFacingElasticPath"];
 
             ElasticUsername = config["ElasticUsername"];
             ElasticPassword = config["ElasticPassword"];
-
             
-            // Set up UnitTest1-wide http client
 #if DEBUG
             httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
-            client = new HttpClient(httpClientHandler);
-# else
-            client = new HttpClient();
 #endif
-
+            client = new HttpClient(httpClientHandler, disposeHandler: false);
             client.Timeout = TimeSpan.FromSeconds(3);
 
         }

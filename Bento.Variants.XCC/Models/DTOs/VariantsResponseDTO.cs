@@ -5,7 +5,7 @@ namespace Bento.Variants.XCC.Models.DTOs
 {
     public class VariantsResponseDTO
     {
-        public List<dynamic> Data { get; set; } = new List<dynamic>();
+        public List<VariantResponseDataModel> Data { get; set; } = new List<VariantResponseDataModel>();
         public int Status { get; set; } = 0;
         public string Message { get; set; } = null;
     }
