@@ -7,6 +7,8 @@ using Nest;
 
 using Bento.Variants.Api.Repositories.Interfaces;
 
+using Bento.Variants.XCC.Models.Indexes;
+
 namespace Bento.Variants.Api.Repositories
 {
     public class ElasticRepository : IElasticRepository
@@ -20,13 +22,13 @@ namespace Bento.Variants.Api.Repositories
             ElasticClient = elasticClient;
         }
 
-        public async Task<List<dynamic>> GetDocumentsContainingVariantOrSampleIdInPositionRange(long? chromosome, 
+        public async Task<List<VariantIndex>> GetDocumentsContainingVariantOrSampleIdInPositionRange(long? chromosome, 
             long? lowerBound, long? upperBound, 
             string variantId = null, string sampleId = null, 
             int size = 100, string sortByPosition = null,
             bool includeSamplesInResultSet = true)
         {
-            var searchResponse = (await ElasticClient.SearchAsync<dynamic>(s => s
+            var searchResponse = (await ElasticClient.SearchAsync<VariantIndex>(s => s
                 .Index($"{Configuration["PrimaryIndex"]}")
                 .Query(q => q
                     .Bool(bq => bq
