@@ -7,7 +7,7 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-using Bento.Variants.Api.Models.DTOs;
+using Bento.Variants.XCC.Models.DTOs;
 
 namespace Bento.Variants.Api.Middleware
 {

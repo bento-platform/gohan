@@ -9,10 +9,9 @@ using Microsoft.Extensions.Configuration;
 
 using Bento.Variants.Api.Middleware;
 using Bento.Variants.Api.Repositories.Interfaces;
-using Bento.Variants.Api.Models.DTOs;
 
+using Bento.Variants.XCC.Models.DTOs;
 
-// TODO: refactor paramter filtering code
 namespace Bento.Variants.Api.Controllers
 {
     [Route("variants")]

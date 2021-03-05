@@ -17,3 +17,6 @@ console
 
 # gateway certs
 gateway/certs/*
+
+# temp test file
+Bento.Variants.Tests/appsettings.test.json

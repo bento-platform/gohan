@@ -5,10 +5,15 @@ using Microsoft.Extensions.Configuration;
 
 namespace Bento.Variants.Tests
 {
-    public class ApiTestFixture : IDisposable
+    public class IntegrationTestFixture : IDisposable
     {
         public string ApiUrl;
         public string PublicFacingElasticPath;
+
+        public string GetVariantsByVariantIdPath = "/variants/get/by/variantId";
+        public string GetVariantsBySampleIdPath = "/variants/get/by/sampleId";
+        public string CountVariantsByVariantIdPath = "/variants/count/by/variantId";
+        public string CountVariantsBySampleIdPath = "/variants/count/by/sampleId";
 
         public string ElasticUsername;
         public string ElasticPassword;
@@ -17,12 +22,12 @@ namespace Bento.Variants.Tests
         public HttpClientHandler httpClientHandler = new HttpClientHandler();
 
 
-        public ApiTestFixture()
+        public IntegrationTestFixture()
         {
             // Load Configuration
             var config = new ConfigurationBuilder()
-                    .AddJsonFile("appsettings.test.json")
-                    .Build();
+                .AddJsonFile("appsettings.test.json")
+                .Build();
 
             ApiUrl = config["ApiUrl"];
             PublicFacingElasticPath = config["PublicFacingElasticPath"];

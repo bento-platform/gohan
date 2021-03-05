@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Bento.Variants.Api.Models.DTOs
+namespace Bento.Variants.XCC.Models.DTOs
 {
     public class VariantsResponseDTO
     {
