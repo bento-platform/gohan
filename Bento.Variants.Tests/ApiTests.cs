@@ -28,7 +28,7 @@ namespace Bento.Variants.Tests
         }
 
         ///<summary>
-        /// Ensures that the api is reachable by pinging / and checking for a 200 status code
+        /// Ensures that the api is reachable by pinging `/` and checking for a 200 status code
         ///</summary>
         [Fact]
         public async void IsApiRunning()
@@ -54,7 +54,6 @@ namespace Bento.Variants.Tests
             Assert.True(didSucceed);                    
         }
 
-        
         ///<summary>
         /// Ensures that variants can be queried for and to include samples in the results set by
         /// pinging `/variants/get/by/variantId and verifying results
@@ -73,13 +72,13 @@ namespace Bento.Variants.Tests
             Assert.True(expectedList != null, "Samples are null!");
             Assert.True(expectedList.Count > 0, "Samples are missing!");
 
-            // Validate the state of the variations
+            // Validate the state of the samples
             Assert.True(
                 expectedList.All(x => 
                     x != null &&
-                    x.Variation != null &&
-                    x.Variation != string.Empty),
-                "Variations are empty");
+                    x.SampleId != null && x.SampleId != string.Empty &&
+                    x.Variation != null && x.Variation != string.Empty
+                ), "Variations are empty");
         }
 
         ///<summary>
@@ -98,11 +97,6 @@ namespace Bento.Variants.Tests
 
             Assert.True(expectedNullSamples == null, "Samples are not null!");
         }
-
-
-        
-    
-
 
         ///<summary>
         /// Ensures the order in which variants data is returned is in 
@@ -123,7 +117,6 @@ namespace Bento.Variants.Tests
                 expectedList.SequenceEqual(data.Results), 
                 "The list is not in ascending order!");
         }
-
 
         ///<summary>
         /// Ensures the order in which variants data is returned is in 
