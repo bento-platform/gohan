@@ -54,47 +54,55 @@ namespace Bento.Variants.Tests
             Assert.True(didSucceed);                    
         }
 
+        
         ///<summary>
-        /// Ensures that variants can be queried for by
-        /// pinging `/variants/get/by/variantId` without any parameters
-        /// and verifying the existance of results
+        /// Ensures that variants can be queried for and to include samples in the results set by
+        /// pinging `/variants/get/by/variantId and verifying results
         ///</summary>
         [Fact]
-        public async void CanGetVariantsBaseLineQuery()
+        public async void CanGetVariantsWithSamplesInResultset()
         {
-            bool didSucceed = false;
+            var dto = await GetVariantsWithSamplesInResultset(true);            
+            var data = dto.Data.FirstOrDefault();
 
-            try	
-            {
-                // Make the call
-                string url = $"{fixture.ApiUrl}{fixture.GetVariantsByVariantIdPath}";
-                
-                using (HttpResponseMessage response = await fixture.client.GetAsync(url))
-                {
-                    var responseContent = response.Content.ReadAsStringAsync().Result;
-
-                    Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+            Assert.True(data != null, "Data is null!");
             
-                    var dto = JsonConvert.DeserializeObject<VariantsResponseDTO>(responseContent);
+            var expectedList = data.Results.First().Samples;
 
-                    Assert.True(dto != null);
+            // Ensure samples were actually returned
+            Assert.True(expectedList != null, "Samples are null!");
+            Assert.True(expectedList.Count > 0, "Samples are missing!");
 
-                    Assert.Equal(dto.Status, 200);
-                    Assert.Equal(dto.Message, "Success");
-                }
-                
-                didSucceed = true;
-            }
-            catch(HttpRequestException e)
-            {
-                Console.WriteLine("\nException Caught!");	
-                Console.WriteLine("Message :{0} ", e.Message);
-
-                didSucceed = false;
-            }
-
-            Assert.True(didSucceed);                    
+            // Validate the state of the variations
+            Assert.True(
+                expectedList.All(x => 
+                    x != null &&
+                    x.Variation != null &&
+                    x.Variation != string.Empty),
+                "Variations are empty");
         }
+
+        ///<summary>
+        /// Ensures that variants can be queried for while excluding samples from the result set
+        ///</summary>
+        [Fact]
+        public async void CanGetVariantsWithOutSamplesInResultset()
+        {
+            var dto = await GetVariantsWithSamplesInResultset(false);            
+            var data = dto.Data.FirstOrDefault();
+
+            Assert.True(data != null, "Data is null!");
+            
+            // Make sure there aren't any samples present
+            var expectedNullSamples = data.Results.First().Samples;
+
+            Assert.True(expectedNullSamples == null, "Samples are not null!");
+        }
+
+
+        
+    
+
 
         ///<summary>
         /// Ensures the order in which variants data is returned is in 
@@ -116,6 +124,7 @@ namespace Bento.Variants.Tests
                 "The list is not in ascending order!");
         }
 
+
         ///<summary>
         /// Ensures the order in which variants data is returned is in 
         /// descending order by variant position
@@ -135,6 +144,7 @@ namespace Bento.Variants.Tests
                 expectedList.SequenceEqual(data.Results), 
                 "The list is not in descending order!");
         }
+
 
         ///<summary>
         /// Common function to handle ordered-by-position get-variants calls 
@@ -172,6 +182,43 @@ namespace Bento.Variants.Tests
 
                 return null;
             }
+        }
+
+        ///<summary>
+        /// Common function to handle including/excluding samples from variants calls
+        ///</summary>
+        private async Task<VariantsResponseDTO> GetVariantsWithSamplesInResultset(bool includeSamples)
+        {
+            VariantsResponseDTO dto = null;
+
+            try	
+            {
+                // Make the call
+                string query = $"?includeSamplesInResultSet={includeSamples}";
+                string url = $"{fixture.ApiUrl}{fixture.GetVariantsByVariantIdPath}{query}";
+                
+                using (HttpResponseMessage response = await fixture.client.GetAsync(url))
+                {
+                    var responseContent = response.Content.ReadAsStringAsync().Result;
+
+                    Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+            
+                    dto = JsonConvert.DeserializeObject<VariantsResponseDTO>(responseContent);
+
+                    Assert.True(dto != null);
+
+                    Assert.Equal(dto.Status, 200);
+                    Assert.Equal(dto.Message, "Success");
+                }
+
+            }
+            catch(HttpRequestException e)
+            {
+                Console.WriteLine("\nException Caught!");	
+                Console.WriteLine("Message :{0} ", e.Message);
+            }
+
+            return dto;                   
         }
     }
 }
