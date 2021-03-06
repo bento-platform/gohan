@@ -73,15 +73,18 @@ clean-elastic-data:
 
 
 ## Tests
-test-api-dev:
-	# Load environment variables (because xUnit doens't support simply loading ENV)
-	envsubst < ./etc/appsettings.test.json.tpl > ./Bento.Variants.Tests/appsettings.test.json
-
+test-api-dev: prepare-test-config
 	# Run the tests
 	dotnet test -c Debug Bento.Variants.Tests/Bento.Variants.Tests.csproj
 
-test-api-release:
-	dotnet test -c Release Bento.Variants.Tests/Bento.Variants.Tests.csproj
+# test-api-release:
+# 	dotnet test -c Release Bento.Variants.Tests/Bento.Variants.Tests.csproj
+
+prepare-test-config:
+	# Prepare environment variables dynamically via a JSON file 
+	# since xUnit doens't support loading env variables natively
+	# (see `./Bento.Variants.Tests/IntegrationTestFixture.cs`)
+	envsubst < ./etc/appsettings.test.json.tpl > ./Bento.Variants.Tests/appsettings.test.json
 
 clean-tests:
 	# Clean up

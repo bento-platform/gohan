@@ -295,4 +295,6 @@ For other handy tools, see the Makefile. Among these, you'll find build, start, 
 <br />
 
 ## Tests :
-Coming soon..
+
+Once `elasticsearch`, the `api`, and the `gateway` are up, run 
+> `make test-api-dev`
