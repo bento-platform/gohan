@@ -7,7 +7,8 @@ namespace Bento.Variants.Tests
 {
     public class IntegrationTestFixture : IDisposable
     {
-        public string ApiUrl;
+        public string VariantsGatewayUrl;
+        public string InsecureVariantsGatewayUrl;
         public string PublicFacingElasticPath;
 
         public string GetVariantsByVariantIdPath = "/variants/get/by/variantId";
@@ -19,8 +20,7 @@ namespace Bento.Variants.Tests
         public string ElasticPassword;
 
         public HttpClient client;
-        public HttpClientHandler httpClientHandler = new HttpClientHandler();
-
+        public HttpClientHandler httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
 
         public IntegrationTestFixture()
         {
@@ -30,7 +30,8 @@ namespace Bento.Variants.Tests
                 .Build();
 
             // Set up test-wide http configuration
-            ApiUrl = config["ApiUrl"];
+            VariantsGatewayUrl = config["VariantsGatewayUrl"];
+            InsecureVariantsGatewayUrl = config["InsecureVariantsGatewayUrl"];
             PublicFacingElasticPath = config["PublicFacingElasticPath"];
 
             ElasticUsername = config["ElasticUsername"];
