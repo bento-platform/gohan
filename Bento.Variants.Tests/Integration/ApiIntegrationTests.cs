@@ -71,14 +71,16 @@ namespace Bento.Variants.Tests.Integration
             // Ensure samples were actually returned
             Assert.True(expectedList != null, "Samples are null!");
             Assert.True(expectedList.Count > 0, "Samples are missing!");
-
-            // Validate the state of the samples
-            Assert.True(
-                expectedList.All(x => 
-                    x != null &&
-                    x.SampleId != null && x.SampleId != string.Empty &&
-                    x.Variation != null && x.Variation != string.Empty
-                ), "Variations are empty");
+            
+            // Check the sample data
+            Assert.True(dto.Data.All(x => 
+                x.Results.All(y => 
+                    y != null &&
+                    y.Samples.All(z =>
+                        z != null && 
+                        !string.IsNullOrEmpty(z.SampleId) &&
+                        !string.IsNullOrEmpty(z.Variation)
+                ))), "Something's wrong with the samples! samples are null, or variations are null/empty!");
         }
 
         ///<summary>

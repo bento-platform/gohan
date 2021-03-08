@@ -20,3 +20,6 @@ gateway/certs/*
 
 # temp test file
 Bento.Variants.Tests/appsettings.test.json
+
+# executables
+*/Bento.Variants.Console
