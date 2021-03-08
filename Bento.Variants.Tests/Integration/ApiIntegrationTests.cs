@@ -16,13 +16,13 @@ using Newtonsoft.Json;
 using Bento.Variants.XCC;
 using Bento.Variants.XCC.Models.DTOs;
 
-namespace Bento.Variants.Tests
+namespace Bento.Variants.Tests.Integration
 {
-    public class ApiTests : IClassFixture<IntegrationTestFixture>
+    public class ApiIntegrationTests : IClassFixture<IntegrationTestFixture>
     {
         public IntegrationTestFixture fixture;
 
-        public ApiTests(IntegrationTestFixture fixture)
+        public ApiIntegrationTests(IntegrationTestFixture fixture)
         {
             this.fixture = fixture;
         }

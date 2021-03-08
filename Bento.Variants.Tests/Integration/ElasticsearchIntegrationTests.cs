@@ -13,13 +13,13 @@ using Newtonsoft.Json;
 using Bento.Variants.XCC;
 using Bento.Variants.XCC.Models.DTOs;
 
-namespace Bento.Variants.Tests
+namespace Bento.Variants.Tests.Integration
 {
-    public class ElasticsearchTests : IClassFixture<IntegrationTestFixture>
+    public class ElasticsearchIntegrationTests : IClassFixture<IntegrationTestFixture>
     {
         public IntegrationTestFixture fixture;
 
-        public ElasticsearchTests(IntegrationTestFixture fixture)
+        public ElasticsearchIntegrationTests(IntegrationTestFixture fixture)
         {
             this.fixture = fixture;
         }
