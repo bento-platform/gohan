@@ -37,7 +37,7 @@ namespace Bento.Variants.Tests.Integration
 
             try	
             {
-                HttpResponseMessage response = await fixture.client.GetAsync(fixture.ApiUrl);
+                HttpResponseMessage response = await fixture.client.GetAsync(fixture.VariantsGatewayUrl);
 
                 Assert.Equal(response.StatusCode, HttpStatusCode.OK);
 
@@ -150,7 +150,7 @@ namespace Bento.Variants.Tests.Integration
                 
                 // Make the call
                 string query = $"?sortByPosition={order}";
-                string url = $"{fixture.ApiUrl}{fixture.GetVariantsByVariantIdPath}{query}";
+                string url = $"{fixture.VariantsGatewayUrl}{fixture.GetVariantsByVariantIdPath}{query}";
                 
                 using (HttpResponseMessage response = await fixture.client.GetAsync(url))
                 {
@@ -188,7 +188,7 @@ namespace Bento.Variants.Tests.Integration
             {
                 // Make the call
                 string query = $"?includeSamplesInResultSet={includeSamples}";
-                string url = $"{fixture.ApiUrl}{fixture.GetVariantsByVariantIdPath}{query}";
+                string url = $"{fixture.VariantsGatewayUrl}{fixture.GetVariantsByVariantIdPath}{query}";
                 
                 using (HttpResponseMessage response = await fixture.client.GetAsync(url))
                 {
