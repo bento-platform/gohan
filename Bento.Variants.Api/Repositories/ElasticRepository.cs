@@ -287,27 +287,48 @@ namespace Bento.Variants.Api.Repositories
             using (HttpClientHandler handler = new HttpClientHandler())
             {
 #if DEBUG
-            handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
+                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 #endif
+                // TODO: check responses for errors and return objects accordingly
+
                 using (HttpClient client = new HttpClient(handler, disposeHandler: false))
                 {
                     // Basic Auth
                     var byteArray = Encoding.ASCII.GetBytes($"{esUsername}:{esPassword}");
+
                     client.DefaultRequestHeaders.Authorization = 
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
 
                     // Remove Samples from Variants 
-                    using (HttpResponseMessage response = await client.PostAsync(updateUrl, new StringContent(updatePayload, Encoding.UTF8, "application/json")))
+                    using (HttpResponseMessage response = await client.PostAsync(updateUrl, 
+                        new StringContent(updatePayload, Encoding.UTF8, "application/json")))
                     {
                         var responseContent = response.Content.ReadAsStringAsync().Result;
                         System.Console.WriteLine(responseContent);
+
+                        //var responseObj = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseContent);
+
+                        // Checking for error
+                        if (responseContent.Contains("error"))
+                        {
+                            throw new Exception($"Something went wrong with processing the sample id! : {responseContent}");
+                        }
                     }
 
                     // Remove Variants that have no samples
-                    using (HttpResponseMessage response = await client.PostAsync(deleteUrl, new StringContent(deletePayload, Encoding.UTF8, "application/json")))
+                    using (HttpResponseMessage response = await client.PostAsync(deleteUrl, 
+                        new StringContent(deletePayload, Encoding.UTF8, "application/json")))
                     {
                         var responseContent = response.Content.ReadAsStringAsync().Result;
                         System.Console.WriteLine(responseContent);
+
+                        var responseObj = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseContent);
+
+                        // Checking for error
+                        if (responseContent.Contains("error"))
+                        {
+                            throw new Exception($"Something went wrong with processing the sample id! : {responseContent}");
+                        }
                     }
                 }
             }

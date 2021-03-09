@@ -123,6 +123,13 @@ Requests
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 
 <br />
+
+
+> &nbsp;&nbsp;**GET** `/variants/remove/sampleId`<br/>
+> &nbsp;&nbsp;&nbsp;params: 
+>   - id : **string** `(sample ID alphanumeric code)`
+
+<br />
 Response
 
 >```json  
