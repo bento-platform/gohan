@@ -20,5 +20,7 @@ namespace Bento.Variants.Api.Repositories.Interfaces
             bool includeSamplesInResultSet = true);
 
         Task<dynamic> GetFileByFileId(string fileId);
+
+        Task RemoveSampleFromVariantsBySampleId(string sampleId);
     }
 }

@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Net.Http;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text;
 
 using Microsoft.Extensions.Configuration;
 using Nest;
@@ -232,6 +235,82 @@ namespace Bento.Variants.Api.Repositories
                 throw new System.Exception("Cannot connect to Elasticsearch!");
             
             return searchResponse.Documents.FirstOrDefault();
+        }
+    
+        public async Task RemoveSampleFromVariantsBySampleId(string sampleId)
+        {
+            var host = $"{Configuration["ElasticSearch:Host"]}";
+            var indexMap = Configuration["ElasticSearch:PrimaryIndex"];
+
+            var esUsername = Configuration["ElasticSearch:Username"];
+            var esPassword = Configuration["ElasticSearch:Password"];
+            
+            var baseUrl = $"{Configuration["ElasticSearch:Protocol"]}://{host}:{Configuration["ElasticSearch:Port"]}{Configuration["ElasticSearch:GatewayPath"]}";
+
+            // Update
+            // TODO: optimize (very slow)
+            var updatePath = "/variants/_update_by_query?conflicts=proceed";
+            var updatePayload = $@"{{
+                ""script"":{{
+                    ""source"": ""ctx._source.samples.removeIf(sample -> sample.sampleId == params.sampleId)"",
+                    ""params"": {{
+                        ""sampleId"": ""{sampleId}""
+                    }}
+                }}
+            }}";
+            var updateUrl = $"{baseUrl}{updatePath}";
+
+            // Delete variant document if samples are empty
+            var deletePath = "/variants/_delete_by_query";
+            var deletePayload = @"
+            {
+                ""query"": {
+                    ""bool"": {
+                        ""should"": [
+                            {
+                                ""bool"": {
+                                    ""must_not"": [
+                                        {
+                                            ""exists"": {
+                                                ""field"": ""samples""
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }";
+            var deleteUrl = $"{baseUrl}{deletePath}";
+
+            using (HttpClientHandler handler = new HttpClientHandler())
+            {
+#if DEBUG
+            handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
+#endif
+                using (HttpClient client = new HttpClient(handler, disposeHandler: false))
+                {
+                    // Basic Auth
+                    var byteArray = Encoding.ASCII.GetBytes($"{esUsername}:{esPassword}");
+                    client.DefaultRequestHeaders.Authorization = 
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+
+                    // Remove Samples from Variants 
+                    using (HttpResponseMessage response = await client.PostAsync(updateUrl, new StringContent(updatePayload, Encoding.UTF8, "application/json")))
+                    {
+                        var responseContent = response.Content.ReadAsStringAsync().Result;
+                        System.Console.WriteLine(responseContent);
+                    }
+
+                    // Remove Variants that have no samples
+                    using (HttpResponseMessage response = await client.PostAsync(deleteUrl, new StringContent(deletePayload, Encoding.UTF8, "application/json")))
+                    {
+                        var responseContent = response.Content.ReadAsStringAsync().Result;
+                        System.Console.WriteLine(responseContent);
+                    }
+                }
+            }
         }
     }
 }
