@@ -198,5 +198,20 @@ namespace Bento.Variants.Api.Controllers
             return response;
             
         }
+
+        [HttpGet]
+        [MandateSampleIdSingularAttribute]
+        [Route("remove/sampleId")]
+        public async Task<VariantsResponseDTO> RemoveSampleIds([FromQuery] string id)
+        {
+            var response = new VariantsResponseDTO();
+            
+            await ElasticRepository.RemoveSampleFromVariantsBySampleId(id);
+
+            response.Status = 200;
+            response.Message = "Removed Successfully";
+
+            return response;
+        }
     }
 }
