@@ -286,7 +286,6 @@ Containerized Alpine Release:
 ## Deployments :
 
 All in all, run 
-> `make run-gateway` <br />
 > `make run-elasticsearch` <br />
 > `make run-kibana` *(optional)* <br />
 > `make build-gateway && make run-gateway` <br />
