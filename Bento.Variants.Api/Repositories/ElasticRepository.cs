@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Net.Http;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text;
 
@@ -266,27 +267,22 @@ namespace Bento.Variants.Api.Repositories
             {
                 ""query"": {
                     ""bool"": {
-                        ""should"": [
-                            {
-                                ""bool"": {
-                                    ""must_not"": [
-                                        {
-                                            ""exists"": {
-                                                ""field"": ""samples""
-                                            }
-                                        }
-                                    ]
+                        ""must_not"": [
+                            { 
+                                ""exists"": {
+                                    ""field"": ""samples""
                                 }
                             }
                         ]
                     }
                 }
             }";
+            
             var deleteUrl = $"{baseUrl}{deletePath}";
 
             using (HttpClientHandler handler = new HttpClientHandler())
             {
-#if DEBUG
+#if DEBUG || RELEASE
                 handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 #endif
                 // TODO: check responses for errors and return objects accordingly
@@ -322,12 +318,24 @@ namespace Bento.Variants.Api.Repositories
                         var responseContent = response.Content.ReadAsStringAsync().Result;
                         System.Console.WriteLine(responseContent);
 
-                        var responseObj = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseContent);
+
+                        // TODO: create POCO for response type instead
+                        // of wrangling with ExpandoObject
+                        var responseObj = Newtonsoft.Json.JsonConvert.DeserializeObject<ExpandoObject>(responseContent);
+                        var expandoDict = (IDictionary<string, object>)responseObj;                      
 
                         // Checking for error
-                        if (responseContent.Contains("error"))
+                        object errorStringObj;
+                        if (expandoDict.TryGetValue("error", out errorStringObj))
                         {
-                            throw new Exception($"Something went wrong with processing the sample id! : {responseContent}");
+                            throw new Exception($"Something went wrong with processing the sample id! : {Newtonsoft.Json.JsonConvert.SerializeObject(errorStringObj)}");
+                        }
+
+                        // Check for 'deleted'
+                        object deletedNumObj;
+                        if (expandoDict.TryGetValue("deleted", out deletedNumObj) && (Int64)deletedNumObj == (Int64)0)
+                        {
+                            throw new Exception($"No documents deleted  : {deletedNumObj}");
                         }
                     }
                 }

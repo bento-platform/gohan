@@ -29,11 +29,15 @@ namespace Bento.Variants.Api.Middleware
                 response.ContentType = "application/json";
 
                 var dto = new VariantsResponseDTO();
-
-                Console.WriteLine($"Oops! : {error.Message}");
+                
+                string message = $"{error.Message}";
+#if DEBUG
+                message += $"\n{error.StackTrace}";
+#endif
+                Console.WriteLine(message);
                 
                 dto.Status = 500;
-                dto.Message = "Error : " + error.Message;
+                dto.Message = $"Error : {message}";
 
                 var result = JsonSerializer.Serialize( // redundant? TODO:refactor
                     dto, new JsonSerializerOptions 

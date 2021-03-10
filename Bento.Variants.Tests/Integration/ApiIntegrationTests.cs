@@ -1,20 +1,23 @@
+using System;
+using System.Collections.Generic;
 using System.Data.Common;
-using System;
-using System.Net;
-using System;
-using System.Threading.Tasks;
-using System.Text;
 using System.IO;
-using System.Net.Http;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 
 using Xunit;
 using Xunit.Repeat;
 
+using Nest;
 using Newtonsoft.Json;
 
 using Bento.Variants.XCC;
+using Bento.Variants.XCC.Models;
 using Bento.Variants.XCC.Models.DTOs;
+using Bento.Variants.XCC.Models.Indexes;
 
 namespace Bento.Variants.Tests.Integration
 {
@@ -138,6 +141,103 @@ namespace Bento.Variants.Tests.Integration
             Assert.True(
                 expectedList.SequenceEqual(data.Results), 
                 "The list is not in descending order!");
+        }
+
+
+        [Fact]
+        public async void CanAddAndRemoveVariantWithSample()
+        {        
+            var username = fixture.ElasticUsername;
+            var password = fixture.ElasticPassword;
+
+            var url = $"{fixture.VariantsGatewayUrl}{fixture.PublicFacingElasticPath}";
+
+            // Create ES Client with Basic Authentication header
+            var settings = new ConnectionSettings(new Uri(url))
+                .BasicAuthentication(username, password)
+                .DefaultIndex("variants")
+# if DEBUG
+                .EnableDebugMode()
+# endif
+                .ServerCertificateValidationCallback((sender, cert, chain, errors) => { return true; });
+
+            var client = new ElasticClient(settings);
+
+            // Insert dummy variant
+            var indexResponse = client.Index(new VariantIndex()
+            {
+                Chrom = 0,
+                Pos = 0,
+                Id = "test-id",
+                Ref = "test-ref",
+                Alt = "test-alt",
+                Qual = 0,
+                Filter = "test-filter",
+                Info = "test-info",
+                Format = "test-format",
+                FileId = "test-fileId",
+
+                Samples = new List<Sample> 
+                {
+                    new Sample() { SampleId = "test-sampleId-1", Variation = "test-variation-1" }
+                }
+            },
+            i => i.Index("variants"));
+
+            // System.Console.WriteLine(indexResponse);
+            // System.Console.WriteLine(indexResponse.Id);
+            // System.Console.WriteLine(indexResponse.OriginalException);
+            // System.Console.WriteLine(indexResponse.Result);
+            // System.Console.WriteLine(indexResponse.ServerError);
+
+            // Check results
+            Assert.Equal(indexResponse.Id, "test-id");
+            Assert.True(indexResponse.IsValid);
+
+
+            // Verify by retrieving test doc
+            string searchQuery = $"?ids=test-id";
+            string searchUrl = $"{fixture.VariantsGatewayUrl}{fixture.GetVariantsByVariantIdPath}{searchQuery}";
+            
+            using (HttpResponseMessage response = await fixture.client.GetAsync(searchUrl))
+            {
+                var responseContent = response.Content.ReadAsStringAsync().Result;
+
+                Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+
+                var dto = JsonConvert.DeserializeObject<VariantsResponseDTO>(responseContent);
+                
+                Assert.True(dto != null);
+
+                Assert.Equal(dto.Status, 200);
+                Assert.Equal(dto.Message, "Success");
+
+                Assert.True(dto.Data
+                    .First(d => d.VariantId == "test-id")
+                    .Results.Count == 1);
+            }
+
+            // Verify removal of doc by sampleId
+            string removeQuery = $"?id=test-sampleId-1";
+            string removeUrl = $"{fixture.VariantsGatewayUrl}{fixture.RemoveSampleIdPath}{removeQuery}";
+            
+            using (HttpResponseMessage response = await fixture.client.GetAsync(removeUrl))
+            {
+                var responseContent = response.Content.ReadAsStringAsync().Result;
+
+                Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+
+                var dto = JsonConvert.DeserializeObject<VariantsResponseDTO>(responseContent);
+                
+                Assert.True(dto != null);
+
+                System.Console.WriteLine(dto.Message);
+
+                Assert.Equal(dto.Status, 200);
+                Assert.Equal(dto.Message, "Success");
+
+                Assert.True(dto.Data.FirstOrDefault(d => d.VariantId == "test-id") == null);
+            }
         }
 
 
