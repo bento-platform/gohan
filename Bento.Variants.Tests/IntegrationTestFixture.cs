@@ -16,6 +16,8 @@ namespace Bento.Variants.Tests
         public string CountVariantsByVariantIdPath = "/variants/count/by/variantId";
         public string CountVariantsBySampleIdPath = "/variants/count/by/sampleId";
 
+        public string RemoveSampleIdPath = "/variants/remove/sampleId";
+
         public string ElasticUsername;
         public string ElasticPassword;
 

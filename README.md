@@ -240,11 +240,8 @@ Local Alpine Release:
 
 ### **API :**
 Local Release: 
-&nbsp;First, edit the `.env` and set
 
-> `BENTO_VARIANTS_ES_GATEWAY_PATH=/es`
-
-&nbsp;then, from ***Bento.Variants.Api/***, run 
+&nbsp;First, from ***Bento.Variants.Api/***, run 
 
 > `dotnet publish -c Release --self-contained` 
 
@@ -255,7 +252,7 @@ Local Release:
 
 > `export ElasticSearch__Username=${BENTO_VARIANTS_ES_USERNAME}`<br />
 > `export ElasticSearch__Password=${BENTO_VARIANTS_ES_PASSWORD}`<br />
-> `export ElasticSearch__GatewayPath=${BENTO_VARIANTS_ES_GATEWAY_PATH}`<br />
+> `export ElasticSearch__GatewayPath=${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH}`<br />
 > `export ElasticSearch__PrimaryIndex=${BENTO_VARIANTS_ES_PASSWORD}`<br />
 > `export ElasticSearch__Protocol=${BENTO_VARIANTS_PUBLIC_PROTO}`<br />
 > `export ElasticSearch__Host=${BENTO_VARIANTS_PUBLIC_HOSTNAME}`<br />
