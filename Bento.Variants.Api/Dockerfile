@@ -5,11 +5,18 @@ FROM $BASE_IMAGE
 LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics.ca>"
 
 # Alpine updates and executable dependencies
-#RUN apk update
-RUN apk update \
+ARG IS_ALPINE
+RUN if [ "$IS_ALPINE" = "true" ] ; then \
+    apk update \
     && apk add --no-cache libstdc++ \
-    && apk add --no-cache libintl
-RUN apk upgrade
+    && apk add --no-cache libintl \
+    && apk upgrade; \
+    else echo "Not Building Alpine" ; fi
+#RUN apk update
+# RUN apk update \
+#     && apk add --no-cache libstdc++ \
+#     && apk add --no-cache libintl
+# RUN apk upgrade
 
 # Copy pre-built executeables
 ARG SRC_DIR

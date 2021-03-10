@@ -16,6 +16,8 @@ services:
       - "443:443"
 
 
+
+  # DUPLICATES - almost
   api:
     build:
       context: $PWD/Bento.Variants.Api
@@ -45,6 +47,37 @@ services:
       - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
       - DOTNET_CLI_TELEMETRY_OPTOUT=1
 
+  # DUPLICATES - almost
+  api-alpine:
+    build:
+      context: $PWD/Bento.Variants.Api
+      args:
+        BASE_IMAGE: ${BENTO_VARIANTS_API_ALPINE_BASE_IMAGE}
+        SRC_DIR: ${BENTO_VARIANTS_API_ALPINE_SRC_DIR}
+        INTERNAL_PORT: ${BENTO_VARIANTS_API_INTERNAL_PORT}
+        IS_ALPINE: "true"
+    image: ${BENTO_VARIANTS_API_IMAGE}:${BENTO_VARIANTS_API_VERSION}
+    container_name: ${BENTO_VARIANTS_API_CONTAINER_NAME}
+    # ports:
+    #   - ${BENTO_VARIANTS_API_EXTERNAL_PORT}:${BENTO_VARIANTS_API_INTERNAL_PORT}
+    networks:
+      - bridge-net
+    environment:
+      # Elasticsearch
+      - ElasticSearch__Username=${BENTO_VARIANTS_ES_USERNAME}
+      - ElasticSearch__Password=${BENTO_VARIANTS_ES_PASSWORD}
+
+      - ElasticSearch__GatewayPath=${BENTO_VARIANTS_ES_GATEWAY_PATH}
+
+      - ElasticSearch__PrimaryIndex=${BENTO_VARIANTS_API_ES_PI}
+      - ElasticSearch__Protocol=${BENTO_VARIANTS_API_ES_PROTO}
+      - ElasticSearch__Host=${BENTO_VARIANTS_API_ES_HOST}
+      - ElasticSearch__Port=${BENTO_VARIANTS_API_ES_PORT}
+
+      # .NET
+      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
+      - DOTNET_CLI_TELEMETRY_OPTOUT=1
+  ####
 
   elasticsearch:
     image: ${BENTO_VARIANTS_ES_BASE_IMAGE}:${BENTO_VARIANTS_ES_BASE_VERSION}

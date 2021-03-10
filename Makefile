@@ -18,6 +18,9 @@ run-gateway:
 run-api:
 	docker-compose -f docker-compose.yaml up -d api
 
+run-api-alpine:
+	docker-compose -f docker-compose.yaml up -d api-alpine
+
 run-elasticsearch:
 	docker-compose -f docker-compose.yaml up -d elasticsearch
 
@@ -34,10 +37,18 @@ build-gateway: stop-gateway clean-gateway
 build-api: stop-api clean-api
 	echo "-- Building Api Binaries --"
 	cd Bento.Variants.Api/;
-	dotnet clean; dotnet restore; dotnet publish -c ReleaseAlpine --self-contained;
+	dotnet clean; dotnet restore; dotnet publish -c Release --self-contained;
 	cd ..
 	echo "-- Building Api Container --"
 	docker-compose -f docker-compose.yaml build api
+
+build-api-alpine: stop-api-alpine clean-api-alpine
+	echo "-- Building Api-Alpine Binaries --"
+	cd Bento.Variants.Api/;
+	dotnet clean; dotnet restore; dotnet publish -c ReleaseAlpine --self-contained;
+	cd ..
+	echo "-- Building Api-Alpine Container --"
+	docker-compose -f docker-compose.yaml build api-alpine
 
 
 
@@ -51,16 +62,23 @@ stop-gateway:
 stop-api:
 	docker-compose -f docker-compose.yaml stop api
 
+stop-api-alpine:
+	docker-compose -f docker-compose.yaml stop api-alpine
+
 
 
 # Clean up
-clean-all: clean-api clean-gateway
+clean-all: clean-api clean-api-alpine clean-gateway
 
 clean-gateway:
 	docker rm ${BENTO_VARIANTS_GATEWAY_CONTAINER_NAME} --force; \
 	docker rmi ${BENTO_VARIANTS_GATEWAY_IMAGE}:${BENTO_VARIANTS_GATEWAY_VERSION} --force;
 
 clean-api:
+	docker rm ${BENTO_VARIANTS_API_CONTAINER_NAME} --force; \
+	docker rmi ${BENTO_VARIANTS_API_IMAGE}:${BENTO_VARIANTS_API_VERSION} --force;
+
+clean-api-alpine:
 	docker rm ${BENTO_VARIANTS_API_CONTAINER_NAME} --force; \
 	docker rmi ${BENTO_VARIANTS_API_IMAGE}:${BENTO_VARIANTS_API_VERSION} --force;
 
