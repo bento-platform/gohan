@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Xunit;
@@ -69,7 +70,7 @@ namespace Bento.Variants.Tests.Integration
 
             Assert.True(data != null, "Data is null!");
             
-            var expectedList = data.Results.First().Samples;
+            var expectedList = data.Results.FirstOrDefault()?.Samples;
 
             // Ensure samples were actually returned
             Assert.True(expectedList != null, "Samples are null!");
@@ -98,7 +99,7 @@ namespace Bento.Variants.Tests.Integration
             Assert.True(data != null, "Data is null!");
             
             // Make sure there aren't any samples present
-            var expectedNullSamples = data.Results.First().Samples;
+            var expectedNullSamples = data.Results.FirstOrDefault()?.Samples;
 
             Assert.True(expectedNullSamples == null, "Samples are not null!");
         }
@@ -143,28 +144,61 @@ namespace Bento.Variants.Tests.Integration
                 "The list is not in descending order!");
         }
 
+//         [Fact]
+//         public void CanAddVariantWithSample()
+//         {        
+//             var username = fixture.ElasticUsername;
+//             var password = fixture.ElasticPassword;
 
-        [Fact]
-        public async void CanAddAndRemoveVariantWithSample()
-        {        
-            var username = fixture.ElasticUsername;
-            var password = fixture.ElasticPassword;
+//             var url = $"{fixture.VariantsGatewayUrl}{fixture.PublicFacingElasticPath}";
 
-            var url = $"{fixture.VariantsGatewayUrl}{fixture.PublicFacingElasticPath}";
+//             // Create ES Client with Basic Authentication header
+//             var settings = new ConnectionSettings(new Uri(url))
+//                 .BasicAuthentication(username, password)
+//                 .DefaultIndex("variants")
+// # if DEBUG
+//                 .EnableDebugMode()
+// # endif
+//                 .ServerCertificateValidationCallback((sender, cert, chain, errors) => { return true; });
 
-            // Create ES Client with Basic Authentication header
-            var settings = new ConnectionSettings(new Uri(url))
-                .BasicAuthentication(username, password)
-                .DefaultIndex("variants")
-# if DEBUG
-                .EnableDebugMode()
-# endif
-                .ServerCertificateValidationCallback((sender, cert, chain, errors) => { return true; });
+//             var client = new ElasticClient(settings);
 
-            var client = new ElasticClient(settings);
+//             var indexResponse = AddVariantWithSample(client);
 
+
+//             // Check results
+//             Assert.Equal(indexResponse.Id, "test-id");
+//             Assert.True(indexResponse.IsValid);
+
+//             // Verify by retrieving test doc
+//             string searchQuery = $"?ids=test-id";
+//             string searchUrl = $"{fixture.VariantsGatewayUrl}{fixture.GetVariantsByVariantIdPath}{searchQuery}";
+            
+//             using (HttpResponseMessage response = fixture.client.GetAsync(searchUrl).Result)
+//             {
+//                 var responseContent = response.Content.ReadAsStringAsync().Result;
+
+//                 Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+
+//                 var dto = JsonConvert.DeserializeObject<VariantsResponseDTO>(responseContent);
+                
+//                 Assert.True(dto != null);
+
+//                 Assert.Equal(dto.Status, 200);
+//                 Assert.Equal(dto.Message, "Success");
+
+//                 System.Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(dto));
+
+//                 Assert.True(dto.Data
+//                     .First(d => d.VariantId == "test-id")
+//                     .Results.Count == 1);
+//             }
+//         }
+
+        private IndexResponse AddVariantWithSample(ElasticClient client)
+        {
             // Insert dummy variant
-            var indexResponse = client.Index(new VariantIndex()
+            return client.Index(new VariantIndex()
             {
                 Chrom = 0,
                 Pos = 0,
@@ -190,16 +224,43 @@ namespace Bento.Variants.Tests.Integration
             // System.Console.WriteLine(indexResponse.Result);
             // System.Console.WriteLine(indexResponse.ServerError);
 
+        }
+
+        [Fact]
+        public void CanAddAndRemoveVariantWithSample()
+        {        
+            var username = fixture.ElasticUsername;
+            var password = fixture.ElasticPassword;
+
+            var url = $"{fixture.VariantsGatewayUrl}{fixture.PublicFacingElasticPath}";
+
+            // Create ES Client with Basic Authentication header
+            var settings = new ConnectionSettings(new Uri(url))
+                .BasicAuthentication(username, password)
+                .DefaultIndex("variants")
+# if DEBUG
+                .EnableDebugMode()
+# endif
+                .ServerCertificateValidationCallback((sender, cert, chain, errors) => { return true; });
+
+            var client = new ElasticClient(settings);
+
+            var indexResponse = AddVariantWithSample(client);
+
             // Check results
             Assert.Equal(indexResponse.Id, "test-id");
             Assert.True(indexResponse.IsValid);
 
 
-            // Verify by retrieving test doc
+            // Wait
+            Thread.Sleep(1000);
+            
+
+            // // Verify by retrieving test doc
             string searchQuery = $"?ids=test-id";
             string searchUrl = $"{fixture.VariantsGatewayUrl}{fixture.GetVariantsByVariantIdPath}{searchQuery}";
             
-            using (HttpResponseMessage response = await fixture.client.GetAsync(searchUrl))
+            using (HttpResponseMessage response = fixture.client.GetAsync(searchUrl).Result)
             {
                 var responseContent = response.Content.ReadAsStringAsync().Result;
 
@@ -212,16 +273,23 @@ namespace Bento.Variants.Tests.Integration
                 Assert.Equal(dto.Status, 200);
                 Assert.Equal(dto.Message, "Success");
 
+                System.Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(dto));
+
                 Assert.True(dto.Data
                     .First(d => d.VariantId == "test-id")
-                    .Results.Count == 1);
+                    .Count == 1);
             }
+
+
+            // Wait
+            Thread.Sleep(1000);
+            
 
             // Verify removal of doc by sampleId
             string removeQuery = $"?id=test-sampleId-1";
             string removeUrl = $"{fixture.VariantsGatewayUrl}{fixture.RemoveSampleIdPath}{removeQuery}";
             
-            using (HttpResponseMessage response = await fixture.client.GetAsync(removeUrl))
+            using (HttpResponseMessage response = fixture.client.GetAsync(removeUrl).Result)
             {
                 var responseContent = response.Content.ReadAsStringAsync().Result;
 
@@ -234,9 +302,34 @@ namespace Bento.Variants.Tests.Integration
                 System.Console.WriteLine(dto.Message);
 
                 Assert.Equal(dto.Status, 200);
+                //Assert.Equal(dto.Message, "Success");
+
+                //Assert.True(dto.Data.FirstOrDefault(d => d.VariantId == "test-id") == null);
+            }
+
+
+            // Wait
+            Thread.Sleep(1000);
+            
+
+            using (HttpResponseMessage response = fixture.client.GetAsync(searchUrl).Result)
+            {
+                var responseContent = response.Content.ReadAsStringAsync().Result;
+
+                Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+
+                var dto = JsonConvert.DeserializeObject<VariantsResponseDTO>(responseContent);
+                
+                Assert.True(dto != null);
+
+                Assert.Equal(dto.Status, 200);
                 Assert.Equal(dto.Message, "Success");
 
-                Assert.True(dto.Data.FirstOrDefault(d => d.VariantId == "test-id") == null);
+                System.Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(dto));
+
+                Assert.True(dto.Data
+                    .First(d => d.VariantId == "test-id")
+                    .Count == 0);
             }
         }
 
