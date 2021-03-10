@@ -240,106 +240,32 @@ namespace Bento.Variants.Api.Repositories
     
         public async Task RemoveSampleFromVariantsBySampleId(string sampleId)
         {
-            var host = $"{Configuration["ElasticSearch:Host"]}";
-            var indexMap = Configuration["ElasticSearch:PrimaryIndex"];
+            var updateResult = await ElasticClient.UpdateByQueryAsync<dynamic>(u => u
+                .Index("variants")
+                .Script(s =>s
+                    .Source("ctx._source.samples.removeIf(sample -> sample.sampleId == params.sampleId)")
+                    .Params(p => p
+                        .Add("sampleId", sampleId)
+                    ))
+                .Refresh(true)
+            );
+            System.Console.WriteLine($"Updated : {updateResult?.Updated}");
 
-            var esUsername = Configuration["ElasticSearch:Username"];
-            var esPassword = Configuration["ElasticSearch:Password"];
-            
-            var baseUrl = $"{Configuration["ElasticSearch:Protocol"]}://{host}:{Configuration["ElasticSearch:Port"]}{Configuration["ElasticSearch:GatewayPath"]}";
+            var removeResult = await ElasticClient.DeleteByQueryAsync<dynamic>(u => u
+                .Index("variants")
+                .Query(q => q
+                    .Bool(b => b
+                        .MustNot(mn => mn
+                            .Exists(e => e.Field("samples")))))
+            );
+            System.Console.WriteLine($"Deleted : {removeResult?.Deleted}");
 
-            // Update
-            // TODO: optimize (very slow)
-            var updatePath = "/variants/_update_by_query?conflicts=proceed";
-            var updatePayload = $@"{{
-                ""script"":{{
-                    ""source"": ""ctx._source.samples.removeIf(sample -> sample.sampleId == params.sampleId)"",
-                    ""params"": {{
-                        ""sampleId"": ""{sampleId}""
-                    }}
-                }}
-            }}";
-            var updateUrl = $"{baseUrl}{updatePath}";
-
-            // Delete variant document if samples are empty
-            var deletePath = "/variants/_delete_by_query";
-            var deletePayload = @"
+            if (updateResult?.Updated > 0 && removeResult?.Deleted == 0)
             {
-                ""query"": {
-                    ""bool"": {
-                        ""must_not"": [
-                            { 
-                                ""exists"": {
-                                    ""field"": ""samples""
-                                }
-                            }
-                        ]
-                    }
-                }
-            }";
-            
-            var deleteUrl = $"{baseUrl}{deletePath}";
-
-            using (HttpClientHandler handler = new HttpClientHandler())
-            {
-#if DEBUG || RELEASE
-                handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
-#endif
-                // TODO: check responses for errors and return objects accordingly
-
-                using (HttpClient client = new HttpClient(handler, disposeHandler: false))
-                {
-                    // Basic Auth
-                    var byteArray = Encoding.ASCII.GetBytes($"{esUsername}:{esPassword}");
-
-                    client.DefaultRequestHeaders.Authorization = 
-                        new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
-
-                    // Remove Samples from Variants 
-                    using (HttpResponseMessage response = await client.PostAsync(updateUrl, 
-                        new StringContent(updatePayload, Encoding.UTF8, "application/json")))
-                    {
-                        var responseContent = response.Content.ReadAsStringAsync().Result;
-                        System.Console.WriteLine(responseContent);
-
-                        //var responseObj = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseContent);
-
-                        // Checking for error
-                        if (responseContent.Contains("error"))
-                        {
-                            throw new Exception($"Something went wrong with processing the sample id! : {responseContent}");
-                        }
-                    }
-
-                    // Remove Variants that have no samples
-                    using (HttpResponseMessage response = await client.PostAsync(deleteUrl, 
-                        new StringContent(deletePayload, Encoding.UTF8, "application/json")))
-                    {
-                        var responseContent = response.Content.ReadAsStringAsync().Result;
-                        System.Console.WriteLine(responseContent);
-
-
-                        // TODO: create POCO for response type instead
-                        // of wrangling with ExpandoObject
-                        var responseObj = Newtonsoft.Json.JsonConvert.DeserializeObject<ExpandoObject>(responseContent);
-                        var expandoDict = (IDictionary<string, object>)responseObj;                      
-
-                        // Checking for error
-                        object errorStringObj;
-                        if (expandoDict.TryGetValue("error", out errorStringObj))
-                        {
-                            throw new Exception($"Something went wrong with processing the sample id! : {Newtonsoft.Json.JsonConvert.SerializeObject(errorStringObj)}");
-                        }
-
-                        // Check for 'deleted'
-                        object deletedNumObj;
-                        if (expandoDict.TryGetValue("deleted", out deletedNumObj) && (Int64)deletedNumObj == (Int64)0)
-                        {
-                            throw new Exception($"No documents deleted  : {deletedNumObj}");
-                        }
-                    }
-                }
+                System.Console.WriteLine($"Deleted Message : {removeResult?.OriginalException?.Message}");
+                System.Console.WriteLine($"Deleted InnerException Message : {removeResult?.DebugInformation}");
             }
+            
         }
     }
 }
