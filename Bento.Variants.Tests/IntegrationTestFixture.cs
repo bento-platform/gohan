@@ -43,7 +43,7 @@ namespace Bento.Variants.Tests
             httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 #endif
             client = new HttpClient(httpClientHandler, disposeHandler: false);
-            client.Timeout = TimeSpan.FromSeconds(3);
+            client.Timeout = TimeSpan.FromMinutes(10);
 
         }
 
