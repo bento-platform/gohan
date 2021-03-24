@@ -74,6 +74,8 @@ namespace Bento.Variants.Console
             // Begin !
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
+
+            System.Console.WriteLine($"Time start : {DateTime.Now}");
             
             // Establish connection with local Elasticsearch
             var indexMap = "variants";
@@ -84,6 +86,11 @@ namespace Bento.Variants.Console
                 .DefaultIndex(indexMap);
 
             var client = new ElasticClient(settings);
+
+
+            // Create Indices
+            client.Indices.Create("files");
+            client.Indices.Create("variants");
 
 
             // Get all project vcf files
@@ -106,7 +113,7 @@ namespace Bento.Variants.Console
 
             Parallel.ForEach(files, poFiles, (filepath, _, fileNumber) =>
             {            
-                System.Console.WriteLine("Ingesting file {0}.", filepath);
+                System.Console.WriteLine("[{1}] Ingesting file {0}.", filepath, DateTime.Now);
 
                 // Collect all '#' lines as one header-block
                 var headerStringBuilder = new StringBuilder();
@@ -131,7 +138,7 @@ namespace Bento.Variants.Console
                 IndexResponse fileResponse = new IndexResponse();
                 while (fileIndexCreateSuccess == false && attempts < 100)
                 {
-                    System.Console.WriteLine($"Attempting to create ES index for {filepath}");
+                    System.Console.WriteLine($"[{DateTime.Now}] Attempting to create ES index for {filepath}");
 
                     // Create Elasticsearch documents for the filename
                     fileResponse = client.Index(new 
@@ -152,12 +159,12 @@ namespace Bento.Variants.Console
                 if (fileIndexCreateSuccess == false) 
                 {
                     // Abandon file
-                    System.Console.WriteLine($"Failed to create ES index for file {filepath} -- Aborting this file");
+                    System.Console.WriteLine($"[{DateTime.Now}] Failed to create ES index for file {filepath} -- Aborting this file ");
                     return;
                 }
                 else
                 {
-                    System.Console.WriteLine($"Succeeded to create ES index for file {filepath} after {attempts} attempt{(attempts > 1 ? "s" : string.Empty)} : id {fileResponse.Id}");
+                    System.Console.WriteLine($"[{DateTime.Now}] Succeeded to create ES index for file {filepath} after {attempts} attempt{(attempts > 1 ? "s" : string.Empty)} : id {fileResponse.Id} ");
                 }
 
 
@@ -265,7 +272,7 @@ namespace Bento.Variants.Console
                         }
                         catch(Exception ex)
                         {
-                            System.Console.WriteLine($"Oops, something went wrong: {ex.Message}");
+                        System.Console.WriteLine($"[{DateTime.Now}] Oops, something went wrong:  \n {ex.Message}");
                         }
                     });
 
@@ -293,7 +300,7 @@ namespace Bento.Variants.Console
                             }
                             descriptor = new BulkDescriptor();
 
-                            System.Console.Write("\r{0} rows ingested on so far..", rowCount);
+                            System.Console.Write("\r[{1}] {0} rows ingested on so far..", rowCount, DateTime.Now);
                         }
                     }
 
@@ -305,6 +312,8 @@ namespace Bento.Variants.Console
             });
 
             stopWatch.Stop();
+
+            System.Console.WriteLine($"[{DateTime.Now}] DONE");
 
             // Get the elapsed time as a TimeSpan value.
             TimeSpan ts = stopWatch.Elapsed;
