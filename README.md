@@ -79,7 +79,10 @@ From the project root directory, copy your decompressed VCFs to a directory loca
 ```
 source .env
 
-dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
+dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
+  --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
+  --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
+  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
 
 ```
 > Note: on **Windows** machines, the vcfPath forward slashes above have to be converted to two backslashes, i.e.
@@ -241,7 +244,11 @@ source ../.env
  
 cd bin/Release/netcoreapp3.1/linux-x64/publish
 
-./Bento.Variants.Console --vcfPath vcfs --elasticsearchURL ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_GATEWAY_PATH} --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
+dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
+  --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
+  --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
+  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
+
 ```
 
 Local Alpine Release: 
