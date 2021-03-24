@@ -51,8 +51,10 @@ To create and use development certs from the project root, run
 > `mkdir -p gateway/certs/dev`
 > 
 > `openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/variants_privkey1.key -x509 -days 365 -out gateway/certs/dev/variants_fullchain1.crt`
+>
+> Ensure your `CN` matches the hostname (*variants.local* by default)
 
-These will be incorporated into the **Gateway** service (using NGINX by default, see `gateway/Dockerfile` and `gateway/nginx.conf` for details). Be sure to update your local `/etc/hosts` file with the name of your choice.
+These will be incorporated into the **Gateway** service (using NGINX by default, see `gateway/Dockerfile` and `gateway/nginx.conf` for details). Be sure to update your local `/etc/hosts` (on Linux) or `C:/System32/drivers/etc/hosts` (on Windows) file with the name of your choice.
 
 Next, run
 
@@ -67,7 +69,7 @@ Next, run
 *Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
 Copy the VCFs to a directory local to the project (*i.e. .../Bento.Variants/**vcfs***), and, from the project root, run 
 > `source .env`
-> `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH}`.
+> `dotnet run --project Bento.Variants.Console --vcfPath vcfs --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}` 
 
 <br />
 
