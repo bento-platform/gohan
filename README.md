@@ -79,6 +79,10 @@ From the project root directory, copy your decompressed VCFs to a directory loca
 ```
 source .env
 
+dotnet clean
+dotnet restore
+dotnet build
+
 dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
   --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
@@ -96,6 +100,10 @@ Bento.Variants.Console\\vcfs
 
 From the project root, run 
 ```
+dotnet clean
+dotnet restore
+dotnet build
+
 dotnet run --project Bento.Variants.Api
 ```
 
@@ -234,6 +242,10 @@ Local Release:
 
 &nbsp;From ***Bento.Variants.Console/***, run 
 ```
+dotnet clean
+dotnet restore
+```
+```
 dotnet publish -c Release --self-contained
 ```
 
@@ -244,7 +256,7 @@ source ../.env
  
 cd bin/Release/netcoreapp3.1/linux-x64/publish
 
-dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
+./Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
   --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
   --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
@@ -267,6 +279,10 @@ Local Release:
 
 &nbsp;First, from ***Bento.Variants.Api/***, run 
 
+```
+dotnet clean
+dotnet restore
+```
 ```
 dotnet publish -c Release --self-contained
 ```
