@@ -6,6 +6,8 @@
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
 - Docker
   - getting started: https://www.docker.com/get-started
+- Visual Studio Code (recommended)
+  - getting started: https://code.visualstudio.com/docs
 
 <br />
 <br />
@@ -70,29 +72,8 @@ make build-gateway
 make run-gateway
 ```
 
+
 <br />
-
-### **Console**
-
-*Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
-From the project root directory, copy your decompressed VCFs to a directory local to the console project (*i.e. ./Bento.Variants.Console/**vcfs***), and, from the project root, run 
-```
-source .env
-
-dotnet clean
-dotnet restore
-dotnet build
-
-dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
-  --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
-  --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
-  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
-
-```
-> Note: on **Windows** machines, the vcfPath forward slashes above have to be converted to two backslashes, i.e.
-```
-Bento.Variants.Console\\vcfs
-```
 <br />
 
 
@@ -116,11 +97,18 @@ Requests
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
 >   - upperBound : **number**
->   - ids : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
+>   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 >   - includeSamplesInResultSet : **boolean** `(true | false)`
 >
+> &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
+> &nbsp;&nbsp;&nbsp;params: 
+>   - chromosome : **number** `(default is "*" if not specified)`
+>   - lowerBound : **number**
+>   - upperBound : **number**
+>   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
+
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
@@ -131,15 +119,6 @@ Requests
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 >   - includeSamplesInResultSet : **boolean** `(true | false)`
 >
-> &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
->   - lowerBound : **number**
->   - upperBound : **number**
->   - ids : **string** `(comma-deliminated list of variant ID alphanumeric codes)`
-
-<br />
-
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - chromosome : **number** `(default is "*" if not specified)`
@@ -149,10 +128,11 @@ Requests
 >
 > &nbsp;&nbsp;**GET** `/variants/remove/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - id : **string** `(sample ID alphanumeric code)`
+>   - id : **string** `(a single sample ID alphanumeric code)`
 
 <br />
-Response
+
+Generalized Response Structure
 
 >```json  
 >{
@@ -187,27 +167,7 @@ Response
 > }
 > ```
 
-
 <br />
-
-
-***/vcfs*** <br />
-Request
-> &nbsp;&nbsp;**GET** `/vcfs/get/by/sampleId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(required)`
->   - lowerBound : **number**
->   - upperBound : **number**
->   - id : **string** `(a single sample ID alphanumeric code)`
->   - size : **number** `(maximum number of results per id)`
-
-<br/>
-Response
-
-*`- A VCF file -`*
-
-<br/>
-<br/>
 
 <b>Examples :</b>
 
@@ -232,47 +192,55 @@ Response
 
 - http://localhost:5000/vcfs/get/by/sampleId?chromosome=2&id=NA12815&size=1000&lowerBound=1000&upperBound=100000
 
+
+<br />
+
+
+***/vcfs*** <br />
+Request
+> &nbsp;&nbsp;**GET** `/vcfs/get/by/sampleId`<br/>
+> &nbsp;&nbsp;&nbsp;params: 
+>   - chromosome : **number** `(required)`
+>   - lowerBound : **number**
+>   - upperBound : **number**
+>   - id : **string** `(a single sample ID alphanumeric code)`
+>   - size : **number** `(maximum number of results per id)`
+
+<br/>
+
+Response
+
+*`- A VCF file -`*
+
 <br />
 <br />
 
+### **Console**
 
-## Releases
-### **Console :**
-Local Release: 
-
-&nbsp;From ***Bento.Variants.Console/***, run 
+*Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
+From the project root directory, copy your decompressed VCFs to a directory local to the console project (*i.e. ./Bento.Variants.Console/**vcfs***), and, from the project root, run 
 ```
+source .env
+
 dotnet clean
 dotnet restore
-```
-```
-dotnet publish -c Release --self-contained
-```
+dotnet build
 
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Console* and executed with
-
-```
-source ../.env
- 
-cd bin/Release/netcoreapp3.1/linux-x64/publish
-
-./Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
+dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
   --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
   --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
 
 ```
-
-Local Alpine Release: 
+> Note: on **Windows** machines, the vcfPath forward slashes above have to be converted to two backslashes, i.e.
 ```
-dotnet publish -c ReleaseAlpine --self-contained
+Bento.Variants.Console\\vcfs
 ```
-
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Console*
-
-> **Note:** this method is not recommended unless you are running your host machine on Alpine Linux. Unlike the **API** (seen below), this binary has no utility in being containerized. If you need to use this, run the same commands as you would with just a `Release` above but with `ReleaseAlpine` instead
 
 <br />
+<br />
+
+## Releases
 
 ### **API :**
 Local Release: 
@@ -324,6 +292,45 @@ make run-api
 ```
 
 &nbsp;and the `docker-compose.yaml` file will handle the configuration.
+
+<br />
+
+### **Console :**
+Local Release: 
+
+&nbsp;From ***Bento.Variants.Console/***, run 
+```
+dotnet clean
+dotnet restore
+```
+```
+dotnet publish -c Release --self-contained
+```
+
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Console* and executed with
+
+```
+source ../.env
+ 
+cd bin/Release/netcoreapp3.1/linux-x64/publish
+
+./Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
+  --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
+  --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
+  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
+
+```
+
+Local Alpine Release: 
+```
+dotnet publish -c ReleaseAlpine --self-contained
+```
+
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Console*
+
+> **Note:** this method is not recommended unless you are running your host machine on Alpine Linux. Unlike the **API** (seen below), this binary has no utility in being containerized. If you need to use this, run the same commands as you would with just a `Release` above but with `ReleaseAlpine` instead
+
+<br />
 
 <br />
 <br />
