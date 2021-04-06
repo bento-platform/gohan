@@ -9,8 +9,13 @@
 data
 data-*
 
-*.vcf
-*/vcf/*
+# vcfs
+*/vcfs/*.txt
+*/vcfs/*.vcf
+*/vcfs/*.vcf.gz
+*/vcfs/split/*
+*/vcfs/preprocessed/*
+# "keep *.sh"
 
 # dev executables
 console
