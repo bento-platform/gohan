@@ -11,6 +11,7 @@ using Nest;
 
 using Bento.Variants.Api.Repositories.Interfaces;
 
+using Bento.Variants.XCC;
 using Bento.Variants.XCC.Models.Indexes;
 
 namespace Bento.Variants.Api.Repositories

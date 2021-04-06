@@ -1,6 +1,6 @@
 ## Prerequisites
 - .NET Core 3.1
-  - install: https://dotnet.microsoft.com/download/dotnet-core/3.1
+  - installation: https://dotnet.microsoft.com/download/dotnet-core/3.1
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
@@ -8,6 +8,8 @@
   - getting started: https://www.docker.com/get-started
 - Visual Studio Code (recommended)
   - getting started: https://code.visualstudio.com/docs
+- PERL (optional)
+  - installation: https://learn.perl.org/installing/unix_linux.html
 
 <br />
 <br />
@@ -62,7 +64,7 @@ mkdir -p gateway/certs/dev
 openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/variants_privkey1.key -x509 -days 365 -out gateway/certs/dev/variants_fullchain1.crt
 ```
 
-> Note: Ensure your `CN` matches the hostname (**variants.local** by default )
+> Note: Ensure your `CN` matches the hostname (**variants.local** by default)
 
 These will be incorporated into the **Gateway** service (using NGINX by default, see `gateway/Dockerfile` and `gateway/nginx.conf` for details). Be sure to update your local `/etc/hosts` (on Linux) or `C:/System32/drivers/etc/hosts` (on Windows) file with the name of your choice.
 
@@ -217,8 +219,20 @@ Response
 
 ### **Console**
 
-*Purpose*: to ingest a set of VCFs into Elasticsearch.<br />
-From the project root directory, copy your decompressed VCFs to a directory local to the console project (*i.e. ./Bento.Variants.Console/**vcfs***), and, from the project root, run 
+*Purpose*: to ingest a set of VCFs into Elasticsearch.
+
+From the project root directory, copy your decompressed VCFs to a directory local to the console project (*i.e. ./Bento.Variants.Console/**vcfs***)
+
+**(Recommended):** If you first want to split a compressed VCF `(*.vcf.gz)` that contains multiple samples into individual VCF files that only contain one sample each, move that file into the above mentionned directory local to the console project, and then from the project root, run
+
+
+```
+bash Bento.Variants.Console/preprocess.sh <ORIGINAL_VCF_GZ_FILEPATH>
+```
+
+> Note: preprocessing currently only works on **Linux** machines with **bash**
+
+otherwise, just run 
 ```
 source .env
 
@@ -229,13 +243,18 @@ dotnet build
 dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
   --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
-  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
+  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD} \
+  --documentBulkSizeLimit 100000
 
 ```
-> Note: on **Windows** machines, the vcfPath forward slashes above have to be converted to two backslashes, i.e.
-```
-Bento.Variants.Console\\vcfs
-```
+> Note: 
+>
+> on **Windows** machines, the vcfPath forward slashes above have to be converted to two backslashes, i.e.
+>
+>     Bento.Variants.Console\\vcfs
+>
+>
+> `--documentBulkSizeLimit` is an optional flag! Tune it as you see fit to minimize ingestion time (`100000` is the default)
 
 <br />
 <br />
@@ -290,6 +309,10 @@ dotnet publish -c ReleaseAlpine --self-contained
 ```
 make run-api
 ```
+or
+```
+make run-api-alpine
+```
 
 &nbsp;and the `docker-compose.yaml` file will handle the configuration.
 
@@ -341,16 +364,16 @@ dotnet publish -c ReleaseAlpine --self-contained
 
 All in all, run 
 ```
+make run-elasticsearch 
 make build-gateway && make run-gateway 
 make build-api && make run-api
-make run-elasticsearch 
 
 # and optionally
 make run-kibana
 ```
 <br />
 
-For other handy tools, see the Makefile. Among these, you'll find build, start, stop and clean-up commands.
+For other handy tools, see the Makefile. Among those already mentionned here, you'll find other `build`, `run`, `stop` and `clean-up` commands.
 
 
 <br />

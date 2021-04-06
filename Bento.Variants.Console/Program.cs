@@ -1,10 +1,12 @@
-﻿using System.Text;
-using System.Linq;
-using System;
-using System.IO;
-using System.Collections.Generic;
+﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Bento.Variants.XCC;
@@ -16,6 +18,7 @@ namespace Bento.Variants.Console
     public class Program
     {
         public static object HttpCallLockObject = new object();
+        
         static void Main(string[] args)
         {
             System.Console.WriteLine("Hello World!");
@@ -24,6 +27,8 @@ namespace Bento.Variants.Console
             string url = null;
             string esUsername = null;
             string esPassword = null;
+            
+            int documentBulkSizeLimit = 100000;
 
             // Validate arguments
             int argNum = 0;
@@ -52,6 +57,11 @@ namespace Bento.Variants.Console
                             if(args.Length >= argNum+1)    
                                 esPassword = $"{args[argNum+1]}";
                             break;
+
+                        case "--bulkDocumentSizeLimit":
+                            if(args.Length >= argNum+1)    
+                                documentBulkSizeLimit = Int32.Parse(args[argNum+1]);
+                            break;
                     }
                 }
 
@@ -69,6 +79,8 @@ namespace Bento.Variants.Console
 
             if(string.IsNullOrEmpty(esPassword))
                 throw new Exception("Missing --elasticsearchPassword argument!");
+            
+            // documentBulkSizeLimit is optional *
 
 
             // Begin !
@@ -136,7 +148,7 @@ namespace Bento.Variants.Console
                 bool fileIndexCreateSuccess = false;
                 int attempts = 0;
                 IndexResponse fileResponse = new IndexResponse();
-                while (fileIndexCreateSuccess == false && attempts < 100)
+                while (fileIndexCreateSuccess == false && attempts < 3)
                 {
                     System.Console.WriteLine($"[{DateTime.Now}] Attempting to create ES index for {filepath}");
 
@@ -152,6 +164,8 @@ namespace Bento.Variants.Console
                         // Succeeded
                         fileIndexCreateSuccess = true;
                     }
+                    else
+                        Thread.Sleep(3000);
 
                     attempts++;                    
                 }
@@ -218,18 +232,22 @@ namespace Bento.Variants.Console
                     var rowComponents = xLine.Split("\t").ToList();// Temp cap at x //.Take(500)
                     //int columnNumber = 0;
 
-                    List<string> defaultHeaderFields = new List<string>() 
-                    {
-                        "CHROM",
-                        "POS",
-                        "ID",
-                        "REF",
-                        "ALT",
-                        "QUAL",
-                        "FILTER",
-                        "INFO",
-                        "FORMAT"
-                    };
+                    // List<string> defaultHeaderFields = new List<string>() 
+                    // {
+                    //     "CHROM",
+                    //     "POS",
+                    //     "ID",
+                    //     "REF",
+                    //     "ALT",
+                    //     "QUAL",
+                    //     "FILTER",
+                    //     "INFO",
+                    //     "FORMAT"
+                    // };
+                    var defaultHeaderFields = Utils.VCFColumnOrder;
+
+
+                    // TODO: create documents in a type-safe manner using a class structure instead of dynamically
 
                     // Dynamically generate column names and type, and add column value
                     //rowComponents.ForEach(rc =>
@@ -249,12 +267,16 @@ namespace Bento.Variants.Console
                                     if (string.Equals(key, "CHROM") || string.Equals(key, "POS") || string.Equals(key, "QUAL"))
                                     {
                                         int potentialIntValue;
+                                        
+                                        if (string.Equals(key, "CHROM"))
+                                            value = Regex.Replace(value, "[^.0-9]", "");
+
                                         if(Int32.TryParse(value, out potentialIntValue))
                                             cd[key.ToLower()] = potentialIntValue;
                                         else
-                                            cd[key.ToLower()] = -1; // equivalent to a null value (like a period '.')
+                                            cd[key.ToLower()] = -1; // here to simulate a null value (such as when the string value is empty, or
+                                                                    // is something as arbitrary as a single period '.')
                                     }
-                                    // default: string
                                     else
                                         cd[key.ToLower()] = value;
                                 }
@@ -272,7 +294,7 @@ namespace Bento.Variants.Console
                         }
                         catch(Exception ex)
                         {
-                        System.Console.WriteLine($"[{DateTime.Now}] Oops, something went wrong:  \n {ex.Message}");
+                            System.Console.WriteLine($"[{DateTime.Now}] Oops, something went wrong:  \n {ex.Message}");
                         }
                     });
 
@@ -285,8 +307,8 @@ namespace Bento.Variants.Console
                             .Index("variants")
                             .Document(cd));
 
-                        // Push x at a time
-                        if (rowCount % 10000 == 0)
+                        // Push "documentBulkSizeLimit" at a time
+                        if (rowCount % documentBulkSizeLimit == 0)
                         {
                             // TODO: check for errors
                             BulkResponse response = client.Bulk(descriptor);
