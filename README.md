@@ -241,7 +241,7 @@ dotnet restore
 dotnet build
 
 dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
-  --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
+  --elasticsearchUrl ${BENTO_VARIANTS_ES_PUBLIC_URL} \
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
   --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD} \
   --documentBulkSizeLimit 100000

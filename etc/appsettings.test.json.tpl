@@ -1,5 +1,5 @@
 {
-    "VariantsGatewayUrl": "${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}",
+    "VariantsGatewayUrl": "${BENTO_VARIANTS_PUBLIC_URL}",
     "InsecureVariantsGatewayUrl": "http://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:80",
     "PublicFacingElasticPath": "${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH}",
 

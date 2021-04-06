@@ -108,20 +108,15 @@ namespace Bento.Variants.Console
             // Get all project vcf files
             string[] files = System.IO.Directory.GetFiles(vcfFilesPath, "*.vcf");
 
-            int rowCount = 0;            
-            ParallelOptions poFiles = new ParallelOptions {
-                // Process ~3 times fewer files simultaneously 
-                // as there are processors on the host machine
-                MaxDegreeOfParallelism = (int)Math.Round((double)Environment.ProcessorCount / 3)
-            };
             
-            ParallelOptions poRows = new ParallelOptions {
-                MaxDegreeOfParallelism = Environment.ProcessorCount 
-            };
-            
-            ParallelOptions poColumns = new ParallelOptions {
-                MaxDegreeOfParallelism = Environment.ProcessorCount 
-            };
+            // Set up parallelization configuration
+            ParallelOptions poFiles, poRows,  poColumns;
+                                                                    // Process ~3 times fewer files simultaneously 
+                                                                    // as there are processors on the host machine
+            poFiles = new ParallelOptions { MaxDegreeOfParallelism = (int)Math.Round((double)Environment.ProcessorCount / 3) };     
+            poRows = poColumns = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+
+            int rowCount = 0;
 
             Parallel.ForEach(files, poFiles, (filepath, _, fileNumber) =>
             {            
