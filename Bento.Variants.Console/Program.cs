@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -109,7 +110,7 @@ namespace Bento.Variants.Console
 
 
             // Get all project vcf files
-            string[] files = System.IO.Directory.GetFiles(vcfFilesPath, "*.vcf");
+            string[] compressedFiles = System.IO.Directory.GetFiles(vcfFilesPath, "*.vcf.gz");
 
             
             // Set up parallelization configuration
@@ -121,13 +122,16 @@ namespace Bento.Variants.Console
 
             int rowCount = 0;
 
-            Parallel.ForEach(files, poFiles, (filepath, _, fileNumber) =>
+            Parallel.ForEach(compressedFiles, poFiles, (compressedFilepath, _, fileNumber) =>
             {            
-                System.Console.WriteLine("[{1}] Ingesting file {0}.", filepath, DateTime.Now);
+                System.Console.WriteLine("[{1}] Ingesting file {0}.", compressedFilepath, DateTime.Now);
 
-                // Collect all '#' lines as one header-block
-                var headerStringBuilder = new StringBuilder();
-                foreach(var line in File.ReadLines(filepath))
+                // decompress .vcf.gz files, temporarily store it to disk
+                // to be processed and ingested into elasticsearch
+                var decompressedFileName = Decompress(new FileInfo(compressedFilepath));
+
+                // skip all '#' lines
+                foreach(var line in File.ReadLines(decompressedFileName))
                 {
                     if (line.ElementAt(0)=='#')
                     {
@@ -135,10 +139,6 @@ namespace Bento.Variants.Console
                         if(line.Contains("#CHROM"))
                         {
                             break;
-                        }
-                        else
-                        {
-                            headerStringBuilder.AppendLine(line);
                         }
                     }
                 }
@@ -149,8 +149,7 @@ namespace Bento.Variants.Console
                 string drsFileId = string.Empty;
 
                 while (fileIndexCreateSuccess == false && attempts < 3)
-                {
-                    
+                {                    
                     // TODO: ingest in DRS, and then use ID in the elasticsearch ingestion
                     HttpClientHandler httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
                     httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
@@ -159,8 +158,8 @@ namespace Bento.Variants.Console
                     {
                         using (var content = new MultipartFormDataContent())
                         {
-                            byte[] file = System.IO.File.ReadAllBytes(filepath);
-                            var filename = filepath.Split("/").Last();
+                            byte[] file = System.IO.File.ReadAllBytes(compressedFilepath);
+                            var filename = Path.GetFileName(compressedFilepath);
 
                             var byteArrayContent = new ByteArrayContent(file);
 
@@ -174,15 +173,6 @@ namespace Bento.Variants.Console
                             drsFileId = data.id;
                         }
                     }   
-
-                    // System.Console.WriteLine($"[{DateTime.Now}] Attempting to create ES index for {filepath}");
-
-                    // // Create Elasticsearch documents for the filename
-                    // fileResponse = client.Index(new 
-                    // {
-                    //     filename = Path.GetFileName(filepath),
-                    //     compressedHeaderBlockBase64 = Convert.ToBase64String(Utils.Zip(headerStringBuilder.ToString()))
-                    // }, i => i.Index("files"));
 
                     if (drsFileId != string.Empty )
                     {
@@ -198,12 +188,12 @@ namespace Bento.Variants.Console
                 if (fileIndexCreateSuccess == false) 
                 {
                     // Abandon file
-                    System.Console.WriteLine($"[{DateTime.Now}] Failed to create ES index for file {filepath} -- Aborting this file ");
+                    System.Console.WriteLine($"[{DateTime.Now}] Failed to create ES index for file {decompressedFileName} -- Aborting this file ");
                     return;
                 }
                 else
                 {
-                    System.Console.WriteLine($"[{DateTime.Now}] Succeeded to create ES index for file {filepath} after {attempts} attempt{(attempts > 1 ? "s" : string.Empty)} : id {fileResponse.Id} ");
+                    System.Console.WriteLine($"[{DateTime.Now}] Succeeded to create ES index for file {decompressedFileName} after {attempts} attempt{(attempts > 1 ? "s" : string.Empty)} : id {fileResponse.Id} ");
                 }
 
 
@@ -212,7 +202,7 @@ namespace Bento.Variants.Console
                 List<dynamic> Documents = new List<dynamic>();
 
                 BulkDescriptor descriptor = new BulkDescriptor();
-                Parallel.ForEach(File.ReadLines(filepath), poRows, (xLine, _x, lineNumber) =>
+                Parallel.ForEach(File.ReadLines(decompressedFileName), poRows, (xLine, _x, lineNumber) =>
                 {
                     if (xLine.ElementAt(0)=='#')
                     {
@@ -356,6 +346,10 @@ namespace Bento.Variants.Console
 
                 // Final bulk push
                 BulkResponse responseX = client.Bulk(descriptor);
+
+
+                System.IO.File.Delete(decompressedFileName);
+                // TODO: load only in memory? (memory constraint concerns)
             });
 
             stopWatch.Stop();
@@ -369,5 +363,27 @@ namespace Bento.Variants.Console
 
             System.Console.WriteLine("Ingested {0} variant documents in time {1}.", rowCount, elapsedTime);
         }
+    
+        public static string Decompress(FileInfo fileToDecompress)
+        {
+            using (FileStream originalFileStream = fileToDecompress.OpenRead())
+            {
+                string currentFileName = fileToDecompress.FullName;
+                string newFileName = currentFileName.Remove(currentFileName.Length - fileToDecompress.Extension.Length);
+
+                using (FileStream decompressedFileStream = File.Create(newFileName))
+                {
+                    using (GZipStream decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress))
+                    {
+                        decompressionStream.CopyTo(decompressedFileStream);
+                        System.Console.WriteLine($"Decompressed: {fileToDecompress.Name}");
+
+                        return newFileName;
+                    }
+                }
+            }
+        }
     }
+
+
 }

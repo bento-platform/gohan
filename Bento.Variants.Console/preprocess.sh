@@ -52,9 +52,13 @@ if ($F[0] ne $previousSample) {
 print OUT "$common[$F[1]]\t$F[2]";
 END { close OUT }' Bento.Variants.Console/vcfs/_vcf.private.txt
 
-# time for file in split/*vcf; do
-#  bgzip -f $file; tabix -fp vcf $file.gz
-# done
+echo Step 3 : compressing individual VCF files -
+echo This also may take a while...
+
+time for file in Bento.Variants.Console/vcfs/split/*vcf; do
+  gzip -f $file;
+  # tabix -fp vcf $file.gz
+done
 
 # for file in split/*vcf.gz; do
 #  gunzip $file
@@ -64,7 +68,7 @@ END { close OUT }' Bento.Variants.Console/vcfs/_vcf.private.txt
 # rm *vcf.gz.tbi
 
 # Clean up
-mv Bento.Variants.Console/vcfs/split/*.vcf Bento.Variants.Console/vcfs/
+mv Bento.Variants.Console/vcfs/split/*.vcf.gz Bento.Variants.Console/vcfs/
 rmdir Bento.Variants.Console/vcfs/split/
 
 rm Bento.Variants.Console/vcfs/_vcf.private.txt

@@ -96,7 +96,7 @@ clean-drs:
 ## -- WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
 clean-elastic-data:
 	docker-compose -f docker-compose.yaml down
-	sudo rm -rf ${BENTO_VARIANTS_ES_DATA_DIR}/nodes
+	sudo rm -rf ${BENTO_VARIANTS_ES_DATA_DIR}
 
 ## -- WARNING: DELETES ALL LOCAL DRS DATA
 clean-drs-data:
