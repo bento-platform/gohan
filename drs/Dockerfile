@@ -31,10 +31,7 @@ WORKDIR /drs/chord_drs
 
 RUN git fetch && \
     git checkout "${BRANCH}" && \
-    git pull ${REPO} && \
-    \
-    mkdir -p /drs/chord_drs/data/obj && \
-    mkdir -p /drs/chord_drs/data/db;
+    git pull ${REPO}
 #    git pull $(echo "${REPO} refs/tags/${TAG}:refs/tags/${TAG}") && \
 
 RUN ["pip", "install", "-r", "requirements.txt"]
