@@ -27,6 +27,9 @@ run-elasticsearch:
 run-kibana:
 	docker-compose -f docker-compose.yaml up -d kibana
 
+run-drs:
+	docker-compose -f docker-compose.yaml up -d drs
+
 
 
 # Build
@@ -65,10 +68,13 @@ stop-api:
 stop-api-alpine:
 	docker-compose -f docker-compose.yaml stop api-alpine
 
+stop-drs:
+	docker-compose -f docker-compose.yaml stop drs
+
 
 
 # Clean up
-clean-all: clean-api clean-api-alpine clean-gateway
+clean-all: clean-api clean-api-alpine clean-gateway clean-drs
 
 clean-gateway:
 	docker rm ${BENTO_VARIANTS_GATEWAY_CONTAINER_NAME} --force; \
@@ -82,11 +88,20 @@ clean-api-alpine:
 	docker rm ${BENTO_VARIANTS_API_CONTAINER_NAME} --force; \
 	docker rmi ${BENTO_VARIANTS_API_IMAGE}:${BENTO_VARIANTS_API_VERSION} --force;
 
+clean-drs:
+	docker rm ${BENTO_VARIANTS_DRS_CONTAINER_NAME} --force; \
+	docker rmi ${BENTO_VARIANTS_DRS_IMAGE}:${BENTO_VARIANTS_DRS_VERSION} --force;
+
+
 ## -- WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
 clean-elastic-data:
 	docker-compose -f docker-compose.yaml down
 	sudo rm -rf ${BENTO_VARIANTS_ES_DATA_DIR}/nodes
 
+## -- WARNING: DELETES ALL LOCAL DRS DATA
+clean-drs-data:
+	docker-compose -f docker-compose.yaml down
+	sudo rm -rf ${BENTO_VARIANTS_DRS_DATA_DIR}
 
 
 
