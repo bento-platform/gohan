@@ -35,6 +35,7 @@ namespace Bento.Variants.Tests.Integration
         [InlineData("/")]
         [InlineData("/es")]
         [InlineData("/kibana")]
+        [InlineData("/drs")]
         public async void DoServicesOverHttpRedirectToHttps(string path)
         {
             bool didPass = false;

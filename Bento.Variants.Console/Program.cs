@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -12,6 +13,8 @@ using System.Threading.Tasks;
 using Bento.Variants.XCC;
 
 using Nest;
+
+using Newtonsoft.Json;
 
 namespace Bento.Variants.Console
 {
@@ -143,18 +146,45 @@ namespace Bento.Variants.Console
                 bool fileIndexCreateSuccess = false;
                 int attempts = 0;
                 IndexResponse fileResponse = new IndexResponse();
+                string drsFileId = string.Empty;
+
                 while (fileIndexCreateSuccess == false && attempts < 3)
                 {
-                    System.Console.WriteLine($"[{DateTime.Now}] Attempting to create ES index for {filepath}");
+                    
+                    // TODO: ingest in DRS, and then use ID in the elasticsearch ingestion
+                    HttpClientHandler httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
+                    httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 
-                    // Create Elasticsearch documents for the filename
-                    fileResponse = client.Index(new 
+                    using (var httpClient = new HttpClient(httpClientHandler, disposeHandler: false))
                     {
-                        filename = Path.GetFileName(filepath),
-                        compressedHeaderBlockBase64 = Convert.ToBase64String(Utils.Zip(headerStringBuilder.ToString()))
-                    }, i => i.Index("files"));
+                        using (var content = new MultipartFormDataContent())
+                        {
+                            byte[] file = System.IO.File.ReadAllBytes(filepath);
+                            var filename = filepath.Split("/").Last();
 
-                    if (fileResponse.Id != null)
+                            var byteArrayContent = new ByteArrayContent(file);
+
+                            content.Add(byteArrayContent, "file", filename);
+
+                            var url = "https://variants.local/drs/public/ingest";
+                            var result = httpClient.PostAsync(url, content).Result;
+
+                            // TODO : type safety (remove dynamic, add a class)
+                            var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(result.Content.ReadAsStringAsync().Result);
+                            drsFileId = data.id;
+                        }
+                    }   
+
+                    // System.Console.WriteLine($"[{DateTime.Now}] Attempting to create ES index for {filepath}");
+
+                    // // Create Elasticsearch documents for the filename
+                    // fileResponse = client.Index(new 
+                    // {
+                    //     filename = Path.GetFileName(filepath),
+                    //     compressedHeaderBlockBase64 = Convert.ToBase64String(Utils.Zip(headerStringBuilder.ToString()))
+                    // }, i => i.Index("files"));
+
+                    if (drsFileId != string.Empty )
                     {
                         // Succeeded
                         fileIndexCreateSuccess = true;
@@ -217,7 +247,7 @@ namespace Bento.Variants.Console
 
 
                     // Associate variant with its original file
-                    cd["fileId"] = fileResponse.Id;
+                    cd["fileId"] = drsFileId; // fileResponse.Id;
 
                     //List<object> docParticipantsList = new List<object>();
                     
