@@ -32,6 +32,8 @@ namespace Bento.Variants.Console
             string esUsername = null;
             string esPassword = null;
             
+            string drsUrl = null;
+            
             int documentBulkSizeLimit = 100000;
 
             // Validate arguments
@@ -61,6 +63,11 @@ namespace Bento.Variants.Console
                             if(args.Length >= argNum+1)    
                                 esPassword = $"{args[argNum+1]}";
                             break;
+                        
+                        case "--drsUrl":
+                            if(args.Length >= argNum+1)    
+                                drsUrl = $"{args[argNum+1]}";
+                            break;
 
                         case "--bulkDocumentSizeLimit":
                             if(args.Length >= argNum+1)    
@@ -84,6 +91,11 @@ namespace Bento.Variants.Console
             if(string.IsNullOrEmpty(esPassword))
                 throw new Exception("Missing --elasticsearchPassword argument!");
             
+
+            if(string.IsNullOrEmpty(drsUrl))
+                throw new Exception("Missing --drsUrl argument!");
+
+
             // documentBulkSizeLimit is optional *
 
 
@@ -165,8 +177,8 @@ namespace Bento.Variants.Console
 
                             content.Add(byteArrayContent, "file", filename);
 
-                            var url = "https://variants.local/drs/public/ingest";
-                            var result = httpClient.PostAsync(url, content).Result;
+                            var ingestUrl = $"{drsUrl}/public/ingest";
+                            var result = httpClient.PostAsync(ingestUrl, content).Result;
 
                             // TODO : type safety (remove dynamic, add a class)
                             var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(result.Content.ReadAsStringAsync().Result);
