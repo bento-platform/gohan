@@ -244,6 +244,7 @@ dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcf
   --elasticsearchUrl ${BENTO_VARIANTS_ES_PUBLIC_URL} \
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
   --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD} \
+  --drsUrl ${BENTO_VARIANTS_DRS_PUBLIC_URL} \
   --documentBulkSizeLimit 100000
 
 ```
@@ -338,9 +339,10 @@ source ../.env
 cd bin/Release/netcoreapp3.1/linux-x64/publish
 
 ./Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
-  --elasticsearchUrl ${BENTO_VARIANTS_PUBLIC_PROTO}://${BENTO_VARIANTS_PUBLIC_HOSTNAME}:${BENTO_VARIANTS_PUBLIC_PORT}${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH} \
+  --elasticsearchUrl ${BENTO_VARIANTS_ES_PUBLIC_URL} \
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
-  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD}
+  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD} \
+  --drsUrl ${BENTO_VARIANTS_DRS_PUBLIC_URL} 
 
 ```
 
