@@ -53,6 +53,10 @@ build-api-alpine: stop-api-alpine clean-api-alpine
 	echo "-- Building Api-Alpine Container --"
 	docker-compose -f docker-compose.yaml build api-alpine
 
+build-drs: stop-drs clean-drs
+	echo "-- Building DRS Container --"
+	docker-compose -f docker-compose.yaml build drs
+
 
 
 # Stop
