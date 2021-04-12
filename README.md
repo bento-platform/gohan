@@ -51,6 +51,17 @@ sudo chmod -R 777 data/
 <br />
 
 
+### **DRS :**
+
+Run 
+```
+make run-drs
+```
+
+<br />
+<br />
+
+
 ## Development
 
 ![Architecture](https://github.com/bento-platform/Bento.Variants/blob/master/images/architecture.png?raw=true)
