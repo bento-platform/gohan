@@ -155,6 +155,9 @@ namespace Bento.Variants.Console
                     }
                 }
 
+
+                // ingest in DRS, and then use ID in the elasticsearch ingestion
+
                 bool fileIndexCreateSuccess = false;
                 int attempts = 0;
                 IndexResponse fileResponse = new IndexResponse();
@@ -162,7 +165,6 @@ namespace Bento.Variants.Console
 
                 while (fileIndexCreateSuccess == false && attempts < 3)
                 {                    
-                    // TODO: ingest in DRS, and then use ID in the elasticsearch ingestion
                     HttpClientHandler httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
                     httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 
