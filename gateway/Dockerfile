@@ -9,6 +9,10 @@ LABEL Maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics
 # Main NGINX config
 COPY nginx.conf /etc/nginx/conf.d/nginx.conf
 
+# DRS Basic Auth
+ARG DRS_BASIC_AUTH_FILE_PATH
+COPY drs.htpasswd $DRS_BASIC_AUTH_FILE_PATH
+
 # Dev certs
 # TODO: integrate production certs
 COPY ./certs/dev/variants_fullchain1.crt /etc/ssl/nginx/variants_fullchain1.crt

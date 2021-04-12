@@ -6,6 +6,9 @@ env ?= .env
 include $(env)
 export $(shell sed 's/=.*//' $(env))
 
+# initialize
+init:
+	htpasswd -cb gateway/drs.htpasswd ${BENTO_VARIANTS_DRS_BASIC_AUTH_USERNAME} ${BENTO_VARIANTS_DRS_BASIC_AUTH_PASSWORD}
 
 
 # Run

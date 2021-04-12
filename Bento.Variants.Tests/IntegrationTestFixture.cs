@@ -9,7 +9,6 @@ namespace Bento.Variants.Tests
     {
         public string VariantsGatewayUrl;
         public string InsecureVariantsGatewayUrl;
-        public string PublicFacingElasticPath;
 
         public string GetVariantsByVariantIdPath = "/variants/get/by/variantId";
         public string GetVariantsBySampleIdPath = "/variants/get/by/sampleId";
@@ -18,8 +17,16 @@ namespace Bento.Variants.Tests
 
         public string RemoveSampleIdPath = "/variants/remove/sampleId";
 
+
+        public string PublicFacingElasticPath;
+
         public string ElasticUsername;
         public string ElasticPassword;
+
+        public string PublicFacingDrsPath;
+        
+        public string DrsUsername;
+        public string DrsPassword;
 
         public HttpClient client;
         public HttpClientHandler httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
@@ -34,17 +41,23 @@ namespace Bento.Variants.Tests
             // Set up test-wide http configuration
             VariantsGatewayUrl = config["VariantsGatewayUrl"];
             InsecureVariantsGatewayUrl = config["InsecureVariantsGatewayUrl"];
+
+
             PublicFacingElasticPath = config["PublicFacingElasticPath"];
 
             ElasticUsername = config["ElasticUsername"];
             ElasticPassword = config["ElasticPassword"];
+
+            PublicFacingDrsPath = config["PublicFacingDrsPath"];
+
+            DrsUsername = config["DrsUsername"];
+            DrsPassword = config["DrsPassword"];
             
 #if DEBUG
             httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 #endif
             client = new HttpClient(httpClientHandler, disposeHandler: false);
             client.Timeout = TimeSpan.FromMinutes(10);
-
         }
 
         public void Dispose()

@@ -18,7 +18,6 @@
   - installation: https://learn.perl.org/installing/unix_linux.html
 
 <br />
-<br />
 
 
 ## Getting started
@@ -35,6 +34,14 @@ cp ./etc/example.env .env
  > Note: if `BENTO_VARIANTS_ES_USERNAME` and `BENTO_VARIANTS_ES_PASSWORD` are to be modified for development, be sure to mirror the changes done in `.env` in the `Bento.Variants.Api/appsettings.Development.json` to give the API access, as the dev username and password is hard-coded in both files.
 
 <br >
+
+### **Init**
+Run 
+```
+make init
+```
+
+<br />
 
 
 ### **Elasticsearch & Kibana :**
@@ -53,7 +60,6 @@ The first startup may fail on an `AccessDeniedException[/usr/share/elasticsearch
 sudo chmod -R 777 data/
 ```
 
-<br />
 <br />
 
 
@@ -263,6 +269,8 @@ dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcf
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
   --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD} \
   --drsUrl ${BENTO_VARIANTS_DRS_PUBLIC_URL} \
+  --drsUsername ${BENTO_VARIANTS_DRS_BASIC_AUTH_USERNAME} \
+  --drsPassword ${BENTO_VARIANTS_DRS_BASIC_AUTH_PASSWORD} \
   --documentBulkSizeLimit 100000
 
 ```
@@ -361,6 +369,9 @@ cd bin/Release/netcoreapp3.1/linux-x64/publish
   --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
   --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD} \
   --drsUrl ${BENTO_VARIANTS_DRS_PUBLIC_URL} 
+  --drsUsername ${BENTO_VARIANTS_DRS_BASIC_AUTH_USERNAME} \
+  --drsPassword ${BENTO_VARIANTS_DRS_BASIC_AUTH_PASSWORD} \
+  --documentBulkSizeLimit 100000
 
 ```
 
