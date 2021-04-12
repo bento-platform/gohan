@@ -15,8 +15,6 @@ services:
       - "80:80"
       - "443:443"
 
-
-
   # DUPLICATES - almost
   api:
     build:
@@ -106,7 +104,6 @@ services:
     volumes: 
       - ${BENTO_VARIANTS_ES_DATA_DIR}:/usr/share/elasticsearch/data
 
-
   kibana:
     image: ${BENTO_VARIANTS_KB_BASE_IMAGE}:${BENTO_VARIANTS_KB_BASE_VERSION}
     container_name: ${BENTO_VARIANTS_KB_CONTAINER_NAME}
@@ -117,7 +114,6 @@ services:
     # using default ports interally only.
     # ports: 
     #   - ${BENTO_VARIANTS_KB_EXTERNAL_PORT}:${BENTO_VARIANTS_KB_INTERNAL_PORT}
-
 
   drs:
     build:

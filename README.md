@@ -61,6 +61,7 @@ sudo chmod -R 777 data/
 
 Run 
 ```
+make build-drs
 make run-drs
 ```
 
@@ -236,15 +237,15 @@ Response
 
 ### **Console**
 
-*Purpose*: to ingest a set of VCFs into Elasticsearch.
+*Purpose*: to ingest a set of VCFs into Elasticsearch and DRS.
 
-From the project root directory, copy your decompressed VCFs to a directory local to the console project (*i.e. ./Bento.Variants.Console/**vcfs***)
+From the project root directory, copy your compressed VCFs `(*.vcf.gz)` to a directory local to the console project (*i.e. ./Bento.Variants.Console/**vcfs***)
 
-**(Recommended):** If you first want to split a compressed VCF `(*.vcf.gz)` that contains multiple samples into individual VCF files that only contain one sample each, move that file into the above mentionned directory local to the console project, and then from the project root, run
+**(Recommended):** If you first want to split a compressed VCF that contains multiple samples into individual VCF files that only contain one sample each, move that file into the above mentionned directory local to the console project, and then, from the project root, run
 
 
 ```
-bash Bento.Variants.Console/preprocess.sh <ORIGINAL_VCF_GZ_FILEPATH>
+bash Bento.Variants.Console/preprocess.sh Bento.Variants.Console/vcfs/ORIGINAL.vcf.gz
 ```
 
 > Note: preprocessing currently only works on **Linux** machines with **bash**
