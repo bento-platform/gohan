@@ -309,7 +309,7 @@ namespace Bento.Variants.Tests.Integration
 
 
             // Wait
-            Thread.Sleep(1000);
+            Thread.Sleep(3000);
             
 
             using (HttpResponseMessage response = fixture.client.GetAsync(searchUrl).Result)

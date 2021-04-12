@@ -250,7 +250,7 @@ namespace Bento.Variants.Api.Repositories
                     ))
                 .Refresh(true)
             );
-            System.Console.WriteLine($"Updated : {updateResult?.Updated}");
+            System.Console.WriteLine($"Updated : {updateResult?.OriginalException} {updateResult?.IsValid} {updateResult?.Updated}");
 
             var removeResult = await ElasticClient.DeleteByQueryAsync<dynamic>(u => u
                 .Index("variants")
@@ -259,7 +259,7 @@ namespace Bento.Variants.Api.Repositories
                         .MustNot(mn => mn
                             .Exists(e => e.Field("samples")))))
             );
-            System.Console.WriteLine($"Deleted : {removeResult?.Deleted}");
+            System.Console.WriteLine($"Deleted : {removeResult.OriginalException} {removeResult.IsValid} {removeResult?.Deleted}");
 
             if (updateResult?.Updated > 0 && removeResult?.Deleted == 0)
             {
