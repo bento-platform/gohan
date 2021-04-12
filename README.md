@@ -4,8 +4,14 @@
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
+- Bash
+  - overview: https://en.wikipedia.org/wiki/Bash_%28Unix_shell%29
+- Make
+  - overview: https://en.wikipedia.org/wiki/Make_(software)
 - Docker
   - getting started: https://www.docker.com/get-started
+- Docker-Compose
+  - getting started: https://docs.docker.com/compose/gettingstarted/
 - Visual Studio Code (recommended)
   - getting started: https://code.visualstudio.com/docs
 - PERL (optional)
