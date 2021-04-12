@@ -28,11 +28,14 @@ namespace Bento.Variants.Console
             System.Console.WriteLine("Hello World!");
 
             string vcfFilesPath = null;
-            string url = null;
+
+            string esUrl = null;
             string esUsername = null;
             string esPassword = null;
             
             string drsUrl = null;
+            string drsUsername = null;
+            string drsPassword = null;
             
             int documentBulkSizeLimit = 100000;
 
@@ -48,26 +51,35 @@ namespace Bento.Variants.Console
                             if(args.Length >= argNum+1)    
                                 vcfFilesPath = $"{System.IO.Directory.GetCurrentDirectory()}/{args[argNum+1]}";
                             break;
-                            
+                    
+
                         case "--elasticsearchUrl":
                             if(args.Length >= argNum+1)    
-                                url = $"{args[argNum+1]}";
+                                esUrl = $"{args[argNum+1]}";
                             break;
-
                         case "--elasticsearchUsername":
                             if(args.Length >= argNum+1)    
                                 esUsername = $"{args[argNum+1]}";
                             break;
-                            
                         case "--elasticsearchPassword":
                             if(args.Length >= argNum+1)    
                                 esPassword = $"{args[argNum+1]}";
                             break;
                         
+
                         case "--drsUrl":
                             if(args.Length >= argNum+1)    
                                 drsUrl = $"{args[argNum+1]}";
                             break;
+                        case "--drsUsername":
+                            if(args.Length >= argNum+1)    
+                                drsUsername = $"{args[argNum+1]}";
+                            break;
+                        case "--drsPassword":
+                            if(args.Length >= argNum+1)    
+                                drsPassword = $"{args[argNum+1]}";
+                            break;
+
 
                         case "--bulkDocumentSizeLimit":
                             if(args.Length >= argNum+1)    
@@ -82,7 +94,7 @@ namespace Bento.Variants.Console
             if(string.IsNullOrEmpty(vcfFilesPath))
                 throw new Exception("Missing --vcfPath argument!");
 
-            if(string.IsNullOrEmpty(url))
+            if(string.IsNullOrEmpty(esUrl))
                 throw new Exception("Missing --elasticsearchUrl argument!");
 
             if(string.IsNullOrEmpty(esUsername))
@@ -94,6 +106,10 @@ namespace Bento.Variants.Console
 
             if(string.IsNullOrEmpty(drsUrl))
                 throw new Exception("Missing --drsUrl argument!");
+            if(string.IsNullOrEmpty(drsUsername))
+                throw new Exception("Missing --drsUsername argument!");
+            if(string.IsNullOrEmpty(drsPassword))
+                throw new Exception("Missing --drsPassword argument!");
 
 
             // documentBulkSizeLimit is optional *
@@ -108,7 +124,7 @@ namespace Bento.Variants.Console
             // Establish connection with local Elasticsearch
             var indexMap = "variants";
 
-            var settings = new ConnectionSettings(new Uri(url))
+            var settings = new ConnectionSettings(new Uri(esUrl))
                 .ServerCertificateValidationCallback((o, certificate, chain, errors) => true) // allow self-signed certs
                 .BasicAuthentication(esUsername, esPassword)
                 .DefaultIndex(indexMap);
@@ -170,6 +186,12 @@ namespace Bento.Variants.Console
 
                     using (var httpClient = new HttpClient(httpClientHandler, disposeHandler: false))
                     {
+                        // Create Basic Authentication header
+                        var byteArray = Encoding.ASCII.GetBytes($"{drsUsername}:{drsPassword}");
+                        
+                        httpClient.DefaultRequestHeaders.Authorization = 
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+
                         using (var content = new MultipartFormDataContent())
                         {
                             byte[] file = System.IO.File.ReadAllBytes(compressedFilepath);

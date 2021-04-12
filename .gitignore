@@ -22,6 +22,8 @@ console
 
 # gateway certs
 gateway/certs/*
+# basic auth pwds
+gateway/drs.htpasswd
 
 # temp test file
 Bento.Variants.Tests/appsettings.test.json
