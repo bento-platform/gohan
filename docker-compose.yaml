@@ -135,10 +135,30 @@ services:
       - DATA=/drs/chord_drs/data/obj/  # DRS file objects, vs. the database
     networks: 
       - bridge-net
+    # using default ports interally only.
     # ports:
     #    - "${BENTO_VARIANTS_DRS_EXTERNAL_PORT}:${BENTO_VARIANTS_DRS_INTERNAL_PORT}"
     volumes:
       - ${BENTO_VARIANTS_DRS_DATA_DIR}:/drs/chord_drs/data
+
+
+  authorization:
+    build:
+      context: $PWD/authorization
+      args: 
+        - BASE_IMAGE=${BENTO_VARIANTS_AUTHZ_OPA_BASE_IMAGE}:${BENTO_VARIANTS_AUTHZ_OPA_BASE_IMAGE_VERSION}
+    image: ${BENTO_VARIANTS_AUTHZ_OPA_IMAGE}:${BENTO_VARIANTS_AUTHZ_OPA_IMAGE_VERSION}
+    container_name: ${BENTO_VARIANTS_AUTHZ_OPA_CONTAINER_NAME}
+    networks:
+      - bridge-net
+    # using default ports interally only.
+    # ports:
+    #   - "${BENTO_VARIANTS_AUTHZ_OPA_EXTERNAL_PORT}:${BENTO_VARIANTS_AUTHZ_OPA_INTERNAL_PORT}"
+    command:
+      - "run"
+      - "--server"
+      - "--log-level=debug"
+      - "/api.policy.rego"
 
 
 networks: 
