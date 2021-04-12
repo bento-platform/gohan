@@ -6,9 +6,19 @@ env ?= .env
 include $(env)
 export $(shell sed 's/=.*//' $(env))
 
-# initialize
+# initialize services
 init:
-	htpasswd -cb gateway/drs.htpasswd ${BENTO_VARIANTS_DRS_BASIC_AUTH_USERNAME} ${BENTO_VARIANTS_DRS_BASIC_AUTH_PASSWORD}
+	# Gateway: 
+	@# - DRS Authentication
+	@htpasswd -cb gateway/drs.htpasswd ${BENTO_VARIANTS_DRS_BASIC_AUTH_USERNAME} ${BENTO_VARIANTS_DRS_BASIC_AUTH_PASSWORD} 
+	
+	@echo
+	
+	# Authorization:
+	@# - API OPA policies 
+	@echo Configuring authorzation policies
+	@envsubst < ./etc/api.policy.rego.tpl > ./authorization/api.policy.rego
+
 
 
 # Run
@@ -32,6 +42,9 @@ run-kibana:
 
 run-drs:
 	docker-compose -f docker-compose.yaml up -d drs
+
+run-authz:
+	docker-compose -f docker-compose.yaml up -d authorization
 
 
 
@@ -60,6 +73,9 @@ build-drs: stop-drs clean-drs
 	echo "-- Building DRS Container --"
 	docker-compose -f docker-compose.yaml build drs
 
+build-authz: stop-authz clean-authz
+	echo "-- Building Authorization Container --"
+	docker-compose -f docker-compose.yaml build authorization
 
 
 # Stop
@@ -77,6 +93,9 @@ stop-api-alpine:
 
 stop-drs:
 	docker-compose -f docker-compose.yaml stop drs
+
+stop-authz:
+	docker-compose -f docker-compose.yaml stop authorization
 
 
 
@@ -98,6 +117,10 @@ clean-api-alpine:
 clean-drs:
 	docker rm ${BENTO_VARIANTS_DRS_CONTAINER_NAME} --force; \
 	docker rmi ${BENTO_VARIANTS_DRS_IMAGE}:${BENTO_VARIANTS_DRS_VERSION} --force;
+
+clean-authz:
+	docker rm ${BENTO_VARIANTS_AUTHZ_OPA_CONTAINER_NAME} --force; \
+	docker rmi ${BENTO_VARIANTS_AUTHZ_OPA_IMAGE}:${BENTO_VARIANTS_AUTHZ_OPA_IMAGE_VERSION} --force;
 
 
 ## -- WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA

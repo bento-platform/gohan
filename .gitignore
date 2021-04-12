@@ -25,6 +25,10 @@ gateway/certs/*
 # basic auth pwds
 gateway/drs.htpasswd
 
+# authorization
+authorization/policy.rego
+authorization/*.policy.rego
+
 # temp test file
 Bento.Variants.Tests/appsettings.test.json
 
