@@ -15,6 +15,7 @@ using Bento.Variants.XCC;
 namespace Bento.Variants.Api.Controllers
 {
     [Route("vcfs")]
+    [MandateAuthorizationTokens]
     public class VcfController : Controller
     {
         private readonly IConfiguration Configuration;
