@@ -1,0 +1,31 @@
+﻿using System;
+using System.Linq;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+using Bento.Variants.Api.Services;
+using Bento.Variants.Api.Services.Interfaces;
+
+namespace Bento.Variants.Api
+{
+    public static class AuthorizationExtension
+    {
+        public static void AddAuthorizationLayer(this IServiceCollection services, IConfiguration configuration)
+        {
+            var isEnabled = $"{configuration["Authorization:IsEnabled"]}";
+            var opaUrl = $"{configuration["Authorization:OpaUrl"]}";
+            var reqHeaders = $"{configuration["Authorization:RequiredHeadersCommaSep"]}".Split(",").ToList();
+
+            if (string.IsNullOrEmpty(isEnabled) ||  string.IsNullOrEmpty(opaUrl) ||  reqHeaders.Any(h => string.IsNullOrEmpty(h)) ||
+                isEnabled.Contains("not-set")   ||  opaUrl.Contains("not-set")   ||  reqHeaders.Any(h => h.Contains("not-set")))
+            {
+                throw new Exception($"Error: Invalid Authorization configuration! -- Aborting");
+            }
+
+            var authzConfig = new AuthorizationService(Boolean.Parse(isEnabled), opaUrl, reqHeaders);
+            services.AddSingleton<IAuthorizationService>(authzConfig);
+            
+        }
+    }
+}

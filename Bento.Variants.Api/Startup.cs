@@ -34,7 +34,8 @@ namespace Bento.Variants.Api
             });
 
 
-            // Logs + Elastic
+            // Extensions
+            services.AddAuthorizationLayer(Configuration);
             services.AddElasticSearch(Configuration);
 
             // MVC

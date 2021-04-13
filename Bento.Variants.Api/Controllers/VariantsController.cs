@@ -9,12 +9,15 @@ using Microsoft.Extensions.Configuration;
 
 using Bento.Variants.Api.Middleware;
 using Bento.Variants.Api.Repositories.Interfaces;
+using Bento.Variants.Api.Services.Interfaces;
+
 
 using Bento.Variants.XCC.Models.DTOs;
 
 namespace Bento.Variants.Api.Controllers
 {
     [Route("variants")]
+    [MandateAuthorizationTokens]
     public class VariantsController : Controller
     {
         private readonly IConfiguration Configuration;
@@ -46,7 +49,7 @@ namespace Bento.Variants.Api.Controllers
             Dictionary<string, dynamic> results = new Dictionary<string, dynamic>();
 
             var sampleIdList = ids.Split(",");
-        
+
             // TODO: optimize - make 1 repo call with all variantIds at once
             var tempResultsList = new ConcurrentBag<VariantResponseDataModel>();
             Parallel.ForEach(sampleIdList, sampleId =>

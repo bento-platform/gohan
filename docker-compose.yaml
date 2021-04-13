@@ -151,9 +151,8 @@ services:
     container_name: ${BENTO_VARIANTS_AUTHZ_OPA_CONTAINER_NAME}
     networks:
       - bridge-net
-    # using default ports interally only.
-    # ports:
-    #   - "${BENTO_VARIANTS_AUTHZ_OPA_EXTERNAL_PORT}:${BENTO_VARIANTS_AUTHZ_OPA_INTERNAL_PORT}"
+    ports:
+      - "${BENTO_VARIANTS_AUTHZ_OPA_EXTERNAL_PORT}:${BENTO_VARIANTS_AUTHZ_OPA_INTERNAL_PORT}"
     command:
       - "run"
       - "--server"
