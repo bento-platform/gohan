@@ -14,17 +14,29 @@ namespace Bento.Variants.Api.Middleware
             
             var authzService = (IAuthorizationService)(context.HttpContext.RequestServices.GetService(typeof(IAuthorizationService)));
             
-            if(authzService.AllRequiredHeadersArePresent(context.HttpContext.Request.Headers))
-            {
-                Console.WriteLine("All required headers are present!");
-            }
+            authzService.EnsureAllRequiredHeadersArePresent(context.HttpContext.Request.Headers);
+
+            Console.WriteLine("All required headers are present!");
+
 
             // TODO : retrieve list of valid "datasets" (or other permitted tokens to query on)
-            // for the time being, simply validate users access permission globally as "permitted" or "denied" 
-            if(authzService.IsGlobalRepositoryAccessPermitted() == false)
+            // for the time being, simply validate users access permission as "permitted" or "denied"
+            
+            // TEMP
+            string usernameHeader = "X-USERNAME";
+            var recoveredUsername = string.Empty;
+
+            if (context.HttpContext.Request.Headers.TryGetValue(usernameHeader, out var traceValue))
+                recoveredUsername = traceValue;
+
+            if (string.IsNullOrEmpty(recoveredUsername))
             {
-                throw new Exception("Access Denied!");
-            }        
+                string message = $"Authorization : Missing {usernameHeader} header!";
+                Console.WriteLine(message);
+                throw new Exception(message);
+            }
+
+            authzService.EnsureRepositoryAccessPermittedForUser(recoveredUsername);
         }
     }
 }

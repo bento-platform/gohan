@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Bento.Variants.Api.Services.Interfaces
 {
@@ -9,7 +10,9 @@ namespace Bento.Variants.Api.Services.Interfaces
         string GetOpaUrl();
         List<string> GetRequiredHeaders();
 
-        bool AllRequiredHeadersArePresent(Microsoft.AspNetCore.Http.IHeaderDictionary headers);
+        void EnsureAllRequiredHeadersArePresent(Microsoft.AspNetCore.Http.IHeaderDictionary headers);
+        void EnsureRepositoryAccessPermittedForUser(string username);
+
         bool IsGlobalRepositoryAccessPermitted();
     }
 }

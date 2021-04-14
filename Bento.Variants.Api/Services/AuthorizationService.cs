@@ -1,5 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+
+using Bento.Variants.Api.Exceptions;
 using Bento.Variants.Api.Services.Interfaces;
 
 namespace Bento.Variants.Api.Services
@@ -9,12 +14,21 @@ namespace Bento.Variants.Api.Services
         private bool isEnabled = false;
         private string opaUrl = string.Empty;
         private List<string> requiredHeaders = new List<string>();
+
+        private HttpClient httpClient;
         
         public AuthorizationService(bool _isEnabled , string _opaUrl, List<string> _requiredHeaders)
         {
             isEnabled = _isEnabled;
             opaUrl = _opaUrl;
             requiredHeaders = _requiredHeaders;
+
+            HttpClientHandler httpClientHandler = new HttpClientHandler();
+#if DEBUG
+            httpClientHandler.AllowAutoRedirect = false;
+            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
+#endif
+            httpClient = new HttpClient(httpClientHandler, disposeHandler: false);
         }
 
         public bool IsEnabled() { 
@@ -25,54 +39,76 @@ namespace Bento.Variants.Api.Services
 
         public string GetOpaUrl() 
         {
-            if(IsEnabled())
-                return opaUrl;
-            throw new Exception("Authorization is disabled! Enable it, reboot the service, and try again!");
+            return opaUrl;
         }
         
         public List<string> GetRequiredHeaders() 
         {
-            if(IsEnabled())
-                return requiredHeaders;
-            throw new Exception("Authorization is disabled! Enable it, reboot the service, and try again!");
+            return requiredHeaders;
         }
 
-        public bool AllRequiredHeadersArePresent(Microsoft.AspNetCore.Http.IHeaderDictionary requiredHeaders) 
+        public void EnsureAllRequiredHeadersArePresent(Microsoft.AspNetCore.Http.IHeaderDictionary requiredHeaders) 
+        {
+            // Ensure presence of necessary custom headers
+            GetRequiredHeaders().ForEach(reqHeader => 
+            {
+                var expectedValue = string.Empty;
+
+                if (requiredHeaders.TryGetValue(reqHeader, out var traceValue))
+                    expectedValue = traceValue;
+
+                if (string.IsNullOrEmpty(expectedValue))
+                {
+                    throw new MissingRequiredHeadersException(reqHeader);
+                }
+            });
+        }
+
+        public void EnsureRepositoryAccessPermittedForUser(string username)
         {
             if(IsEnabled())
             {
-                // Ensure presence of necessary custom headers
-                GetRequiredHeaders().ForEach(rh => 
+                bool? isAccessPermitted = false;
+                var inputJson = $@"
+                    {{
+                        ""input"" : {{
+                            ""username"":""{username}""
+                        }}
+                    }}
+                ";
+
+                using (var content = new StringContent(inputJson, Encoding.UTF8))
                 {
-                    var customHeader = string.Empty;
+                    // call
+                    var result = httpClient.PostAsync(GetOpaUrl(), content).Result;
 
-                    if (requiredHeaders.TryGetValue(rh, out var traceValue))
-                        customHeader = traceValue;
+                    // TODO : type safety (remove dynamic, add a class)
+                    var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(result.Content.ReadAsStringAsync().Result);
 
-                    if (string.IsNullOrEmpty(customHeader))
-                    {
-                        string message = $"Authorization : Missing {rh} header!";
-                        Console.WriteLine(message);
-                        throw new Exception(message);
-                    }
-                });
+                    isAccessPermitted = data.result;
+                    
+                    Console.WriteLine($"Access permitted for {username} ? {isAccessPermitted}");
+                }
 
-                return true;
+                if (isAccessPermitted == null || isAccessPermitted == false)
+                {
+                    if (isAccessPermitted == null)
+                        Console.WriteLine("INTERNAL ERROR : isAccessPermitted is null, all access attempts will be denied -- check the authz url configuration!");
+                    
+                    throw new DataAccessDeniedException(username);
+                }
             }
-
-            throw new Exception("Authorization is disabled! Enable it, reboot the service, and try again!");
         }
 
         public bool IsGlobalRepositoryAccessPermitted()
         {
             if(IsEnabled())
             {
-                // TODO: call opa with tokens and return based on that response
                 Console.WriteLine("Global repository access granted!");
                 return true;
             }
 
-            throw new Exception("Authorization is disabled! Enable it, reboot the service, and try again!");
+            return false;
         }
     }
 }
