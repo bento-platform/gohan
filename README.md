@@ -72,6 +72,17 @@ make run-drs
 ```
 
 <br />
+
+
+### **Data Access Authorization with OPA (more on this to come..) :**
+
+Run 
+```
+make build-authz
+make run-authz
+```
+
+<br />
 <br />
 
 
