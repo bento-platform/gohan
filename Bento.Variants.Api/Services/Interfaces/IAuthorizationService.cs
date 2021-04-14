@@ -11,7 +11,7 @@ namespace Bento.Variants.Api.Services.Interfaces
         List<string> GetRequiredHeaders();
 
         void EnsureAllRequiredHeadersArePresent(Microsoft.AspNetCore.Http.IHeaderDictionary headers);
-        void EnsureRepositoryAccessPermittedForUser(string username);
+        void EnsureRepositoryAccessPermittedForUser(string authnToken);
 
         bool IsGlobalRepositoryAccessPermitted();
     }
