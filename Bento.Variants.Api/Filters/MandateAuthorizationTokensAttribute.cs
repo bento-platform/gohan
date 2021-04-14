@@ -23,20 +23,14 @@ namespace Bento.Variants.Api.Middleware
             // for the time being, simply validate users access permission as "permitted" or "denied"
             
             // TEMP
-            string usernameHeader = "X-USERNAME";
-            var recoveredUsername = string.Empty;
+            string authnTokenHeader = "X-AUTHN-TOKEN";
 
-            if (context.HttpContext.Request.Headers.TryGetValue(usernameHeader, out var traceValue))
-                recoveredUsername = traceValue;
+            var recoveredAuthnToken = string.Empty;
 
-            if (string.IsNullOrEmpty(recoveredUsername))
-            {
-                string message = $"Authorization : Missing {usernameHeader} header!";
-                Console.WriteLine(message);
-                throw new Exception(message);
-            }
+            if (context.HttpContext.Request.Headers.TryGetValue(authnTokenHeader, out var traceValue))
+                recoveredAuthnToken = traceValue;
 
-            authzService.EnsureRepositoryAccessPermittedForUser(recoveredUsername);
+            authzService.EnsureRepositoryAccessPermittedForUser(recoveredAuthnToken);
         }
     }
 }

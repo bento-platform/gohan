@@ -7,19 +7,23 @@ using System.Threading.Tasks;
 using Bento.Variants.Api.Exceptions;
 using Bento.Variants.Api.Services.Interfaces;
 
+using Newtonsoft.Json;
+
 namespace Bento.Variants.Api.Services
 {
     public class AuthorizationService : IAuthorizationService
     {
         private bool isEnabled = false;
+        private string oidcJwksUrl = string.Empty;
         private string opaUrl = string.Empty;
         private List<string> requiredHeaders = new List<string>();
 
         private HttpClient httpClient;
         
-        public AuthorizationService(bool _isEnabled , string _opaUrl, List<string> _requiredHeaders)
+        public AuthorizationService(bool _isEnabled , string _oidcJwksUrl, string _opaUrl, List<string> _requiredHeaders)
         {
             isEnabled = _isEnabled;
+            oidcJwksUrl = _oidcJwksUrl;
             opaUrl = _opaUrl;
             requiredHeaders = _requiredHeaders;
 
@@ -37,6 +41,10 @@ namespace Bento.Variants.Api.Services
             return isEnabled;
         }
 
+        public string GetOidcJwksUrl() 
+        {
+            return oidcJwksUrl;
+        }
         public string GetOpaUrl() 
         {
             return opaUrl;
@@ -64,22 +72,33 @@ namespace Bento.Variants.Api.Services
             });
         }
 
-        public void EnsureRepositoryAccessPermittedForUser(string username)
+        public void EnsureRepositoryAccessPermittedForUser(string authnToken)
         {
             if(IsEnabled())
             {
-                bool? isAccessPermitted = false;
-                var inputJson = $@"
-                    {{
-                        ""input"" : {{
-                            ""username"":""{username}""
-                        }}
-                    }}
-                ";
+                // Authentication
+                
+                // fetch authN public JWKS from idp
+                // TODO: cache result to minimize bandwidth usage
+                var authnJwks = (httpClient.GetAsync(GetOidcJwksUrl()).Result).Content.ReadAsStringAsync().Result;
 
-                using (var content = new StringContent(inputJson, Encoding.UTF8))
+
+                // Authorization
+
+                bool? isAccessPermitted = false;
+
+                object inputJson = new {
+                    input = new {
+                        authN_token = authnToken,
+                        authN_jwks = authnJwks
+                    }
+                };
+
+                string input = JsonConvert.SerializeObject(inputJson);
+
+                using (var content = new StringContent(input, Encoding.UTF8))
                 {
-                    // call
+                    // call opa
                     var result = httpClient.PostAsync(GetOpaUrl(), content).Result;
 
                     // TODO : type safety (remove dynamic, add a class)
@@ -87,7 +106,7 @@ namespace Bento.Variants.Api.Services
 
                     isAccessPermitted = data.result;
                     
-                    Console.WriteLine($"Access permitted for {username} ? {isAccessPermitted}");
+                    Console.WriteLine($"Access permitted ? {isAccessPermitted}");
                 }
 
                 if (isAccessPermitted == null || isAccessPermitted == false)
@@ -95,7 +114,7 @@ namespace Bento.Variants.Api.Services
                     if (isAccessPermitted == null)
                         Console.WriteLine("INTERNAL ERROR : isAccessPermitted is null, all access attempts will be denied -- check the authz url configuration!");
                     
-                    throw new DataAccessDeniedException(username);
+                    throw new DataAccessDeniedException();
                 }
             }
         }

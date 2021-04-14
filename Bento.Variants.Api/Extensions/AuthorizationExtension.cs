@@ -14,6 +14,7 @@ namespace Bento.Variants.Api
         public static void AddAuthorizationLayer(this IServiceCollection services, IConfiguration configuration)
         {
             var isEnabled = $"{configuration["Authorization:IsEnabled"]}";
+            var oidcJwksUrl = $"{configuration["Authentication:OidcPublicJwksUrl"]}";
             var opaUrl = $"{configuration["Authorization:OpaUrl"]}";
             var reqHeaders = $"{configuration["Authorization:RequiredHeadersCommaSep"]}".Split(",").ToList();
 
@@ -31,7 +32,7 @@ namespace Bento.Variants.Api
             }
 #endif
 
-            var authzConfig = new AuthorizationService(Boolean.Parse(isEnabled), opaUrl, reqHeaders);
+            var authzConfig = new AuthorizationService(Boolean.Parse(isEnabled), oidcJwksUrl, opaUrl, reqHeaders);
             services.AddSingleton<IAuthorizationService>(authzConfig);            
         }
     }
