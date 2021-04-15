@@ -3,6 +3,7 @@ version: '2.4'
 services:
   gateway:
     build:
+      network: bridge-net
       context: $PWD/gateway
       args:
         BASE_IMAGE: ${BENTO_VARIANTS_GATEWAY_BASE_IMAGE}
@@ -44,11 +45,13 @@ services:
       - ElasticSearch__Port=${BENTO_VARIANTS_API_ES_PORT}
 
 
-      # AuthZ
+      # AuthX
       - Authorization__IsEnabled=${BENTO_VARIANTS_API_AUTHZ_ENABLED}
       - Authorization__OpaUrl=${BENTO_VARIANTS_PRIVATE_AUTHZ_URL}
       - Authorization__RequiredHeadersCommaSep=${BENTO_VARIANTS_API_AUTHZ_REQHEADS}
 
+      - Authentication__OidcPublicJwksUrl=${BENTO_VARIANTS_PUBLIC_AUTHN_JWKS_URL}
+      
 
       # .NET
       - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
@@ -83,12 +86,14 @@ services:
       - ElasticSearch__Port=${BENTO_VARIANTS_API_ES_PORT}
 
 
-      # AuthZ
+      # AuthX
       - Authorization__IsEnabled=${BENTO_VARIANTS_API_AUTHZ_ENABLED}
       - Authorization__OpaUrl=${BENTO_VARIANTS_PRIVATE_AUTHZ_URL}
       - Authorization__RequiredHeadersCommaSep=${BENTO_VARIANTS_API_AUTHZ_REQHEADS}
 
+      - Authentication__OidcPublicJwksUrl=${BENTO_VARIANTS_PUBLIC_AUTHN_JWKS_URL}
       
+
       # .NET
       - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
       - DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -176,4 +181,4 @@ services:
 
 networks: 
   bridge-net:
-    external: true
+      external: true
