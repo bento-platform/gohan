@@ -47,6 +47,7 @@ services:
 
       # AuthX
       - Authorization__IsEnabled=${GOHAN_API_AUTHZ_ENABLED}
+      - Authorization__AgreedToDisabledAuthzRiskTerms=${GOHAN_API_AUTHZ_AGREED_DISABLED_RISK}
       - Authorization__OpaUrl=${GOHAN_PRIVATE_AUTHZ_URL}
       - Authorization__RequiredHeadersCommaSep=${GOHAN_API_AUTHZ_REQHEADS}
 
@@ -88,6 +89,7 @@ services:
 
       # AuthX
       - Authorization__IsEnabled=${GOHAN_API_AUTHZ_ENABLED}
+      - Authorization__AgreedToDisabledAuthzRiskTerms=${GOHAN_API_AUTHZ_AGREED_DISABLED_RISK}
       - Authorization__OpaUrl=${GOHAN_PRIVATE_AUTHZ_URL}
       - Authorization__RequiredHeadersCommaSep=${GOHAN_API_AUTHZ_REQHEADS}
 
