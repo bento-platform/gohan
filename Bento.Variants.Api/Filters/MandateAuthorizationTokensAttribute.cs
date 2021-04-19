@@ -14,23 +14,26 @@ namespace Bento.Variants.Api.Middleware
             
             var authzService = (IAuthorizationService)(context.HttpContext.RequestServices.GetService(typeof(IAuthorizationService)));
             
-            authzService.EnsureAllRequiredHeadersArePresent(context.HttpContext.Request.Headers);
+            if (authzService.IsEnabled())
+            {
+                authzService.EnsureAllRequiredHeadersArePresent(context.HttpContext.Request.Headers);
 
-            Console.WriteLine("All required headers are present!");
+                Console.WriteLine("All required headers are present!");
 
 
-            // TODO : retrieve list of valid "datasets" (or other permitted tokens to query on)
-            // for the time being, simply validate users access permission as "permitted" or "denied"
-            
-            // TEMP
-            string authnTokenHeader = "X-AUTHN-TOKEN";
+                // TODO : retrieve list of valid "datasets" (or other permitted tokens to query on)
+                // for the time being, simply validate users access permission as "permitted" or "denied"
+                
+                // TEMP
+                string authnTokenHeader = "X-AUTHN-TOKEN";
 
-            var recoveredAuthnToken = string.Empty;
+                var recoveredAuthnToken = string.Empty;
 
-            if (context.HttpContext.Request.Headers.TryGetValue(authnTokenHeader, out var traceValue))
-                recoveredAuthnToken = traceValue;
+                if (context.HttpContext.Request.Headers.TryGetValue(authnTokenHeader, out var traceValue))
+                    recoveredAuthnToken = traceValue;
 
-            authzService.EnsureRepositoryAccessPermittedForUser(recoveredAuthnToken);
+                authzService.EnsureRepositoryAccessPermittedForUser(recoveredAuthnToken);
+            }
         }
     }
 }
