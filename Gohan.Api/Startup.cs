@@ -59,6 +59,7 @@ namespace Gohan.Api
         {
             // -- Repository Configuration --
             services.AddTransient<IElasticRepository, ElasticRepository>();
+            services.AddTransient<IDrsRepository, DrsRepository>();
             // -- - --
         }
 
