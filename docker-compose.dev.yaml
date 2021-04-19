@@ -1,0 +1,45 @@
+version: '2.4'
+
+services:
+    ### TODO: Deduplicate
+    # api:
+    #     ports:
+    #         - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
+    #     extends:
+    #         file: docker-compose.yaml
+    #         service: api
+    api-alpine:
+        ports:
+            - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
+        extends:
+            file: docker-compose.yaml
+            service: api-alpine
+    ###
+
+    elasticsearch:
+        ports:
+            - ${GOHAN_ES_EXTERNAL_PORT_1}:${GOHAN_ES_INTERNAL_PORT_1}
+            - ${GOHAN_ES_EXTERNAL_PORT_2}:${GOHAN_ES_INTERNAL_PORT_2}
+        extends:
+            file: docker-compose.yaml
+            service: elasticsearch
+    
+    drs:
+        ports:
+            - "${GOHAN_DRS_EXTERNAL_PORT}:${GOHAN_DRS_INTERNAL_PORT}"
+        extends:
+            file: docker-compose.yaml
+            service: drs
+    
+    authorization:
+        ports:
+            - "${GOHAN_AUTHZ_OPA_EXTERNAL_PORT}:${GOHAN_AUTHZ_OPA_INTERNAL_PORT}"
+        extends:
+            file: docker-compose.yaml
+            service: authorization
+
+
+
+networks: 
+    bridge-net:
+        external: true

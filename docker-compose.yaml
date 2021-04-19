@@ -18,45 +18,42 @@ services:
       - "443:443"
 
   # DUPLICATES - almost
-  api:
-    build:
-      context: $PWD/Gohan.Api
-      args:
-        BASE_IMAGE: ${GOHAN_API_BASE_IMAGE}
-        SRC_DIR: ${GOHAN_API_SRC_DIR}
-        INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT}
-    image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
-    container_name: ${GOHAN_API_CONTAINER_NAME}
-    # using default ports interally only.
-    # ports:
-    #   - ${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}
-    networks:
-      - bridge-net
-    environment:
-      # Elasticsearch
-      - ElasticSearch__Username=${GOHAN_ES_USERNAME}
-      - ElasticSearch__Password=${GOHAN_ES_PASSWORD}
+  # api:
+  #   build:
+  #     context: $PWD/Gohan.Api
+  #     args:
+  #       BASE_IMAGE: ${GOHAN_API_BASE_IMAGE}
+  #       SRC_DIR: ${GOHAN_API_SRC_DIR}
+  #       INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT}
+  #   image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
+  #   container_name: ${GOHAN_API_CONTAINER_NAME}
+  #   networks:
+  #     - bridge-net
+  #   environment:
+  #     # Elasticsearch
+  #     - ElasticSearch__Username=${GOHAN_ES_USERNAME}
+  #     - ElasticSearch__Password=${GOHAN_ES_PASSWORD}
 
-      - ElasticSearch__GatewayPath=${GOHAN_ES_GATEWAY_PATH}
+  #     - ElasticSearch__GatewayPath=${GOHAN_ES_GATEWAY_PATH}
 
-      - ElasticSearch__PrimaryIndex=${GOHAN_API_ES_PI}
-      - ElasticSearch__Protocol=${GOHAN_API_ES_PROTO}
-      - ElasticSearch__Host=${GOHAN_API_ES_HOST}
-      - ElasticSearch__Port=${GOHAN_API_ES_PORT}
+  #     - ElasticSearch__PrimaryIndex=${GOHAN_API_ES_PI}
+  #     - ElasticSearch__Protocol=${GOHAN_API_ES_PROTO}
+  #     - ElasticSearch__Host=${GOHAN_API_ES_HOST}
+  #     - ElasticSearch__Port=${GOHAN_API_ES_PORT}
 
 
-      # AuthX
-      - Authorization__IsEnabled=${GOHAN_API_AUTHZ_ENABLED}
-      - Authorization__AgreedToDisabledAuthzRiskTerms=${GOHAN_API_AUTHZ_AGREED_DISABLED_RISK}
-      - Authorization__OpaUrl=${GOHAN_PRIVATE_AUTHZ_URL}
-      - Authorization__RequiredHeadersCommaSep=${GOHAN_API_AUTHZ_REQHEADS}
+  #     # AuthX
+  #     - Authorization__IsEnabled=${GOHAN_API_AUTHZ_ENABLED}
+  #     - Authorization__AgreedToDisabledAuthzRiskTerms=${GOHAN_API_AUTHZ_AGREED_DISABLED_RISK}
+  #     - Authorization__OpaUrl=${GOHAN_PRIVATE_AUTHZ_URL}
+  #     - Authorization__RequiredHeadersCommaSep=${GOHAN_API_AUTHZ_REQHEADS}
 
-      - Authentication__OidcPublicJwksUrl=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
+  #     - Authentication__OidcPublicJwksUrl=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
       
 
-      # .NET
-      - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
-      - DOTNET_CLI_TELEMETRY_OPTOUT=1
+  #     # .NET
+  #     - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
+  #     - DOTNET_CLI_TELEMETRY_OPTOUT=1
 
   # DUPLICATES - almost
   api-alpine:
@@ -69,9 +66,6 @@ services:
         IS_ALPINE: "true"
     image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
     container_name: ${GOHAN_API_CONTAINER_NAME}
-    # using default ports interally only.
-    # ports:
-    #   - ${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}
     networks:
       - bridge-net
     environment:
@@ -106,14 +100,6 @@ services:
     mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpuset: ${GOHAN_ES_CPUSET} # grant access to all cores
     container_name: ${GOHAN_ES_CONTAINER_NAME}
-
-    # using default ports interally only.
-    # default configuration is consistent with these (see example.env).
-    #ports:
-      # - ${GOHAN_ES_EXTERNAL_PORT_1}:${GOHAN_ES_INTERNAL_PORT_1}
-      # - ${GOHAN_ES_EXTERNAL_PORT_2}:${GOHAN_ES_INTERNAL_PORT_2}
-      # - ${GOHAN_ES_INTERNAL_PORT_1}
-      # - ${GOHAN_ES_INTERNAL_PORT_2}
       
     networks: 
       - bridge-net
@@ -133,9 +119,6 @@ services:
       - bridge-net
     environment:
       - ELASTICSEARCH_URL=${GOHAN_KB_ES_HOST}:${GOHAN_KB_ES_PORT}
-    # using default ports interally only.
-    # ports: 
-    #   - ${GOHAN_KB_EXTERNAL_PORT}:${GOHAN_KB_INTERNAL_PORT}
 
   drs:
     build:
@@ -156,9 +139,6 @@ services:
       - DATA=/drs/chord_drs/data/obj/  # DRS file objects, vs. the database
     networks: 
       - bridge-net
-    # using default ports interally only.
-    # ports:
-    #    - "${GOHAN_DRS_EXTERNAL_PORT}:${GOHAN_DRS_INTERNAL_PORT}"
     volumes:
       - ${GOHAN_DRS_DATA_DIR}:/drs/chord_drs/data
 
@@ -172,8 +152,8 @@ services:
     container_name: ${GOHAN_AUTHZ_OPA_CONTAINER_NAME}
     networks:
       - bridge-net
-    ports:
-      - "${GOHAN_AUTHZ_OPA_EXTERNAL_PORT}:${GOHAN_AUTHZ_OPA_INTERNAL_PORT}"
+    expose:
+      - "${GOHAN_AUTHZ_OPA_INTERNAL_PORT}"
     command:
       - "run"
       - "--server"

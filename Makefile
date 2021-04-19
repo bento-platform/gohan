@@ -44,8 +44,33 @@ run-drs:
 	docker-compose -f docker-compose.yaml up -d drs
 
 run-authz:
-	docker-compose -f docker-compose.yaml up -d authorization
+	docker-compose -f docker-compose.yaml up -d --force-recreate authorization
 
+
+# DEV --
+run-dev-all:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate
+
+run-dev-api:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api
+
+run-dev-api-alpine:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api-alpine
+
+
+run-dev-elasticsearch:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate elasticsearch
+
+# run-dev-kibana:
+# 	docker-compose -f docker-compose.yaml up -d kibana
+
+
+run-dev-drs:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate drs
+
+run-dev-authz:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate authorization
+# --
 
 
 # Build
