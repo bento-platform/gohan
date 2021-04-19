@@ -99,7 +99,7 @@ mkdir -p gateway/certs/dev
 openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
 ```
 
-> Note: Ensure your `CN` matches the hostname (**variants.local** by default)
+> Note: Ensure your `CN` matches the hostname (**gohan.local** by default)
 
 These will be incorporated into the **Gateway** service (using NGINX by default, see `gateway/Dockerfile` and `gateway/nginx.conf` for details). Be sure to update your local `/etc/hosts` (on Linux) or `C:/System32/drivers/etc/hosts` (on Windows) file with the name of your choice.
 
