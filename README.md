@@ -29,9 +29,9 @@ First, from the project root, create a local file for environment variables with
 ```
 cp ./etc/example.env .env
 ```
- and make any necessary changes, such as the Elasticsearch `BENTO_VARIANTS_ES_USERNAME` and `BENTO_VARIANTS_ES_PASSWORD` when in production.
+ and make any necessary changes, such as the Elasticsearch `GOHAN_ES_USERNAME` and `GOHAN_ES_PASSWORD` when in production.
 
- > Note: if `BENTO_VARIANTS_ES_USERNAME` and `BENTO_VARIANTS_ES_PASSWORD` are to be modified for development, be sure to mirror the changes done in `.env` in the `Bento.Variants.Api/appsettings.Development.json` to give the API access, as the dev username and password is hard-coded in both files.
+ > Note: if `GOHAN_ES_USERNAME` and `GOHAN_ES_PASSWORD` are to be modified for development, be sure to mirror the changes done in `.env` in the `Gohan.Api/appsettings.Development.json` to give the API access, as the dev username and password is hard-coded in both files.
 
 <br >
 
@@ -88,7 +88,7 @@ make run-authz
 
 ## Development
 
-![Architecture](https://github.com/bento-platform/Bento.Variants/blob/master/images/architecture.png?raw=true)
+![Architecture](https://github.com/bento-platform/Gohan/blob/master/images/architecture.png?raw=true)
 
 
 ### **Gateway**
@@ -96,7 +96,7 @@ To create and use development certs from the project root, run
 ```
 mkdir -p gateway/certs/dev
 
-openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/variants_privkey1.key -x509 -days 365 -out gateway/certs/dev/variants_fullchain1.crt
+openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
 ```
 
 > Note: Ensure your `CN` matches the hostname (**variants.local** by default)
@@ -122,7 +122,7 @@ dotnet clean
 dotnet restore
 dotnet build
 
-dotnet run --project Bento.Variants.Api
+dotnet run --project Gohan.Api
 ```
 
 <b>Endpoints :</b>
@@ -256,13 +256,13 @@ Response
 
 *Purpose*: to ingest a set of VCFs into Elasticsearch and DRS.
 
-From the project root directory, copy your compressed VCFs `(*.vcf.gz)` to a directory local to the console project (*i.e. ./Bento.Variants.Console/**vcfs***)
+From the project root directory, copy your compressed VCFs `(*.vcf.gz)` to a directory local to the console project (*i.e. ./Gohan.Console/**vcfs***)
 
 **(Recommended):** If you first want to split a compressed VCF that contains multiple samples into individual VCF files that only contain one sample each, move that file into the above mentionned directory local to the console project, and then, from the project root, run
 
 
 ```
-bash Bento.Variants.Console/preprocess.sh Bento.Variants.Console/vcfs/ORIGINAL.vcf.gz
+bash Gohan.Console/preprocess.sh Gohan.Console/vcfs/ORIGINAL.vcf.gz
 ```
 
 > Note: preprocessing currently only works on **Linux** machines with **bash**
@@ -275,13 +275,13 @@ dotnet clean
 dotnet restore
 dotnet build
 
-dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
-  --elasticsearchUrl ${BENTO_VARIANTS_ES_PUBLIC_URL} \
-  --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
-  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD} \
-  --drsUrl ${BENTO_VARIANTS_DRS_PUBLIC_URL} \
-  --drsUsername ${BENTO_VARIANTS_DRS_BASIC_AUTH_USERNAME} \
-  --drsPassword ${BENTO_VARIANTS_DRS_BASIC_AUTH_PASSWORD} \
+dotnet run --project Gohan.Console --vcfPath Gohan.Console/vcfs \
+  --elasticsearchUrl ${GOHAN_ES_PUBLIC_URL} \
+  --elasticsearchUsername ${GOHAN_ES_USERNAME} \
+  --elasticsearchPassword ${GOHAN_ES_PASSWORD} \
+  --drsUrl ${GOHAN_DRS_PUBLIC_URL} \
+  --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
+  --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
   --documentBulkSizeLimit 100000
 
 ```
@@ -289,7 +289,7 @@ dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcf
 >
 > on **Windows** machines, the vcfPath forward slashes above have to be converted to two backslashes, i.e.
 >
->     Bento.Variants.Console\\vcfs
+>     Gohan.Console\\vcfs
 >
 >
 > `--documentBulkSizeLimit` is an optional flag! Tune it as you see fit to minimize ingestion time (`100000` is the default)
@@ -302,7 +302,7 @@ dotnet run --project Bento.Variants.Console --vcfPath Bento.Variants.Console/vcf
 ### **API :**
 Local Release: 
 
-&nbsp;First, from ***Bento.Variants.Api/***, run 
+&nbsp;First, from ***Gohan.Api/***, run 
 
 ```
 dotnet clean
@@ -314,33 +314,33 @@ dotnet publish -c Release --self-contained
 
 
 
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Api* and executed with
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Gohan.Api* and executed with
 
 
 ```
-export ElasticSearch__Username=${BENTO_VARIANTS_ES_USERNAME}
-export ElasticSearch__Password=${BENTO_VARIANTS_ES_PASSWORD}
-export ElasticSearch__GatewayPath=${BENTO_VARIANTS_ES_PUBLIC_GATEWAY_PATH}
-export ElasticSearch__PrimaryIndex=${BENTO_VARIANTS_ES_PASSWORD}
-export ElasticSearch__Protocol=${BENTO_VARIANTS_PUBLIC_PROTO}
-export ElasticSearch__Host=${BENTO_VARIANTS_PUBLIC_HOSTNAME}
-export ElasticSearch__Port=${BENTO_VARIANTS_PUBLIC_PORT}
+export ElasticSearch__Username=${GOHAN_ES_USERNAME}
+export ElasticSearch__Password=${GOHAN_ES_PASSWORD}
+export ElasticSearch__GatewayPath=${GOHAN_ES_PUBLIC_GATEWAY_PATH}
+export ElasticSearch__PrimaryIndex=${GOHAN_ES_PASSWORD}
+export ElasticSearch__Protocol=${GOHAN_PUBLIC_PROTO}
+export ElasticSearch__Host=${GOHAN_PUBLIC_HOSTNAME}
+export ElasticSearch__Port=${GOHAN_PUBLIC_PORT}
 
 cd bin/Release/netcoreapp3.1/linux-x64/publish
 
-./Bento.Variants.Api --urls http://localhost:5000
+./Gohan.Api --urls http://localhost:5000
 ```
 <br />
 
 Containerized Alpine Release: 
 
-&nbsp; If all is well with the `Release`, from ***Bento.Variants.Api/***, run 
+&nbsp; If all is well with the `Release`, from ***Gohan.Api/***, run 
 
 ```
 dotnet publish -c ReleaseAlpine --self-contained
 ```
 
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Api*
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Gohan.Api*
 
 &nbsp;When ready, build the `docker image` and spawn the `container` by running
 
@@ -359,7 +359,7 @@ make run-api-alpine
 ### **Console :**
 Local Release: 
 
-&nbsp;From ***Bento.Variants.Console/***, run 
+&nbsp;From ***Gohan.Console/***, run 
 ```
 dotnet clean
 dotnet restore
@@ -368,20 +368,20 @@ dotnet restore
 dotnet publish -c Release --self-contained
 ```
 
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Bento.Variants.Console* and executed with
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Gohan.Console* and executed with
 
 ```
 source ../.env
  
 cd bin/Release/netcoreapp3.1/linux-x64/publish
 
-./Bento.Variants.Console --vcfPath Bento.Variants.Console/vcfs \
-  --elasticsearchUrl ${BENTO_VARIANTS_ES_PUBLIC_URL} \
-  --elasticsearchUsername ${BENTO_VARIANTS_ES_USERNAME} \
-  --elasticsearchPassword ${BENTO_VARIANTS_ES_PASSWORD} \
-  --drsUrl ${BENTO_VARIANTS_DRS_PUBLIC_URL} 
-  --drsUsername ${BENTO_VARIANTS_DRS_BASIC_AUTH_USERNAME} \
-  --drsPassword ${BENTO_VARIANTS_DRS_BASIC_AUTH_PASSWORD} \
+./Gohan.Console --vcfPath Gohan.Console/vcfs \
+  --elasticsearchUrl ${GOHAN_ES_PUBLIC_URL} \
+  --elasticsearchUsername ${GOHAN_ES_USERNAME} \
+  --elasticsearchPassword ${GOHAN_ES_PASSWORD} \
+  --drsUrl ${GOHAN_DRS_PUBLIC_URL} 
+  --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
+  --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
   --documentBulkSizeLimit 100000
 
 ```
@@ -391,7 +391,7 @@ Local Alpine Release:
 dotnet publish -c ReleaseAlpine --self-contained
 ```
 
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Bento.Variants.Console*
+&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Gohan.Console*
 
 > **Note:** this method is not recommended unless you are running your host machine on Alpine Linux. Unlike the **API** (seen below), this binary has no utility in being containerized. If you need to use this, run the same commands as you would with just a `Release` above but with `ReleaseAlpine` instead
 

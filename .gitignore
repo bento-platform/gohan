@@ -30,7 +30,7 @@ authorization/policy.rego
 authorization/*.policy.rego
 
 # temp test file
-Bento.Variants.Tests/appsettings.test.json
+Gohan.Tests/appsettings.test.json
 
 # executables
-*/Bento.Variants.Console
+*/Gohan.Console

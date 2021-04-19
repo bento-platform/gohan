@@ -1,4 +1,4 @@
-# Makefile for Bento Variants
+# Makefile for Gohan
 
 # import global variables
 env ?= .env
@@ -10,7 +10,7 @@ export $(shell sed 's/=.*//' $(env))
 init:
 	# Gateway: 
 	@# - DRS Authentication
-	@htpasswd -cb gateway/drs.htpasswd ${BENTO_VARIANTS_DRS_BASIC_AUTH_USERNAME} ${BENTO_VARIANTS_DRS_BASIC_AUTH_PASSWORD} 
+	@htpasswd -cb gateway/drs.htpasswd ${GOHAN_DRS_BASIC_AUTH_USERNAME} ${GOHAN_DRS_BASIC_AUTH_PASSWORD} 
 	
 	@echo
 	
@@ -55,7 +55,7 @@ build-gateway: stop-gateway clean-gateway
 
 build-api: stop-api clean-api
 	echo "-- Building Api Binaries --"
-	cd Bento.Variants.Api/;
+	cd Gohan.Api/;
 	dotnet clean; dotnet restore; dotnet publish -c Release --self-contained;
 	cd ..
 	echo "-- Building Api Container --"
@@ -63,7 +63,7 @@ build-api: stop-api clean-api
 
 build-api-alpine: stop-api-alpine clean-api-alpine
 	echo "-- Building Api-Alpine Binaries --"
-	cd Bento.Variants.Api/;
+	cd Gohan.Api/;
 	dotnet clean; dotnet restore; dotnet publish -c ReleaseAlpine --self-contained;
 	cd ..
 	echo "-- Building Api-Alpine Container --"
@@ -103,52 +103,52 @@ stop-authz:
 clean-all: clean-api clean-api-alpine clean-gateway clean-drs
 
 clean-gateway:
-	docker rm ${BENTO_VARIANTS_GATEWAY_CONTAINER_NAME} --force; \
-	docker rmi ${BENTO_VARIANTS_GATEWAY_IMAGE}:${BENTO_VARIANTS_GATEWAY_VERSION} --force;
+	docker rm ${GOHAN_GATEWAY_CONTAINER_NAME} --force; \
+	docker rmi ${GOHAN_GATEWAY_IMAGE}:${GOHAN_GATEWAY_VERSION} --force;
 
 clean-api:
-	docker rm ${BENTO_VARIANTS_API_CONTAINER_NAME} --force; \
-	docker rmi ${BENTO_VARIANTS_API_IMAGE}:${BENTO_VARIANTS_API_VERSION} --force;
+	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
+	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
 
 clean-api-alpine:
-	docker rm ${BENTO_VARIANTS_API_CONTAINER_NAME} --force; \
-	docker rmi ${BENTO_VARIANTS_API_IMAGE}:${BENTO_VARIANTS_API_VERSION} --force;
+	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
+	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
 
 clean-drs:
-	docker rm ${BENTO_VARIANTS_DRS_CONTAINER_NAME} --force; \
-	docker rmi ${BENTO_VARIANTS_DRS_IMAGE}:${BENTO_VARIANTS_DRS_VERSION} --force;
+	docker rm ${GOHAN_DRS_CONTAINER_NAME} --force; \
+	docker rmi ${GOHAN_DRS_IMAGE}:${GOHAN_DRS_VERSION} --force;
 
 clean-authz:
-	docker rm ${BENTO_VARIANTS_AUTHZ_OPA_CONTAINER_NAME} --force; \
-	docker rmi ${BENTO_VARIANTS_AUTHZ_OPA_IMAGE}:${BENTO_VARIANTS_AUTHZ_OPA_IMAGE_VERSION} --force;
+	docker rm ${GOHAN_AUTHZ_OPA_CONTAINER_NAME} --force; \
+	docker rmi ${GOHAN_AUTHZ_OPA_IMAGE}:${GOHAN_AUTHZ_OPA_IMAGE_VERSION} --force;
 
 
 ## -- WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
 clean-elastic-data:
 	docker-compose -f docker-compose.yaml down
-	sudo rm -rf ${BENTO_VARIANTS_ES_DATA_DIR}
+	sudo rm -rf ${GOHAN_ES_DATA_DIR}
 
 ## -- WARNING: DELETES ALL LOCAL DRS DATA
 clean-drs-data:
 	docker-compose -f docker-compose.yaml down
-	sudo rm -rf ${BENTO_VARIANTS_DRS_DATA_DIR}
+	sudo rm -rf ${GOHAN_DRS_DATA_DIR}
 
 
 
 ## Tests
 test-api-dev: prepare-test-config
 	# Run the tests
-	dotnet test -c Debug Bento.Variants.Tests/Bento.Variants.Tests.csproj
+	dotnet test -c Debug Gohan.Tests/Gohan.Tests.csproj
 
 # test-api-release:
-# 	dotnet test -c Release Bento.Variants.Tests/Bento.Variants.Tests.csproj
+# 	dotnet test -c Release Gohan.Tests/Gohan.Tests.csproj
 
 prepare-test-config:
 	# Prepare environment variables dynamically via a JSON file 
 	# since xUnit doens't support loading env variables natively
-	# (see `./Bento.Variants.Tests/IntegrationTestFixture.cs`)
-	envsubst < ./etc/appsettings.test.json.tpl > ./Bento.Variants.Tests/appsettings.test.json
+	# (see `./Gohan.Tests/IntegrationTestFixture.cs`)
+	envsubst < ./etc/appsettings.test.json.tpl > ./Gohan.Tests/appsettings.test.json
 
 clean-tests:
 	# Clean up
-	rm ./Bento.Variants.Tests/appsettings.test.json
+	rm ./Gohan.Tests/appsettings.test.json

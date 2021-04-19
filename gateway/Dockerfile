@@ -15,8 +15,8 @@ COPY drs.htpasswd $DRS_BASIC_AUTH_FILE_PATH
 
 # Dev certs
 # TODO: integrate production certs
-COPY ./certs/dev/variants_fullchain1.crt /etc/ssl/nginx/variants_fullchain1.crt
-COPY ./certs/dev/variants_privkey1.key /etc/ssl/nginx/variants_privkey1.key
+COPY ./certs/dev/gohan_fullchain1.crt /etc/ssl/nginx/gohan_fullchain1.crt
+COPY ./certs/dev/gohan_privkey1.key /etc/ssl/nginx/gohan_privkey1.key
 
 
 # Update and install dependencies
