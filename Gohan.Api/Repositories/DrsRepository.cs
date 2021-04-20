@@ -17,7 +17,9 @@ namespace Gohan.Api.Repositories
     {
         private readonly IConfiguration Configuration;
 
-        private string searchObjects = "/search";
+        private string searchObjectsPath = "/search";
+        private string publicIngestPath = "/public/ingest";
+
         private string getObjectPath = "/objects/{0}";
         private string downloadObjectPath = "/objects/{0}/download";
         private HttpClient httpClient;
@@ -55,13 +57,31 @@ namespace Gohan.Api.Repositories
 
         public async Task<string> SearchObjectsByQueryString(string forwardedQueryString)        
         {
-            var getUrl = $"{Configuration["Drs:PrivateUrl"]}{searchObjects}{forwardedQueryString}";
+            var getUrl = $"{Configuration["Drs:PrivateUrl"]}{searchObjectsPath}{forwardedQueryString}";
 
             // call drs
             var result = await httpClient.GetAsync(getUrl);
             var jsonData = await result.Content.ReadAsStringAsync();
         
             return jsonData;
+        }
+
+        public async Task<string> PublicIngestFile(byte[] fileBytes, string filename)
+        {
+            using (var content = new MultipartFormDataContent())
+            {
+                // setup file bytes to be uploaded to drs
+                var byteArrayContent = new ByteArrayContent(fileBytes);
+                content.Add(byteArrayContent, "file", filename);
+
+                var ingestUrl = $"{Configuration["Drs:PrivateUrl"]}{publicIngestPath}";
+
+                // call drs
+                var result = httpClient.PostAsync(ingestUrl, content).Result;
+                var jsonData = await result.Content.ReadAsStringAsync();
+
+                return jsonData;
+            }
         }
     }
 }
