@@ -379,7 +379,7 @@ cd bin/Release/netcoreapp3.1/linux-x64/publish
   --elasticsearchUrl ${GOHAN_ES_PUBLIC_URL} \
   --elasticsearchUsername ${GOHAN_ES_USERNAME} \
   --elasticsearchPassword ${GOHAN_ES_PASSWORD} \
-  --drsUrl ${GOHAN_DRS_PUBLIC_URL} 
+  --drsUrl ${GOHAN_DRS_PUBLIC_URL} \
   --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
   --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
   --documentBulkSizeLimit 100000
