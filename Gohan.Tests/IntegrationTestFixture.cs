@@ -18,15 +18,17 @@ namespace Gohan.Tests
         public string RemoveSampleIdPath = "/variants/remove/sampleId";
 
 
-        public string PublicFacingElasticPath;
+        public string PublicElasticUrl;
 
         public string ElasticUsername;
         public string ElasticPassword;
 
-        public string PublicFacingDrsPath;
+
+        public string PublicDrsUrl;
         
         public string DrsUsername;
         public string DrsPassword;
+
 
         public HttpClient client;
         public HttpClientHandler httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
@@ -43,16 +45,18 @@ namespace Gohan.Tests
             InsecureVariantsGatewayUrl = config["InsecureVariantsGatewayUrl"];
 
 
-            PublicFacingElasticPath = config["PublicFacingElasticPath"];
+            PublicElasticUrl = config["PublicElasticUrl"];
 
             ElasticUsername = config["ElasticUsername"];
             ElasticPassword = config["ElasticPassword"];
 
-            PublicFacingDrsPath = config["PublicFacingDrsPath"];
+
+            PublicDrsUrl = config["PublicDrsUrl"];
 
             DrsUsername = config["DrsUsername"];
             DrsPassword = config["DrsPassword"];
-            
+
+
 #if DEBUG
             httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => { return true; };
 #endif

@@ -150,7 +150,7 @@ namespace Gohan.Tests.Integration
 //             var username = fixture.ElasticUsername;
 //             var password = fixture.ElasticPassword;
 
-//             var url = $"{fixture.VariantsGatewayUrl}{fixture.PublicFacingElasticPath}";
+//             var url = $"{fixture.PublicElasticUrl}";
 
 //             // Create ES Client with Basic Authentication header
 //             var settings = new ConnectionSettings(new Uri(url))
@@ -232,7 +232,7 @@ namespace Gohan.Tests.Integration
             var username = fixture.ElasticUsername;
             var password = fixture.ElasticPassword;
 
-            var url = $"{fixture.VariantsGatewayUrl}{fixture.PublicFacingElasticPath}";
+            var url = $"{fixture.PublicElasticUrl}";
 
             // Create ES Client with Basic Authentication header
             var settings = new ConnectionSettings(new Uri(url))
