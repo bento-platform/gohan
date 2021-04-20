@@ -61,7 +61,7 @@ namespace Gohan.Tests.Integration
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
 
                 // Make the call
-                HttpResponseMessage response = await fixture.client.GetAsync($"{fixture.VariantsGatewayUrl}{fixture.PublicFacingElasticPath}");
+                HttpResponseMessage response = await fixture.client.GetAsync($"{fixture.PublicElasticUrl}");
 
                 if (x == 1)    
                     // Ensure actual credentials get through
