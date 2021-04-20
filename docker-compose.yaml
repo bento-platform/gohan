@@ -119,6 +119,8 @@ services:
       - bridge-net
     environment:
       - ELASTICSEARCH_URL=${GOHAN_KB_ES_HOST}:${GOHAN_KB_ES_PORT}
+      - ELASTICSEARCH_USERNAME=${GOHAN_ES_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${GOHAN_ES_PASSWORD}
 
   drs:
     build:

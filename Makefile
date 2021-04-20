@@ -23,25 +23,25 @@ init:
 
 # Run
 run-all:
-	docker-compose -f docker-compose.yaml up -d
+	docker-compose -f docker-compose.yaml up -d --force-recreate
 
 run-gateway:
-	docker-compose -f docker-compose.yaml up -d gateway
+	docker-compose -f docker-compose.yaml up -d --force-recreate gateway
 
-run-api:
-	docker-compose -f docker-compose.yaml up -d api
+# run-api:
+# 	docker-compose -f docker-compose.yaml up -d --force-recreate api
 
 run-api-alpine:
-	docker-compose -f docker-compose.yaml up -d api-alpine
+	docker-compose -f docker-compose.yaml up -d --force-recreate api-alpine
 
 run-elasticsearch:
-	docker-compose -f docker-compose.yaml up -d elasticsearch
+	docker-compose -f docker-compose.yaml up -d --force-recreate elasticsearch
 
 run-kibana:
-	docker-compose -f docker-compose.yaml up -d kibana
+	docker-compose -f docker-compose.yaml up -d --force-recreate kibana
 
 run-drs:
-	docker-compose -f docker-compose.yaml up -d drs
+	docker-compose -f docker-compose.yaml up -d --force-recreate drs
 
 run-authz:
 	docker-compose -f docker-compose.yaml up -d --force-recreate authorization
@@ -51,8 +51,8 @@ run-authz:
 run-dev-all:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate
 
-run-dev-api:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api
+# run-dev-api:
+# 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api
 
 run-dev-api-alpine:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api-alpine
@@ -61,8 +61,8 @@ run-dev-api-alpine:
 run-dev-elasticsearch:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate elasticsearch
 
-# run-dev-kibana:
-# 	docker-compose -f docker-compose.yaml up -d kibana
+run-dev-kibana:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate kibana
 
 
 run-dev-drs:
