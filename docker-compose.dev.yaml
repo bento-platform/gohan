@@ -23,7 +23,14 @@ services:
         extends:
             file: docker-compose.yaml
             service: elasticsearch
-    
+
+    kibana:
+        ports:
+            - ${GOHAN_KB_EXTERNAL_PORT}:${GOHAN_KB_INTERNAL_PORT}
+        extends:
+            file: docker-compose.yaml
+            service: kibana
+        
     drs:
         ports:
             - "${GOHAN_DRS_EXTERNAL_PORT}:${GOHAN_DRS_INTERNAL_PORT}"
