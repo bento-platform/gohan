@@ -17,6 +17,7 @@ namespace Gohan.Api.Repositories
     {
         private readonly IConfiguration Configuration;
 
+        private string searchObjects = "/search";
         private string getObjectPath = "/objects/{0}";
         private string downloadObjectPath = "/objects/{0}/download";
         private HttpClient httpClient;
@@ -50,6 +51,17 @@ namespace Gohan.Api.Repositories
             var bytesData = await result.Content.ReadAsByteArrayAsync();
 
             return bytesData;
+        }
+
+        public async Task<string> SearchObjectsByQueryString(string forwardedQueryString)        
+        {
+            var getUrl = $"{Configuration["Drs:PrivateUrl"]}{searchObjects}{forwardedQueryString}";
+
+            // call drs
+            var result = await httpClient.GetAsync(getUrl);
+            var jsonData = await result.Content.ReadAsStringAsync();
+        
+            return jsonData;
         }
     }
 }
