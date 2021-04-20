@@ -32,7 +32,7 @@ namespace Gohan.Api.Controllers
         }
 
         [HttpGet]
-        [Route("get/objects/{objectId}")]
+        [Route("objects/{objectId}")]
         public async Task<IActionResult> GetObjectsById([FromRoute] string objectId)
         {
             var jsonString = await DrsRepository.GetObjectById(objectId);
@@ -40,11 +40,20 @@ namespace Gohan.Api.Controllers
         }
 
         [HttpGet]
-        [Route("get/objects/{objectId}/download")]
+        [Route("objects/{objectId}/download")]
         public async Task<IActionResult> DownloadObjectsById([FromRoute] string objectId)
         {
             var objectBytes = await DrsRepository.DownloadObjectById(objectId);
             return File(objectBytes, "application/octet-stream");
+        }
+
+        [HttpGet]
+        [Route("search")]
+        public async Task<IActionResult> SearchObjectsByQueryString()
+        {
+            var fullQueryString = Request.QueryString.Value;
+            var jsonString = await DrsRepository.SearchObjectsByQueryString(fullQueryString);
+            return Json(jsonString);       
         }
     }
 }
