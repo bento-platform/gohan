@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Diagnostics;
+
 using Microsoft.AspNetCore.Mvc;
+
 using Gohan.Api.Models;
 
 namespace Gohan.Api.Controllers
@@ -12,7 +10,7 @@ namespace Gohan.Api.Controllers
     {
         public string Index()
         {
-            return "Gohan Variants Service";
+            return "Gohan - A Genomic Variants API";
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
