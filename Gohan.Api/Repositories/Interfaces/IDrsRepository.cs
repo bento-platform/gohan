@@ -9,5 +9,7 @@ namespace Gohan.Api.Repositories.Interfaces
         Task<string> GetObjectById(string objectId);
         Task<byte[]> DownloadObjectById(string objectId);
         Task<string> SearchObjectsByQueryString(string forwardedQueryString);
+
+        Task<string> PublicIngestFile(byte[] fileBytes, string filename);
     }
 }

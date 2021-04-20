@@ -51,6 +51,10 @@ services:
   #     - Authentication__OidcPublicJwksUrl=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
       
 
+  #     # DRS
+  #     - Drs__PrivateUrl=${GOHAN_PRIVATE_DRS_URL}
+
+
   #     # .NET
   #     - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
   #     - DOTNET_CLI_TELEMETRY_OPTOUT=1
@@ -89,6 +93,10 @@ services:
 
       - Authentication__OidcPublicJwksUrl=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
       
+
+      # DRS
+      - Drs__PrivateUrl=${GOHAN_PRIVATE_DRS_URL}
+
 
       # .NET
       - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
