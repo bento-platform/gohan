@@ -38,6 +38,8 @@ namespace Gohan.Api.Controllers
         public VariantsResponseDTO GetVariantsBySampleIds(
             [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
+            [FromQuery] string reference, 
+            [FromQuery] string alternative,
             [FromQuery] long? lowerBound,
             [FromQuery] long? upperBound,
             [FromQuery] int size = 100,
@@ -57,6 +59,7 @@ namespace Gohan.Api.Controllers
                 var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
                     lowerBound, upperBound, 
                     variantId: null, sampleId: sampleId,
+                    reference: reference, alternative: alternative,
                     size: size, sortByPosition: sortByPosition,
                     includeSamplesInResultSet: includeSamplesInResultSet).Result;
                 results[sampleId] = docs;                    
@@ -82,6 +85,8 @@ namespace Gohan.Api.Controllers
         public VariantsResponseDTO GetVariantsByVariantIds(
             [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
+            [FromQuery] string reference, 
+            [FromQuery] string alternative,
             [FromQuery] long? lowerBound,
             [FromQuery] long? upperBound,
             [FromQuery] int size = 100,
@@ -104,6 +109,7 @@ namespace Gohan.Api.Controllers
                 var docs = ElasticRepository.GetDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
                     lowerBound, upperBound, 
                     variantId: variant, sampleId: null,
+                    reference: reference, alternative: alternative,
                     size: size, sortByPosition: sortByPosition,
                     includeSamplesInResultSet: includeSamplesInResultSet).Result;
             
@@ -128,6 +134,8 @@ namespace Gohan.Api.Controllers
         public VariantsResponseDTO CountVariantsByVariantIds(
             [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
+            [FromQuery] string reference, 
+            [FromQuery] string alternative,
             [FromQuery] long? lowerBound,
             [FromQuery] long? upperBound)
         {
@@ -144,6 +152,7 @@ namespace Gohan.Api.Controllers
             {
                 var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
                     lowerBound, upperBound,
+                    reference: reference, alternative: alternative,
                     variantId: variantId, sampleId: null).Result;
                                 
                 tempResultsList.Add(new VariantResponseDataModel()
@@ -168,6 +177,8 @@ namespace Gohan.Api.Controllers
         public VariantsResponseDTO CountVariantsBySampleIds(
             [FromQuery] long? chromosome, 
             [FromQuery] string ids, 
+            [FromQuery] string reference, 
+            [FromQuery] string alternative,
             [FromQuery] long? lowerBound,
             [FromQuery] long? upperBound)
         {
@@ -183,7 +194,8 @@ namespace Gohan.Api.Controllers
             Parallel.ForEach(sampleIdList, sampleId =>
             {
                 var count = ElasticRepository.CountDocumentsContainingVariantOrSampleIdInPositionRange(chromosome, 
-                    lowerBound, upperBound,
+                    lowerBound, upperBound, 
+                    reference: reference, alternative: alternative,
                     variantId: null, sampleId: sampleId).Result;
 
                 tempResultsList.Add(new VariantResponseDataModel()
