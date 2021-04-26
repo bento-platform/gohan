@@ -203,11 +203,17 @@ namespace Gohan.Tests.Integration
                 Chrom = 0,
                 Pos = 0,
                 Id = "test-id",
-                Ref = "test-ref",
-                Alt = "test-alt",
+                Ref = new List<string>() { "test-ref" },
+                Alt = new List<string>() { "test-alt" },
                 Qual = 0,
                 Filter = "test-filter",
-                Info = "test-info",
+                Info = new List<dynamic>() 
+                {
+                    new {
+                        id = "test-infoid",
+                        value = "test-value"
+                    }
+                },
                 Format = "test-format",
                 FileId = "test-fileId",
 
