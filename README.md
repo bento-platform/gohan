@@ -1,3 +1,12 @@
+# Gohan - A Genomic Variants API
+
+<div style="text-align:center">
+  <img src="https://www.publicdomainpictures.net/pictures/110000/velka/bowl-of-rice.jpg" alt="bowl-of-rice" width="50%" style="align:middle;"/>
+</div>
+
+
+
+
 ## Prerequisites
 - .NET Core 3.1
   - installation: https://dotnet.microsoft.com/download/dotnet-core/3.1
@@ -88,8 +97,9 @@ make run-authz
 
 ## Development
 
-![Architecture](https://github.com/bento-platform/Gohan/blob/master/images/architecture.png?raw=true)
-
+<div style="text-align:center">
+  <img src="https://github.com/bento-platform/Gohan/blob/master/images/architecture.png?raw=true" alt="architecture" width="50%" style="align:middle;"/>
+</div>
 
 ### **Gateway**
 To create and use development certs from the project root, run
