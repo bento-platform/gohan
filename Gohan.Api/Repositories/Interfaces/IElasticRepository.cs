@@ -8,14 +8,15 @@ namespace Gohan.Api.Repositories.Interfaces
 {
     public interface IElasticRepository
     {
-        Task<long> CountDocumentsContainingVariantOrSampleIdInPositionRange(long? chromosome,
-            long? lowerBound, long? upperBound, 
-            string variantId = null, string sampleId = null);
+        Task<long> CountDocumentsContainingVariantOrSampleIdInPositionRange(
+            long? chromosome, long? lowerBound, long? upperBound, 
+            string variantId = null, string sampleId = null,
+            string reference = null, string alternative = null);
         
         Task<List<VariantIndex>> GetDocumentsContainingVariantOrSampleIdInPositionRange(
-            long? chromosome,
-            long? lowerBound, long? upperBound, 
-            string variantId = null, string sampleId = null,  
+            long? chromosome, long? lowerBound, long? upperBound, 
+            string variantId = null, string sampleId = null,    
+            string reference = null, string alternative = null,
             int size = 100, string sortByPosition = null,
             bool includeSamplesInResultSet = true);
 

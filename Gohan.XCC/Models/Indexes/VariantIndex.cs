@@ -8,11 +8,11 @@ namespace Gohan.XCC.Models.Indexes
         public int Chrom { get; set; }
         public int Pos { get; set; }
         public string Id { get; set; }
-        public string Ref { get; set; }
-        public string Alt { get; set; }
+        public List<string> Ref { get; set; }
+        public List<string> Alt { get; set; }
         public int Qual { get; set; }
         public string Filter { get; set; }
-        public string Info { get; set; } 
+        public List<dynamic> Info { get; set; } // TODO: type safe
         public string Format { get; set; }
         public string FileId { get; set; }
 

@@ -37,7 +37,7 @@ namespace Gohan.Console
             string drsUsername = null;
             string drsPassword = null;
             
-            int documentBulkSizeLimit = 100000;
+            int documentBulkSizeLimit = 10000;
 
             // Validate arguments
             int argNum = 0;
@@ -297,6 +297,8 @@ namespace Gohan.Console
                     // };
                     var defaultHeaderFields = Utils.VCFColumnOrder;
 
+                    List<string> refStrings = new List<string>();
+                    List<string> altStrings = new List<string>();
 
                     // TODO: create documents in a type-safe manner using a class structure instead of dynamically
 
@@ -319,14 +321,46 @@ namespace Gohan.Console
                                     {
                                         int potentialIntValue;
                                         
+                                        // Strip out all non-numeric characters
                                         if (string.Equals(key, "CHROM"))
                                             value = Regex.Replace(value, "[^.0-9]", "");
 
+                                        // Convert string's to int's, if possible
                                         if(Int32.TryParse(value, out potentialIntValue))
                                             cd[key.ToLower()] = potentialIntValue;
                                         else
                                             cd[key.ToLower()] = -1; // here to simulate a null value (such as when the string value is empty, or
                                                                     // is something as arbitrary as a single period '.')
+                                    }
+                                    else if (string.Equals(key, "ALT") || string.Equals(key, "REF"))
+                                    {
+                                        // Split all alleles by comman
+                                        cd[key.ToLower()] = value.Split(',').ToList();                                    
+                                    }
+                                    else if (string.Equals(key, "INFO"))
+                                    {
+                                        // Split all alleles by comman
+                                        cd[key.ToLower()] = value
+                                            .Split(';').Select(i => 
+                                            {
+                                                var eqs = i.Split("=");
+                                                if (eqs.Length == 2)
+                                                {
+                                                    return new 
+                                                    {
+                                                        id = eqs[0],
+                                                        value = eqs[1]
+                                                    };
+                                                }
+                                                else {
+                                                    return new 
+                                                    {
+                                                        id = string.Empty,
+                                                        value = eqs[0]
+                                                    };
+                                                }
+                                            })
+                                            .ToList();
                                     }
                                     else
                                         cd[key.ToLower()] = value;
@@ -378,6 +412,7 @@ namespace Gohan.Console
                     }
 
                     rowCount++;
+
                 });
 
                 // Final bulk push
@@ -400,6 +435,7 @@ namespace Gohan.Console
             System.Console.WriteLine("Ingested {0} variant documents in time {1}.", rowCount, elapsedTime);
         }
     
+        // TODO: Refactor
         public static string Decompress(FileInfo fileToDecompress)
         {
             using (FileStream originalFileStream = fileToDecompress.OpenRead())

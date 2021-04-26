@@ -30,6 +30,7 @@ namespace Gohan.Api.Repositories
         public async Task<List<VariantIndex>> GetDocumentsContainingVariantOrSampleIdInPositionRange(long? chromosome, 
             long? lowerBound, long? upperBound, 
             string variantId = null, string sampleId = null, 
+            string reference = null, string alternative = null,
             int size = 100, string sortByPosition = null,
             bool includeSamplesInResultSet = true)
         {
@@ -65,6 +66,26 @@ namespace Gohan.Api.Repositories
                                         .Query($"{sampleId}")
                                     );
                             }
+                                                        
+                            if (!string.IsNullOrEmpty(reference))
+                            {
+                                query &= fq
+                                    .Match(m => m
+                                        .Field("ref")
+                                        .Query($"{reference}")
+                                    );
+                            }
+
+                            if (!string.IsNullOrEmpty(alternative))
+                            {
+                                query &= fq
+                                    .Match(m => m
+                                        .Field("alt")
+                                        .Query($"{alternative}")
+                                    );
+                            }
+
+
 
                             if (lowerBound.HasValue)
                             {
@@ -136,6 +157,7 @@ namespace Gohan.Api.Repositories
 
         public async Task<long> CountDocumentsContainingVariantOrSampleIdInPositionRange(long? chromosome,
             long? lowerBound, long? upperBound,
+            string reference = null, string alternative = null,
             string variantId = null, string sampleId = null)
         {      
             var countResponse = (await ElasticClient.CountAsync<dynamic>(s => s
@@ -168,6 +190,24 @@ namespace Gohan.Api.Repositories
                                     .Match(m => m
                                         .Field("samples.sampleId")
                                         .Query($"{sampleId}")
+                                    );
+                            }
+
+                            if (!string.IsNullOrEmpty(reference))
+                            {
+                                query &= fq
+                                    .Match(m => m
+                                        .Field("ref")
+                                        .Query($"{reference}")
+                                    );
+                            }
+
+                            if (!string.IsNullOrEmpty(alternative))
+                            {
+                                query &= fq
+                                    .Match(m => m
+                                        .Field("alt")
+                                        .Query($"{alternative}")
                                     );
                             }
 

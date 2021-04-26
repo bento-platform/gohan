@@ -134,6 +134,8 @@ Requests
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
 >   - upperBound : **number**
+>   - reference : **string** `an allele ( "A" | "C" | "G" | "T"  or some combination thereof)`
+>   - alternative : **string** `an allele`
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
@@ -144,6 +146,8 @@ Requests
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
 >   - upperBound : **number**
+>   - reference : **string** `an allele`
+>   - alternative : **string** `an allele`
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
@@ -151,6 +155,8 @@ Requests
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
 >   - upperBound : **number**
+>   - reference : **string** `an allele`
+>   - alternative : **string** `an allele`
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
@@ -161,6 +167,8 @@ Requests
 >   - chromosome : **number** `(default is "*" if not specified)`
 >   - lowerBound : **number**
 >   - upperBound : **number**
+>   - reference : **string** `an allele`
+>   - alternative : **string** `an allele`
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >
 > &nbsp;&nbsp;**GET** `/variants/remove/sampleId`<br/>
@@ -169,7 +177,7 @@ Requests
 
 <br />
 
-Generalized Response Structure
+Generalized Response Body Structure
 
 >```json  
 >{
@@ -183,9 +191,20 @@ Generalized Response Structure
 >             "results": [
 >                 {
 >                    "filter": `string`,
->                    "ref": `string`, ( "A" | "C" | "G" | "T" )
 >                    "pos": `number`,
->                    "alt": `string`, ( "A" | "C" | "G" | "T" )
+>                    "ref": [
+>                        `string`,  // an allele
+>                    ],
+>                    "alt": [
+>                         `string`,  // an allele
+>                    ],
+>                    "info": [
+>                        {
+>                            "id": `string`,
+>                            "value": `string`,
+>                        },
+>                        ...
+>                    ],
 >                    "format":`string`,
 >                    "qual": `number`,
 >                    "id": `string`,
@@ -282,7 +301,7 @@ dotnet run --project Gohan.Console --vcfPath Gohan.Console/vcfs \
   --drsUrl ${GOHAN_DRS_PUBLIC_URL} \
   --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
   --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
-  --documentBulkSizeLimit 100000
+  --documentBulkSizeLimit 10000
 
 ```
 > Note: 
@@ -292,7 +311,7 @@ dotnet run --project Gohan.Console --vcfPath Gohan.Console/vcfs \
 >     Gohan.Console\\vcfs
 >
 >
-> `--documentBulkSizeLimit` is an optional flag! Tune it as you see fit to minimize ingestion time (`100000` is the default)
+> `--documentBulkSizeLimit` is an optional flag! Tune it as you see fit to minimize ingestion time (`10000` is the default)
 
 <br />
 <br />
@@ -382,7 +401,7 @@ cd bin/Release/netcoreapp3.1/linux-x64/publish
   --drsUrl ${GOHAN_DRS_PUBLIC_URL} \
   --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
   --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
-  --documentBulkSizeLimit 100000
+  --documentBulkSizeLimit 10000
 
 ```
 
