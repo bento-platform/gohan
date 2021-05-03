@@ -201,12 +201,12 @@ namespace Gohan.Console
 
                             content.Add(byteArrayContent, "file", filename);
 
-                            var ingestUrl = $"{drsUrl}/public/ingest";
+                            var ingestUrl = $"{drsUrl}/ingest";
                             var result = httpClient.PostAsync(ingestUrl, content).Result;
 
                             // TODO : type safety (remove dynamic, add a class)
                             var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(result.Content.ReadAsStringAsync().Result);
-                            drsFileId = data.id;
+                            drsFileId = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(data).id;
                         }
                     }   
 
