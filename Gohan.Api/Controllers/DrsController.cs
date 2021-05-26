@@ -36,10 +36,10 @@ namespace Gohan.Api.Controllers
 
         [HttpGet]
         [Route("objects/{objectId}")]
-        public async Task<IActionResult> GetObjectsById([FromRoute] string objectId)
+        public async Task<dynamic> GetObjectsById([FromRoute] string objectId)
         {
             var jsonString = await DrsRepository.GetObjectById(objectId);
-            return Json(jsonString);             
+            return JsonConvert.DeserializeObject(jsonString); 
         }
 
         [HttpGet]
@@ -52,16 +52,16 @@ namespace Gohan.Api.Controllers
 
         [HttpGet]
         [Route("search")]
-        public async Task<IActionResult> SearchObjectsByQueryString()
+        public async Task<dynamic> SearchObjectsByQueryString()
         {
             var fullQueryString = Request.QueryString.Value;
             var jsonString = await DrsRepository.SearchObjectsByQueryString(fullQueryString);
-            return Json(jsonString);       
+            return JsonConvert.DeserializeObject(jsonString); 
         }
 
         [HttpPost]
         [Route("ingest")]
-        public async Task<IActionResult> IngestNewFiles(IFormFile file)
+        public async Task<dynamic> IngestNewFiles(IFormFile file)
         {   
             if (file != null && file.Length > 0)
             {
@@ -76,7 +76,7 @@ namespace Gohan.Api.Controllers
                 }
 
                 var jsonString = await DrsRepository.PublicIngestFile(fileBytes, file.FileName);
-                return Json(jsonString); 
+                return JsonConvert.DeserializeObject(jsonString); 
             }
             else
                 throw new Exception($"Empty file was uploaded! {file?.FileName} {file?.Length}");      

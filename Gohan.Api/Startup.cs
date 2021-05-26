@@ -39,7 +39,9 @@ namespace Gohan.Api
             services.AddElasticSearch(Configuration);
 
             // MVC
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+            services.AddMvc()
+                .AddNewtonsoftJson()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
         
             // -- IoC configuration --
             ConfigureServiceIoC(services);
