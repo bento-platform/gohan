@@ -1,4 +1,6 @@
 {
+    "IsApiAuthzEnabled": "${GOHAN_API_AUTHZ_ENABLED}",
+
     "VariantsGatewayUrl": "${GOHAN_PUBLIC_URL}",
     "InsecureVariantsGatewayUrl": "http://${GOHAN_PUBLIC_HOSTNAME}:80",
 

@@ -7,6 +7,8 @@ namespace Gohan.Tests
 {
     public class IntegrationTestFixture : IDisposable
     {
+        public bool IsApiAuthzEnabled;
+        
         public string VariantsGatewayUrl;
         public string InsecureVariantsGatewayUrl;
 
@@ -41,6 +43,8 @@ namespace Gohan.Tests
                 .Build();
 
             // Set up test-wide http configuration
+            IsApiAuthzEnabled = Boolean.Parse(config["IsApiAuthzEnabled"]);
+
             VariantsGatewayUrl = config["VariantsGatewayUrl"];
             InsecureVariantsGatewayUrl = config["InsecureVariantsGatewayUrl"];
 
