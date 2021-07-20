@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"bufio"
@@ -20,6 +23,7 @@ import (
 	"api/contexts"
 	"api/utils"
 
+	"github.com/Jeffail/gabs"
 	"github.com/labstack/echo"
 )
 
@@ -90,19 +94,10 @@ func VariantsSearchTest(c echo.Context) error {
 
 func VariantsIngestTest(c echo.Context) error {
 	// Testing ES
-	es := c.(*contexts.EsContext).Client
+	//es := c.(*contexts.EsContext).Client
 
-	// Create 'files' and 'variants' indices
-	// files_index_req := esapi.IndexRequest{Index: "files"}
+	// Create 'variants' indices
 	// variants_index_req := esapi.IndexRequest{Index: "variants"}
-
-	// files_index_res, fierr := files_index_req.Do(context.Background(), es)
-	// if fierr != nil {
-	// 	fmt.Printf("Failed: %s\n", fierr)
-	// 	return fierr
-	// } else {
-	// 	fmt.Printf("Files Index created!: %s\n", files_index_res)
-	// }
 
 	// variants_index_res, vierr := variants_index_req.Do(context.Background(), es)
 	// if vierr != nil {
@@ -141,17 +136,42 @@ func VariantsIngestTest(c echo.Context) error {
 	// -- foreach compressed vcf file:
 	// ---	 decompress vcf.gz
 	// ---	 store to disk (temporarily)
+	// ---   push compressed to DRS
 	// ---	 load back into memory and process
 	// ---	 push to a bulk "queue"
 	// ---	 once the queue is maxed out, wait for the bulk queue to be processed before continuing
+	// ---   delete the temporary vcf file
 	for _, vcfGzFile := range vcfGzfiles {
 		go func(file string) {
+			// ---	 decompress vcf.gz
 			gzippedFilePath := fmt.Sprintf("%s%s%s", vcfDirPath, "/", file)
 			r, err := os.Open(gzippedFilePath)
 			if err != nil {
 				fmt.Printf("error opening %s: %s\n", file, err)
+				return
 			}
-			extractVcfGz(gzippedFilePath, r)
+			defer r.Close()
+
+			vcfFilePath := extractVcfGz(gzippedFilePath, r)
+			if vcfFilePath == "" {
+				fmt.Println("Something went wrong: filepath is empty for ", file)
+				return
+			}
+
+			// ---   push compressed to DRS
+			drsId := uploadVcfGzToDrs(gzippedFilePath, r)
+			if drsId == "" {
+				fmt.Println("Something went wrong: DRS Id is empty for ", file)
+				return
+			}
+
+			// ---	 load back into memory and process
+			processVcf(vcfFilePath)
+
+			// ---   ...
+
+			// ---   delete the temporary vcf file
+			os.Remove(vcfFilePath)
 		}(vcfGzFile)
 	}
 
@@ -160,22 +180,118 @@ func VariantsIngestTest(c echo.Context) error {
 	return c.JSON(http.StatusOK, "{\"ingest\" : \"Done! Maybe it succeeded, maybe it failed!\"}")
 }
 
-func extractVcfGz(gzippedFilePath string, gzipStream io.Reader) {
+func extractVcfGz(gzippedFilePath string, gzipStream io.Reader) string {
 	uncompressedStream, err := gzip.NewReader(gzipStream)
 	if err != nil {
-		log.Fatal("ExtractTarGz: NewReader failed")
+		log.Fatal("ExtractTarGz: NewReader failed - ", err)
+		return ""
 	}
 
+	// ---	 store to disk (temporarily)
 	// new File name
-	vcfFileName := strings.Replace(gzippedFilePath, ".gz", "", -1)
+	vcfFilePath := strings.Replace(gzippedFilePath, ".gz", "", -1)
 
-	fmt.Printf("Creating File: %s\n", vcfFileName)
-	f, err := os.Create(vcfFileName)
+	fmt.Printf("Creating File: %s\n", vcfFilePath)
+	f, err := os.Create(vcfFilePath)
+	if err != nil {
+		fmt.Println("Something went wrong:  ", err)
+		return ""
+	}
 
-	fmt.Printf("Writing to file: %s\n", vcfFileName)
+	fmt.Printf("Writing to file: %s\n", vcfFilePath)
 	w := bufio.NewWriter(f)
 	io.Copy(w, uncompressedStream)
 
 	uncompressedStream.Close()
 	f.Close()
+
+	return vcfFilePath
+}
+
+func uploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File) string {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, _ := writer.CreateFormFile("file", filepath.Base(gzipStream.Name()))
+	io.Copy(part, gzipStream)
+	writer.Close()
+
+	// TEMP: SECURITY RISK
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//
+
+	// TODO: Parameterize DRS Url
+	r, _ := http.NewRequest("POST", "https://drs.gohan.local/public/ingest", body)
+	r.SetBasicAuth("drsadmin", "gohandrspassword123")
+
+	r.Header.Add("Content-Type", writer.FormDataContentType())
+	client := &http.Client{}
+	resp, err := client.Do(r)
+	if err != nil {
+		fmt.Printf("Upload to DRS error: %s\n", err)
+		return ""
+	} else {
+		fmt.Printf("Upload to DRS succeeded: %d\n", resp.StatusCode)
+	}
+
+	responsebody, bodyerr := ioutil.ReadAll(resp.Body)
+	if bodyerr != nil {
+		log.Printf("Error reading body: %v", err)
+		return ""
+	}
+
+	jsonParsed, err := gabs.ParseJSON(responsebody)
+	if err != nil {
+		fmt.Printf("Parsing error: %s\n", err)
+		return ""
+	}
+	id := jsonParsed.Path("id").Data().(string)
+
+	fmt.Println("Get DRS ID: ", id)
+
+	return id
+}
+
+func processVcf(vcfFilePath string) {
+	f, err := os.Open(vcfFilePath)
+	if err != nil {
+		fmt.Println("Failed to open file - ", err)
+		return
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	var discoveredHeaders bool = false
+	var headers []string
+
+	for scanner.Scan() {
+		// Testing:
+		//fmt.Println(scanner.Text())
+
+		go func(line string) {
+			// Gather Header row by seeking the CHROM string
+			if !discoveredHeaders {
+				if strings.Contains(line, "#") {
+					if strings.Contains(line, "CHROM") {
+						// Split the string by tabs
+						headers = strings.Split(line, "\t")
+						discoveredHeaders = true
+
+						fmt.Println("Found the headers: ", headers)
+						return
+					}
+					return
+				}
+			}
+
+			// TODO: process more,
+			// ---	 push to a bulk "queue"
+			// ---	 once the queue is maxed out, wait for the bulk queue to be processed before continuing
+
+		}(scanner.Text())
+
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
 }

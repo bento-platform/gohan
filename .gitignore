@@ -37,3 +37,6 @@ Gohan.Tests/appsettings.test.json
 
 # golang debug files
 */*/__debug_bin
+
+# golang binaries
+*/*/api_*_*

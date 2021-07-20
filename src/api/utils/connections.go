@@ -10,7 +10,7 @@ import (
 func CreateEsConnection() *es7.Client {
 	var (
 		// Testing
-		clusterURLs = []string{"http://localhost:9200"}
+		clusterURLs = []string{"https://elasticsearch.gohan.local"}
 		username    = "elastic"
 		password    = "changeme!"
 	)
