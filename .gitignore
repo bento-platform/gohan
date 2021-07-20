@@ -34,3 +34,6 @@ Gohan.Tests/appsettings.test.json
 
 # executables
 */Gohan.Console
+
+# golang debug files
+*/*/__debug_bin

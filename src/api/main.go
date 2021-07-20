@@ -54,6 +54,8 @@ func main() {
 
 	// -- Variants
 	e.GET("/variants/searchtest", mvc.VariantsSearchTest)
+	// -- TESTING
+	e.GET("/variants/ingest", mvc.VariantsIngestTest)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + port))
