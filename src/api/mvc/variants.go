@@ -19,9 +19,9 @@ import (
 
 func VariantsSearchTest(c echo.Context) error {
 	// Testing ES
-	es := c.(*contexts.EsContext).Es
+	es := c.(*contexts.EsContext).Client
 
-	fmt.Println("Query Start: %s", time.Now())
+	fmt.Printf("Query Start: %s", time.Now())
 
 	// Build the request body.
 	var queryString = `
@@ -44,7 +44,7 @@ func VariantsSearchTest(c echo.Context) error {
 	query := utils.ConstructQuery(queryString, 2)
 	var buf bytes.Buffer
 	if buffErr := json.NewEncoder(&buf).Encode(query); buffErr != nil {
-		fmt.Println("Error encoding query: %s", buffErr)
+		fmt.Printf("Error encoding query: %s", buffErr)
 	}
 
 	// Perform the search request.
@@ -56,13 +56,13 @@ func VariantsSearchTest(c echo.Context) error {
 		es.Search.WithPretty(),
 	)
 	if searchErr != nil {
-		fmt.Println("Error getting response: %s", searchErr)
+		fmt.Printf("Error getting response: %s", searchErr)
 	}
 
 	respBuf := new(strings.Builder)
 	_, respErr := io.Copy(respBuf, res.Body)
 	if respErr != nil {
-		fmt.Println("Error forming response: %s", respErr)
+		fmt.Printf("Error forming response: %s", respErr)
 	}
 
 	// check errors
@@ -77,7 +77,7 @@ func VariantsSearchTest(c echo.Context) error {
 	// Close the response
 	defer res.Body.Close()
 
-	fmt.Println("Query End: %s", time.Now())
+	fmt.Printf("Query End: %s", time.Now())
 
 	return c.JSON(http.StatusOK, result)
 }

@@ -10,6 +10,6 @@ type (
 	// that need an elasticsearch client
 	EsContext struct {
 		echo.Context
-		Es *es7.Client
+		*es7.Client
 	}
 )
