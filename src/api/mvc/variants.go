@@ -13,7 +13,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 
 	"bufio"
 	"io/ioutil"
@@ -23,9 +26,15 @@ import (
 	"api/contexts"
 	"api/utils"
 
+	"github.com/elastic/go-elasticsearch"
+	"github.com/elastic/go-elasticsearch/esutil"
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/Jeffail/gabs"
 	"github.com/labstack/echo"
 )
+
+var vcfHeaders = []string{"chrom", "pos", "id", "ref", "alt", "qual", "filter", "info", "format"}
 
 func VariantsSearchTest(c echo.Context) error {
 	// Testing ES
@@ -75,11 +84,8 @@ func VariantsSearchTest(c echo.Context) error {
 		fmt.Printf("Error forming response: %s", respErr)
 	}
 
-	// check errors
-	//fmt.Println(respBuf.String())
-
 	// Declared an empty interface
-	var result map[string]interface{}
+	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
 	json.Unmarshal([]byte(respBuf.String()), &result)
@@ -94,7 +100,7 @@ func VariantsSearchTest(c echo.Context) error {
 
 func VariantsIngestTest(c echo.Context) error {
 	// Testing ES
-	//es := c.(*contexts.EsContext).Client
+	es := c.(*contexts.EsContext).Client
 
 	// Create 'variants' indices
 	// variants_index_req := esapi.IndexRequest{Index: "variants"}
@@ -166,16 +172,14 @@ func VariantsIngestTest(c echo.Context) error {
 			}
 
 			// ---	 load back into memory and process
-			processVcf(vcfFilePath)
-
-			// ---   ...
+			processVcf(vcfFilePath, drsId, es)
 
 			// ---   delete the temporary vcf file
 			os.Remove(vcfFilePath)
+
+			fmt.Printf("Ingest End for file at %s : %s\n", vcfFilePath, time.Now())
 		}(vcfGzFile)
 	}
-
-	fmt.Printf("Query End: %s\n", time.Now())
 
 	return c.JSON(http.StatusOK, "{\"ingest\" : \"Done! Maybe it succeeded, maybe it failed!\"}")
 }
@@ -251,7 +255,7 @@ func uploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File) string {
 	return id
 }
 
-func processVcf(vcfFilePath string) {
+func processVcf(vcfFilePath string, drsId string, es *elasticsearch.Client) {
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
@@ -263,33 +267,176 @@ func processVcf(vcfFilePath string) {
 	var discoveredHeaders bool = false
 	var headers []string
 
+	var variants []*utils.Variant
+
+	nonNumericRegexp := regexp.MustCompile("[^.0-9]")
+
 	for scanner.Scan() {
-		// Testing:
 		//fmt.Println(scanner.Text())
 
-		go func(line string) {
-			// Gather Header row by seeking the CHROM string
-			if !discoveredHeaders {
-				if strings.Contains(line, "#") {
-					if strings.Contains(line, "CHROM") {
-						// Split the string by tabs
-						headers = strings.Split(line, "\t")
-						discoveredHeaders = true
+		// Gather Header row by seeking the CHROM string
+		line := scanner.Text()
+		if !discoveredHeaders {
+			if line[0] == '#' {
+				if strings.Contains(line, "CHROM") {
+					// Split the string by tabs
+					headers = strings.Split(line, "\t")
+					discoveredHeaders = true
 
-						fmt.Println("Found the headers: ", headers)
-						return
+					fmt.Println("Found the headers: ", headers)
+					continue
+				}
+				continue
+			}
+		}
+
+		go func(line string, dId string) {
+
+			// ----  break up line
+			rowComponents := strings.Split(line, "\t")
+
+			// ----  process more
+			var samples []*utils.Sample
+			tmpVariant := make(map[string]interface{})
+
+			tmpVariant["fileId"] = dId
+
+			for i, rc := range rowComponents {
+				if rc != "0|0" {
+					key := strings.ToLower(strings.TrimSpace(strings.Replace(headers[i], "#", "", -1)))
+					value := strings.TrimSpace(rc)
+
+					// if not a vcf header, assume it's a sampleId header
+					if utils.StringInSlice(key, vcfHeaders) {
+
+						// filter field type by column name
+						if key == "chrom" || key == "pos" || key == "qual" {
+							if key == "chrom" {
+								// Strip out all non-numeric characters
+								value = nonNumericRegexp.ReplaceAllString(value, "")
+							}
+
+							// // Convert string's to int's, if possible
+							value, err := strconv.ParseInt(value, 10, 0)
+							if err != nil {
+								tmpVariant[key] = value
+							} else {
+								tmpVariant[key] = -1 // here to simulate a null value (such as when the string value is empty, or
+								//                      is something as arbitrary as a single period '.')
+							}
+
+						} else if key == "alt" || key == "ref" {
+							// Split all alleles by comma
+							tmpVariant[key] = strings.Split(value, ",")
+						} else if key == "info" {
+							var allInfos []*utils.Info
+
+							// Split all alleles by semi-colon
+							semiColonSeparations := strings.Split(value, ";")
+
+							for _, scSep := range semiColonSeparations {
+								// Split by equality symbol
+								equalitySeparations := strings.Split(scSep, "=")
+
+								if len(equalitySeparations) == 2 {
+									allInfos = append(allInfos, &utils.Info{
+										Id:    equalitySeparations[0],
+										Value: equalitySeparations[1],
+									})
+								} else { // len(equalitySeparations) == 1
+									allInfos = append(allInfos, &utils.Info{
+										Id:    "",
+										Value: equalitySeparations[0],
+									})
+								}
+							}
+
+							tmpVariant[key] = allInfos
+
+						} else {
+							tmpVariant[key] = value
+						}
+					} else { // assume its a sampleId header
+						samples = append(samples, &utils.Sample{
+							SampleId:  key,
+							Variation: value,
+						})
 					}
-					return
 				}
 			}
 
-			// TODO: process more,
-			// ---	 push to a bulk "queue"
-			// ---	 once the queue is maxed out, wait for the bulk queue to be processed before continuing
+			tmpVariant["samples"] = samples
 
-		}(scanner.Text())
+			// newVariant := &utils.Variant{
+			// 	fileId: dId,
+			// }
+
+			// ---	 push to a bulk "queue"
+			var resultingVariant utils.Variant
+			mapstructure.Decode(tmpVariant, &resultingVariant)
+
+			variants = append(variants, &resultingVariant)
+
+		}(line, drsId)
 
 	}
+
+	// ---	 push all data to the bulk indexer
+	fmt.Printf("Number of CPUs available: %d\n", runtime.NumCPU())
+
+	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+		Index:      "variants",
+		Client:     es,
+		NumWorkers: runtime.NumCPU(), // The number of worker goroutines
+	})
+
+	var wg sync.WaitGroup
+	wg.Add(len(variants))
+
+	for _, v := range variants {
+
+		// Prepare the data payload: encode article to JSON
+		data, err := json.Marshal(v)
+		if err != nil {
+			log.Fatalf("Cannot encode variant %d: %s\n", v.Id, err)
+		}
+
+		// Add an item to the BulkIndexer
+		err = bi.Add(
+			context.Background(),
+			esutil.BulkIndexerItem{
+				// Action field configures the operation to perform (index, create, delete, update)
+				Action: "index",
+
+				// Body is an `io.Reader` with the payload
+				Body: bytes.NewReader(data),
+
+				// OnSuccess is called for each successful operation
+				OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
+					defer wg.Done()
+					//log.Printf("Added item: %s", item.DocumentID)
+				},
+
+				// OnFailure is called for each failed operation
+				OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
+					defer wg.Done()
+					if err != nil {
+						log.Printf("ERROR: %s", err)
+					} else {
+						log.Printf("ERROR: %s: %s", res.Error.Type, res.Error.Reason)
+					}
+				},
+			},
+		)
+		if err != nil {
+			defer wg.Done()
+			log.Fatalf("Unexpected error: %s", err)
+		}
+	}
+
+	wg.Wait()
+
+	fmt.Printf("Done processing %s with %d variants!\n", vcfFilePath, len(variants))
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
