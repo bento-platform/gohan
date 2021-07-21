@@ -102,18 +102,9 @@ func VariantsIngestTest(c echo.Context) error {
 	// Testing ES
 	es := c.(*contexts.EsContext).Client
 
-	// Create 'variants' indices
-	// variants_index_req := esapi.IndexRequest{Index: "variants"}
+	startTime := time.Now()
 
-	// variants_index_res, vierr := variants_index_req.Do(context.Background(), es)
-	// if vierr != nil {
-	// 	fmt.Printf("Failed: %s\n", vierr)
-	// 	return vierr
-	// } else {
-	// 	fmt.Printf("Variants Index created!: %s\n", variants_index_res)
-	// }
-
-	fmt.Printf("Ingest Start: %s\n", time.Now())
+	fmt.Printf("Ingest Start: %s\n", startTime)
 
 	// get vcf files
 	// TODO: refactor
@@ -138,15 +129,7 @@ func VariantsIngestTest(c echo.Context) error {
 
 	fmt.Printf("Found .vcf.gz files: %s\n", vcfGzfiles)
 
-	// ingest
-	// -- foreach compressed vcf file:
-	// ---	 decompress vcf.gz
-	// ---	 store to disk (temporarily)
-	// ---   push compressed to DRS
-	// ---	 load back into memory and process
-	// ---	 push to a bulk "queue"
-	// ---	 once the queue is maxed out, wait for the bulk queue to be processed before continuing
-	// ---   delete the temporary vcf file
+	// ingest vcfs
 	for _, vcfGzFile := range vcfGzfiles {
 		go func(file string) {
 			// ---	 decompress vcf.gz
@@ -165,19 +148,19 @@ func VariantsIngestTest(c echo.Context) error {
 			}
 
 			// ---   push compressed to DRS
-			drsId := uploadVcfGzToDrs(gzippedFilePath, r)
-			if drsId == "" {
-				fmt.Println("Something went wrong: DRS Id is empty for ", file)
+			drsFileId := uploadVcfGzToDrs(gzippedFilePath, r)
+			if drsFileId == "" {
+				fmt.Println("Something went wrong: DRS File Id is empty for ", file)
 				return
 			}
 
 			// ---	 load back into memory and process
-			processVcf(vcfFilePath, drsId, es)
+			processVcf(vcfFilePath, drsFileId, es)
 
 			// ---   delete the temporary vcf file
 			os.Remove(vcfFilePath)
 
-			fmt.Printf("Ingest End for file at %s : %s\n", vcfFilePath, time.Now())
+			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Now().Sub(startTime))
 		}(vcfGzFile)
 	}
 
@@ -223,7 +206,7 @@ func uploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File) string {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	//
 
-	// TODO: Parameterize DRS Url
+	// TODO: Parameterize DRS Url and credentials
 	r, _ := http.NewRequest("POST", "https://drs.gohan.local/public/ingest", body)
 	r.SetBasicAuth("drsadmin", "gohandrspassword123")
 
@@ -255,7 +238,7 @@ func uploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File) string {
 	return id
 }
 
-func processVcf(vcfFilePath string, drsId string, es *elasticsearch.Client) {
+func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) {
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
@@ -290,86 +273,101 @@ func processVcf(vcfFilePath string, drsId string, es *elasticsearch.Client) {
 			}
 		}
 
-		go func(line string, dId string) {
+		go func(line string, drsFileId string) {
 
 			// ----  break up line
 			rowComponents := strings.Split(line, "\t")
 
-			// ----  process more
+			// ----  process more...
 			var samples []*utils.Sample
 			tmpVariant := make(map[string]interface{})
+			tmpVariantMapMutex := sync.RWMutex{}
 
-			tmpVariant["fileId"] = dId
+			tmpVariant["fileId"] = drsFileId
 
-			for i, rc := range rowComponents {
-				if rc != "0|0" {
-					key := strings.ToLower(strings.TrimSpace(strings.Replace(headers[i], "#", "", -1)))
-					value := strings.TrimSpace(rc)
+			var rowWg sync.WaitGroup
+			rowWg.Add(len(rowComponents))
 
-					// if not a vcf header, assume it's a sampleId header
-					if utils.StringInSlice(key, vcfHeaders) {
+			for rowIndex, rowComponent := range rowComponents {
+				go func(i int, rc string, rwg *sync.WaitGroup) {
+					defer rwg.Done()
+					if rc != "0|0" {
+						key := strings.ToLower(strings.TrimSpace(strings.Replace(headers[i], "#", "", -1)))
+						value := strings.TrimSpace(rc)
 
-						// filter field type by column name
-						if key == "chrom" || key == "pos" || key == "qual" {
-							if key == "chrom" {
-								// Strip out all non-numeric characters
-								value = nonNumericRegexp.ReplaceAllString(value, "")
-							}
+						// if not a vcf header, assume it's a sampleId header
+						if utils.StringInSlice(key, vcfHeaders) {
 
-							// // Convert string's to int's, if possible
-							value, err := strconv.ParseInt(value, 10, 0)
-							if err != nil {
-								tmpVariant[key] = value
-							} else {
-								tmpVariant[key] = -1 // here to simulate a null value (such as when the string value is empty, or
-								//                      is something as arbitrary as a single period '.')
-							}
-
-						} else if key == "alt" || key == "ref" {
-							// Split all alleles by comma
-							tmpVariant[key] = strings.Split(value, ",")
-						} else if key == "info" {
-							var allInfos []*utils.Info
-
-							// Split all alleles by semi-colon
-							semiColonSeparations := strings.Split(value, ";")
-
-							for _, scSep := range semiColonSeparations {
-								// Split by equality symbol
-								equalitySeparations := strings.Split(scSep, "=")
-
-								if len(equalitySeparations) == 2 {
-									allInfos = append(allInfos, &utils.Info{
-										Id:    equalitySeparations[0],
-										Value: equalitySeparations[1],
-									})
-								} else { // len(equalitySeparations) == 1
-									allInfos = append(allInfos, &utils.Info{
-										Id:    "",
-										Value: equalitySeparations[0],
-									})
+							// filter field type by column name
+							if key == "chrom" || key == "pos" || key == "qual" {
+								if key == "chrom" {
+									// Strip out all non-numeric characters
+									value = nonNumericRegexp.ReplaceAllString(value, "")
 								}
+
+								// // Convert string's to int's, if possible
+								value, err := strconv.ParseInt(value, 10, 0)
+								if err != nil {
+									tmpVariantMapMutex.Lock()
+									tmpVariant[key] = value
+									tmpVariantMapMutex.Unlock()
+								} else {
+									tmpVariantMapMutex.Lock()
+									tmpVariant[key] = -1 // here to simulate a null value (such as when the string value is empty, or
+									//                      is something as arbitrary as a single period '.')
+									tmpVariantMapMutex.Unlock()
+								}
+
+							} else if key == "alt" || key == "ref" {
+								// Split all alleles by comma
+								tmpVariantMapMutex.Lock()
+								tmpVariant[key] = strings.Split(value, ",")
+								tmpVariantMapMutex.Unlock()
+							} else if key == "info" {
+								var allInfos []*utils.Info
+
+								// Split all alleles by semi-colon
+								semiColonSeparations := strings.Split(value, ";")
+
+								for _, scSep := range semiColonSeparations {
+									// Split by equality symbol
+									equalitySeparations := strings.Split(scSep, "=")
+
+									if len(equalitySeparations) == 2 {
+										allInfos = append(allInfos, &utils.Info{
+											Id:    equalitySeparations[0],
+											Value: equalitySeparations[1],
+										})
+									} else { // len(equalitySeparations) == 1
+										allInfos = append(allInfos, &utils.Info{
+											Id:    "",
+											Value: equalitySeparations[0],
+										})
+									}
+								}
+
+								tmpVariantMapMutex.Lock()
+								tmpVariant[key] = allInfos
+								tmpVariantMapMutex.Unlock()
+
+							} else {
+								tmpVariantMapMutex.Lock()
+								tmpVariant[key] = value
+								tmpVariantMapMutex.Unlock()
 							}
-
-							tmpVariant[key] = allInfos
-
-						} else {
-							tmpVariant[key] = value
+						} else { // assume its a sampleId header
+							samples = append(samples, &utils.Sample{
+								SampleId:  key,
+								Variation: value,
+							})
 						}
-					} else { // assume its a sampleId header
-						samples = append(samples, &utils.Sample{
-							SampleId:  key,
-							Variation: value,
-						})
 					}
-				}
+				}(rowIndex, rowComponent, &rowWg)
 			}
 
-			tmpVariant["samples"] = samples
+			rowWg.Wait()
 
-			// newVariant := &utils.Variant{
-			// 	fileId: dId,
-			// }
+			tmpVariant["samples"] = samples
 
 			// ---	 push to a bulk "queue"
 			var resultingVariant utils.Variant
@@ -377,8 +375,7 @@ func processVcf(vcfFilePath string, drsId string, es *elasticsearch.Client) {
 
 			variants = append(variants, &resultingVariant)
 
-		}(line, drsId)
-
+		}(line, drsFileId)
 	}
 
 	// ---	 push all data to the bulk indexer
