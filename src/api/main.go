@@ -4,6 +4,7 @@ import (
 	"api/contexts"
 	"api/mvc"
 	"api/utils"
+	"flag"
 
 	"fmt"
 	"net/http"
@@ -15,21 +16,51 @@ import (
 
 func main() {
 	// Gather environment variables
+	// TODO: use only flags instead?
 	port := os.Getenv("GOHAN_API_PORT")
 	if port == "" {
 		fmt.Println("Port unset - using default")
 		port = "5000"
 	}
 
+	// Gather flags (if any)
+	var (
+		vcfPath string
+
+		elasticsearchUrl      string
+		elasticsearchUsername string
+		elasticsearchPassword string
+
+		drsUrl      string
+		drsUsername string
+		drsPassword string
+	)
+
+	flag.StringVar(&vcfPath, "vcfPath", "./vcfs", "VCF Path")
+
+	flag.StringVar(&elasticsearchUrl, "elasticsearchUrl", "https://elasticsearch.gohan.local", "Elasticsearch URL")
+	flag.StringVar(&elasticsearchUsername, "elasticsearchUsername", "elastic", "Elasticsearch Username")
+	flag.StringVar(&elasticsearchPassword, "elasticsearchPassword", "changeme!", "Elasticsearch Password")
+
+	flag.StringVar(&drsUrl, "drsUrl", "https://drs.gohan.local", "DRS URL")
+	flag.StringVar(&drsUsername, "drsUsername", "drsadmin", "DRS Basic Auth Gateway Username")
+	flag.StringVar(&drsPassword, "drsPassword", "gohandrspassword123", "DRS Basic Auth Gateway Password")
+
+	flag.Parse()
+
+	fmt.Printf(
+		"Using : \n\tVCF Directory Path : %s \n\tElasticsearch Url : %s \n\tElasticsearch Username : %s\n\tDRS Url : %s\n\tDRS Username : %s\n",
+		vcfPath, elasticsearchUrl, elasticsearchUsername, drsUrl, drsUsername)
+
 	// Instantiate Server
 	e := echo.New()
 
 	// Service Connections:
 	// -- Elasticsearch
-	es := utils.CreateEsConnection()
-
-	// TODO:
-	// -- Set up DRS connection
+	es := utils.CreateEsConnection(elasticsearchUrl, elasticsearchUsername, elasticsearchPassword)
+	// -- TODO: DRS ?
+	// 		(or perhaps just create an http client with credentials when necessary
+	//		rather than have one global http client ?)
 
 	// Configure Server
 	e.Use(middleware.Recover())
@@ -38,10 +69,11 @@ func main() {
 		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
 	}))
 
-	// -- Override handlers with custom "ES" context
+	// -- Override handlers with "custom Gohan" context
+	//		to be able to provide variables and global singletons
 	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cc := &contexts.EsContext{c, es}
+			cc := &contexts.GohanContext{c, es, vcfPath, drsUrl, drsUsername, drsPassword}
 			return h(cc)
 		}
 	})

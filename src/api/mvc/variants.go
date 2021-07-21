@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"api/contexts"
+	"api/models"
 	"api/utils"
 
 	"github.com/elastic/go-elasticsearch"
@@ -38,7 +39,7 @@ var vcfHeaders = []string{"chrom", "pos", "id", "ref", "alt", "qual", "filter", 
 
 func VariantsSearchTest(c echo.Context) error {
 	// Testing ES
-	es := c.(*contexts.EsContext).Client
+	es := c.(*contexts.GohanContext).Es7Client
 
 	fmt.Printf("Query Start: %s", time.Now())
 
@@ -100,19 +101,21 @@ func VariantsSearchTest(c echo.Context) error {
 
 func VariantsIngestTest(c echo.Context) error {
 	// Testing ES
-	es := c.(*contexts.EsContext).Client
+	es := c.(*contexts.GohanContext).Es7Client
+	vcfPath := c.(*contexts.GohanContext).VcfPath
+	drsUrl := c.(*contexts.GohanContext).DrsUrl
+	drsUsername := c.(*contexts.GohanContext).DrsUsername
+	drsPassword := c.(*contexts.GohanContext).DrsPassword
 
 	startTime := time.Now()
 
 	fmt.Printf("Ingest Start: %s\n", startTime)
 
 	// get vcf files
-	// TODO: refactor
-	vcfDirPath := "/home/brennan/Public/McGill/gohan/Gohan.Console/vcfs"
 	var vcfGzfiles []string
 
 	// Read all files
-	fileInfo, err := ioutil.ReadDir(vcfDirPath)
+	fileInfo, err := ioutil.ReadDir(vcfPath)
 	if err != nil {
 		fmt.Printf("Failed: %s\n", err)
 		return err
@@ -133,7 +136,7 @@ func VariantsIngestTest(c echo.Context) error {
 	for _, vcfGzFile := range vcfGzfiles {
 		go func(file string) {
 			// ---	 decompress vcf.gz
-			gzippedFilePath := fmt.Sprintf("%s%s%s", vcfDirPath, "/", file)
+			gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", file)
 			r, err := os.Open(gzippedFilePath)
 			if err != nil {
 				fmt.Printf("error opening %s: %s\n", file, err)
@@ -148,7 +151,7 @@ func VariantsIngestTest(c echo.Context) error {
 			}
 
 			// ---   push compressed to DRS
-			drsFileId := uploadVcfGzToDrs(gzippedFilePath, r)
+			drsFileId := uploadVcfGzToDrs(gzippedFilePath, r, drsUrl, drsUsername, drsPassword)
 			if drsFileId == "" {
 				fmt.Println("Something went wrong: DRS File Id is empty for ", file)
 				return
@@ -195,7 +198,7 @@ func extractVcfGz(gzippedFilePath string, gzipStream io.Reader) string {
 	return vcfFilePath
 }
 
-func uploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File) string {
+func uploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File, drsUrl, drsUsername, drsPassword string) string {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, _ := writer.CreateFormFile("file", filepath.Base(gzipStream.Name()))
@@ -207,8 +210,8 @@ func uploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File) string {
 	//
 
 	// TODO: Parameterize DRS Url and credentials
-	r, _ := http.NewRequest("POST", "https://drs.gohan.local/public/ingest", body)
-	r.SetBasicAuth("drsadmin", "gohandrspassword123")
+	r, _ := http.NewRequest("POST", drsUrl+"/public/ingest", body)
+	r.SetBasicAuth(drsUsername, drsPassword)
 
 	r.Header.Add("Content-Type", writer.FormDataContentType())
 	client := &http.Client{}
@@ -250,7 +253,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 	var discoveredHeaders bool = false
 	var headers []string
 
-	var variants []*utils.Variant
+	var variants []*models.Variant
 
 	nonNumericRegexp := regexp.MustCompile("[^.0-9]")
 
@@ -279,7 +282,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 			rowComponents := strings.Split(line, "\t")
 
 			// ----  process more...
-			var samples []*utils.Sample
+			var samples []*models.Sample
 			tmpVariant := make(map[string]interface{})
 			tmpVariantMapMutex := sync.RWMutex{}
 
@@ -324,7 +327,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 								tmpVariant[key] = strings.Split(value, ",")
 								tmpVariantMapMutex.Unlock()
 							} else if key == "info" {
-								var allInfos []*utils.Info
+								var allInfos []*models.Info
 
 								// Split all alleles by semi-colon
 								semiColonSeparations := strings.Split(value, ";")
@@ -334,12 +337,12 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 									equalitySeparations := strings.Split(scSep, "=")
 
 									if len(equalitySeparations) == 2 {
-										allInfos = append(allInfos, &utils.Info{
+										allInfos = append(allInfos, &models.Info{
 											Id:    equalitySeparations[0],
 											Value: equalitySeparations[1],
 										})
 									} else { // len(equalitySeparations) == 1
-										allInfos = append(allInfos, &utils.Info{
+										allInfos = append(allInfos, &models.Info{
 											Id:    "",
 											Value: equalitySeparations[0],
 										})
@@ -356,7 +359,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 								tmpVariantMapMutex.Unlock()
 							}
 						} else { // assume its a sampleId header
-							samples = append(samples, &utils.Sample{
+							samples = append(samples, &models.Sample{
 								SampleId:  key,
 								Variation: value,
 							})
@@ -370,7 +373,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 			tmpVariant["samples"] = samples
 
 			// ---	 push to a bulk "queue"
-			var resultingVariant utils.Variant
+			var resultingVariant models.Variant
 			mapstructure.Decode(tmpVariant, &resultingVariant)
 
 			variants = append(variants, &resultingVariant)

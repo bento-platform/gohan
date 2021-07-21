@@ -1,4 +1,4 @@
-package utils
+package models
 
 type Variant struct {
 	Chrom   int      `json:"chrom"`
