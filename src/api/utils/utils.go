@@ -40,3 +40,12 @@ func ConstructQuery(q string, size int) *strings.Reader {
 	// Return a *strings.Reader object
 	return read
 }
+
+func StringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}

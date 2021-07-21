@@ -1,25 +1,25 @@
 package utils
 
 type Variant struct {
-	chrom   int
-	pos     int
-	id      string
-	ref     []string
-	alt     []string
-	format  string
-	qual    int
-	filter  string
-	info    []Info
-	samples []Sample
-	fileId  string
+	Chrom   int      `json:"chrom"`
+	Pos     int      `json:"pos"`
+	Id      string   `json:"id"`
+	Ref     []string `json:"ref"`
+	Alt     []string `json:"alt"`
+	Format  string   `json:"format"`
+	Qual    int      `json:"qual"`
+	Filter  string   `json:"filter"`
+	Info    []Info   `json:"info"`
+	Samples []Sample `json:"samples"`
+	FileId  string   `json:"fileId"`
 }
 
 type Info struct {
-	id    string
-	value string
+	Id    string `json:"id"`
+	Value string `json:"value"`
 }
 
 type Sample struct {
-	sampleId  string
-	variation string
+	SampleId  string `json:"sampleId"`
+	Variation string `json:"variation"`
 }
