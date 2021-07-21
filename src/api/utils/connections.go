@@ -7,17 +7,13 @@ import (
 	es7 "github.com/elastic/go-elasticsearch"
 )
 
-func CreateEsConnection() *es7.Client {
-	var (
-		// Testing
-		clusterURLs = []string{"https://elasticsearch.gohan.local"}
-		username    = "elastic"
-		password    = "changeme!"
-	)
+func CreateEsConnection(elasticsearchUrl string, elasticsearchUsername string, elasticsearchPassword string) *es7.Client {
+	var clusterURLs = []string{elasticsearchUrl} // TODO: Add more URLs if necessary
+
 	cfg := elasticsearch.Config{
 		Addresses: clusterURLs,
-		Username:  username,
-		Password:  password,
+		Username:  elasticsearchUsername,
+		Password:  elasticsearchPassword,
 	}
 	es7Client, _ := es7.NewClient(cfg)
 

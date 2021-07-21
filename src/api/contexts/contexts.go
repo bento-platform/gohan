@@ -6,10 +6,14 @@ import (
 )
 
 type (
-	// "Helper" Context to pass into routes
-	// that need an elasticsearch client
-	EsContext struct {
+	// "Helper" Context to pass into routes that need
+	//  an elasticsearch client and other variables
+	GohanContext struct {
 		echo.Context
-		*es7.Client
+		Es7Client   *es7.Client
+		VcfPath     string
+		DrsUrl      string
+		DrsUsername string
+		DrsPassword string
 	}
 )
