@@ -435,7 +435,9 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 	var countFailed uint64
 
 	// see: https://www.elastic.co/blog/why-am-i-seeing-bulk-rejections-in-my-elasticsearch-cluster
-	var numWorkers = len(variants) / 200
+	var numWorkers = len(variants) / 50
+	// the lower the denominator (the number of documents per bulk upload). the higher
+	// the chances of 100% successful upload, though the longer it may take (negligible)
 
 	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
 		Index:      "variants",
