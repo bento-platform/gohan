@@ -107,6 +107,15 @@ func VariantsIngestTest(c echo.Context) error {
 	drsUsername := c.(*contexts.GohanContext).DrsUsername
 	drsPassword := c.(*contexts.GohanContext).DrsPassword
 
+	// retrieve query parameters (comman separated)
+	fileNames := strings.Split(c.QueryParam("fileNames"), ",")
+	for _, fileName := range fileNames {
+		if fileName == "" {
+			// TODO: create a standard response object
+			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
+		}
+	}
+
 	startTime := time.Now()
 
 	fmt.Printf("Ingest Start: %s\n", startTime)
@@ -132,8 +141,31 @@ func VariantsIngestTest(c echo.Context) error {
 
 	fmt.Printf("Found .vcf.gz files: %s\n", vcfGzfiles)
 
-	// ingest vcfs
-	for _, vcfGzFile := range vcfGzfiles {
+	// Locate fileName from request inside found files
+	for _, fileName := range fileNames {
+		if utils.StringInSlice(fileName, vcfGzfiles) == false {
+			return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
+		}
+	}
+
+	// create temporary directory for unzipped vcfs
+	vcfTmpPath := vcfPath + "/tmp"
+	_, err = os.Stat(vcfTmpPath)
+	if os.IsNotExist(err) {
+		fmt.Println("VCF /tmp folder does not exist, creating...")
+		err = os.Mkdir(vcfTmpPath, 0755)
+		if err != nil {
+			fmt.Println(err)
+
+			// TODO: create a standard response object
+			return err
+		}
+	}
+
+	// ingest vcf
+	// TODO: create long-polling for status check
+	// of long-running process
+	for _, fileName := range fileNames {
 		go func(file string) {
 			// ---	 decompress vcf.gz
 			gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", file)
@@ -144,7 +176,7 @@ func VariantsIngestTest(c echo.Context) error {
 			}
 			defer r.Close()
 
-			vcfFilePath := extractVcfGz(gzippedFilePath, r)
+			vcfFilePath := extractVcfGz(gzippedFilePath, r, vcfTmpPath)
 			if vcfFilePath == "" {
 				fmt.Println("Something went wrong: filepath is empty for ", file)
 				return
@@ -163,14 +195,19 @@ func VariantsIngestTest(c echo.Context) error {
 			// ---   delete the temporary vcf file
 			os.Remove(vcfFilePath)
 
+			// ---   delete full tmp path and all contents
+			// 		 (WARNING : Only do this when running over a single file)
+			//os.RemoveAll(vcfTmpPath)
+
 			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Now().Sub(startTime))
-		}(vcfGzFile)
+		}(fileName)
 	}
 
-	return c.JSON(http.StatusOK, "{\"ingest\" : \"Done! Maybe it succeeded, maybe it failed!\"}")
+	// TODO: create a standard response object
+	return c.JSON(http.StatusOK, "{\"ingest\" : \"Done! Maybe it succeeded, maybe it failed.. Check the debug logs!\"}")
 }
 
-func extractVcfGz(gzippedFilePath string, gzipStream io.Reader) string {
+func extractVcfGz(gzippedFilePath string, gzipStream io.Reader, vcfTmpPath string) string {
 	uncompressedStream, err := gzip.NewReader(gzipStream)
 	if err != nil {
 		log.Fatal("ExtractTarGz: NewReader failed - ", err)
@@ -178,24 +215,27 @@ func extractVcfGz(gzippedFilePath string, gzipStream io.Reader) string {
 	}
 
 	// ---	 store to disk (temporarily)
-	// new File name
+	// new file name
 	vcfFilePath := strings.Replace(gzippedFilePath, ".gz", "", -1)
+	vcfFilePathSplits := strings.Split(vcfFilePath, "/")
+	vcfFileName := vcfFilePathSplits[len(vcfFilePathSplits)-1]
+	newVcfFilePath := vcfTmpPath + "/" + vcfFileName
 
-	fmt.Printf("Creating File: %s\n", vcfFilePath)
-	f, err := os.Create(vcfFilePath)
+	fmt.Printf("Creating new temporary VCF file: %s\n", newVcfFilePath)
+	f, err := os.Create(newVcfFilePath)
 	if err != nil {
 		fmt.Println("Something went wrong:  ", err)
 		return ""
 	}
 
-	fmt.Printf("Writing to file: %s\n", vcfFilePath)
+	fmt.Printf("Writing to new temporary VCF file: %s\n", newVcfFilePath)
 	w := bufio.NewWriter(f)
 	io.Copy(w, uncompressedStream)
 
 	uncompressedStream.Close()
 	f.Close()
 
-	return vcfFilePath
+	return newVcfFilePath
 }
 
 func uploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File, drsUrl, drsUsername, drsPassword string) string {
@@ -254,6 +294,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 	var headers []string
 
 	var variants []*models.Variant
+	variantsMutex := sync.RWMutex{}
 
 	nonNumericRegexp := regexp.MustCompile("[^.0-9]")
 
@@ -376,7 +417,9 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 			var resultingVariant models.Variant
 			mapstructure.Decode(tmpVariant, &resultingVariant)
 
+			variantsMutex.Lock()
 			variants = append(variants, &resultingVariant)
+			variantsMutex.Unlock()
 
 		}(line, drsFileId)
 	}
@@ -388,12 +431,15 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 		Index:      "variants",
 		Client:     es,
 		NumWorkers: runtime.NumCPU(), // The number of worker goroutines
+		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 50MB ?)
+		FlushInterval: 30 * time.Second, // The periodic flush interval
 	})
 
 	var wg sync.WaitGroup
-	wg.Add(len(variants))
 
 	for _, v := range variants {
+
+		wg.Add(1)
 
 		// Prepare the data payload: encode article to JSON
 		data, err := json.Marshal(v)
@@ -421,16 +467,16 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 				OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
 					defer wg.Done()
 					if err != nil {
-						log.Printf("ERROR: %s", err)
+						fmt.Printf("ERROR: %s", err)
 					} else {
-						log.Printf("ERROR: %s: %s", res.Error.Type, res.Error.Reason)
+						fmt.Printf("ERROR: %s: %s", res.Error.Type, res.Error.Reason)
 					}
 				},
 			},
 		)
 		if err != nil {
 			defer wg.Done()
-			log.Fatalf("Unexpected error: %s", err)
+			fmt.Printf("Unexpected error: %s", err)
 		}
 	}
 
