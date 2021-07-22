@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"bufio"
 	"io/ioutil"
@@ -324,6 +325,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 
 			// ----  process more...
 			var samples []*models.Sample
+			samplesMutex := sync.RWMutex{}
 			tmpVariant := make(map[string]interface{})
 			tmpVariantMapMutex := sync.RWMutex{}
 
@@ -400,10 +402,12 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 								tmpVariantMapMutex.Unlock()
 							}
 						} else { // assume its a sampleId header
+							samplesMutex.Lock()
 							samples = append(samples, &models.Sample{
 								SampleId:  key,
 								Variation: value,
 							})
+							samplesMutex.Unlock()
 						}
 					}
 				}(rowIndex, rowComponent, &rowWg)
@@ -427,10 +431,16 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 	// ---	 push all data to the bulk indexer
 	fmt.Printf("Number of CPUs available: %d\n", runtime.NumCPU())
 
+	var countSuccessful uint64
+	var countFailed uint64
+
+	// see: https://www.elastic.co/blog/why-am-i-seeing-bulk-rejections-in-my-elasticsearch-cluster
+	var numWorkers = len(variants) / 200
+
 	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
 		Index:      "variants",
 		Client:     es,
-		NumWorkers: runtime.NumCPU(), // The number of worker goroutines
+		NumWorkers: numWorkers,
 		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 50MB ?)
 		FlushInterval: 30 * time.Second, // The periodic flush interval
 	})
@@ -444,7 +454,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 		// Prepare the data payload: encode article to JSON
 		data, err := json.Marshal(v)
 		if err != nil {
-			log.Fatalf("Cannot encode variant %d: %s\n", v.Id, err)
+			log.Fatalf("Cannot encode variant %s: %s\n", v.Id, err)
 		}
 
 		// Add an item to the BulkIndexer
@@ -460,12 +470,15 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 				// OnSuccess is called for each successful operation
 				OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
 					defer wg.Done()
+					atomic.AddUint64(&countSuccessful, 1)
+
 					//log.Printf("Added item: %s", item.DocumentID)
 				},
 
 				// OnFailure is called for each failed operation
 				OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
 					defer wg.Done()
+					atomic.AddUint64(&countFailed, 1)
 					if err != nil {
 						fmt.Printf("ERROR: %s", err)
 					} else {
@@ -482,7 +495,7 @@ func processVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 
 	wg.Wait()
 
-	fmt.Printf("Done processing %s with %d variants!\n", vcfFilePath, len(variants))
+	fmt.Printf("Done processing %s with %d variants, with %d stats!\n", vcfFilePath, len(variants), bi.Stats())
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
