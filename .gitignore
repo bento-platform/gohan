@@ -40,3 +40,7 @@ Gohan.Tests/appsettings.test.json
 
 # golang binaries
 */*/api_*_*
+
+# tmp directories
+*/tmp
+*/*/tmp

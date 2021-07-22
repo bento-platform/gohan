@@ -23,7 +23,7 @@ func main() {
 		port = "5000"
 	}
 
-	// Gather flags (if any)
+	// -- Gather flags (if any)
 	var (
 		vcfPath string
 
@@ -51,6 +51,7 @@ func main() {
 	fmt.Printf(
 		"Using : \n\tVCF Directory Path : %s \n\tElasticsearch Url : %s \n\tElasticsearch Username : %s\n\tDRS Url : %s\n\tDRS Username : %s\n",
 		vcfPath, elasticsearchUrl, elasticsearchUsername, drsUrl, drsUsername)
+	// --
 
 	// Instantiate Server
 	e := echo.New()
