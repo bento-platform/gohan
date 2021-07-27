@@ -26,3 +26,16 @@ type Sample struct {
 	SampleId  string `json:"sampleId"`
 	Variation string `json:"variation"`
 }
+
+type VariantResponseDataModel struct {
+	VariantId string                   `json:"variantId"`
+	SampleId  string                   `json:"sampleId"`
+	Count     int                      `json:"count"`
+	Results   []map[string]interface{} `json:"results"` // []Variant
+}
+
+type VariantsResponseDTO struct {
+	Status  int                        `json:"status"`
+	Message string                     `json:"message"`
+	Data    []VariantResponseDataModel `json:"data"`
+}
