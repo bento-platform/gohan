@@ -1,11 +1,7 @@
 package mvc
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -35,7 +31,7 @@ func VariantsGetByVariantId(c echo.Context) error {
 	// TODO: Refactor QP retrieval ---
 	// variantIds (comma separated)
 	variantIds := strings.Split(c.QueryParam("ids"), ",")
-	if len(variantIds) == 0 {
+	if len(variantIds[0]) == 0 {
 		// if no ids were provided, assume "wildcard" search
 		variantIds = []string{"*"}
 	}
@@ -125,18 +121,23 @@ func VariantsGetByVariantId(c echo.Context) error {
 				vid, "", // note : "" is for sampleId
 				reference, alternative,
 				size, sortByPosition, includeSamplesInResultSet)
-			fmt.Printf("Found %d docs!\n", len(docs))
 
 			docsHits := docs["hits"].(map[string]interface{})["hits"]
+			allDocHits := []map[string]interface{}{}
+			mapstructure.Decode(docsHits, &allDocHits)
 
-			dataResults := []map[string]interface{}{} //models.Variant{}
-			mapstructure.Decode(docsHits, &dataResults)
+			// grab _source for each hit
+			var allSources []map[string]interface{}
 
-			variantRespDataModel.Count = len(dataResults)
-
-			for _, r := range dataResults {
-				variantRespDataModel.Results = append(variantRespDataModel.Results, r)
+			for _, r := range allDocHits {
+				source := r["_source"].(map[string]interface{})
+				allSources = append(allSources, source)
 			}
+
+			fmt.Printf("Found %d docs!\n", len(allSources))
+
+			variantRespDataModel.Count = len(allSources)
+			variantRespDataModel.Results = allSources
 
 			respDTOMux.Lock()
 			respDTO.Data = append(respDTO.Data, variantRespDataModel)
@@ -158,68 +159,6 @@ func VariantsGetByVariantId(c echo.Context) error {
 // func VariantsCountByVariantId(c echo.Context) error {}
 
 // func VariantsCountBySampleId(c echo.Context) error {}
-
-func VariantsSearchTest(c echo.Context) error {
-	// Testing ES
-	es := c.(*contexts.GohanContext).Es7Client
-
-	fmt.Printf("Query Start: %s", time.Now())
-
-	// Build the request body.
-	var queryString = `
-	"bool": {
-		"filter": [
-			{
-				"bool": {
-					"must": [
-						{
-							"query_string": {
-							"query": "chrom:*"
-							}
-						}
-					]
-				}
-			}
-		]
-	}
-	`
-	query := utils.ConstructQuery(queryString, 2)
-	var buf bytes.Buffer
-	if buffErr := json.NewEncoder(&buf).Encode(query); buffErr != nil {
-		fmt.Printf("Error encoding query: %s", buffErr)
-	}
-
-	// Perform the search request.
-	res, searchErr := es.Search(
-		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex("variants"),
-		es.Search.WithBody(&buf),
-		es.Search.WithTrackTotalHits(true),
-		es.Search.WithPretty(),
-	)
-	if searchErr != nil {
-		fmt.Printf("Error getting response: %s", searchErr)
-	}
-
-	respBuf := new(strings.Builder)
-	_, respErr := io.Copy(respBuf, res.Body)
-	if respErr != nil {
-		fmt.Printf("Error forming response: %s", respErr)
-	}
-
-	// Declared an empty interface
-	result := make(map[string]interface{})
-
-	// Unmarshal or Decode the JSON to the interface.
-	json.Unmarshal([]byte(respBuf.String()), &result)
-
-	// Close the response
-	defer res.Body.Close()
-
-	fmt.Printf("Query End: %s", time.Now())
-
-	return c.JSON(http.StatusOK, result)
-}
 
 func VariantsIngestTest(c echo.Context) error {
 	// Testing ES

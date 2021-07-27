@@ -19,7 +19,6 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	reference string, alternative string,
 	size int, sortByPosition string,
 	includeSamplesInResultSet bool) map[string]interface{} {
-	// TODO : implement query
 
 	// Build the request body.
 	var buf bytes.Buffer
@@ -35,17 +34,15 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 		},
 	}
 
-	// testing
+	// 'complexifying' the query
+	sortDirection := "asc"
 	if sortByPosition != "" {
-		sortDirection := ""
-
 		switch sortByPosition {
 		case "asc":
-			fmt.Println("Appending 'sortByPosition' keyword 'asc' to query")
-			sortDirection = "asc"
+			fmt.Println("Already set 'sortByPosition' keyword 'asc' to query")
 			break
 		case "desc":
-			fmt.Println("Appending 'sortByPosition' keyword 'desc' to query")
+			fmt.Println("Setting 'sortByPosition' keyword 'desc' to query")
 			sortDirection = "desc"
 			break
 		default:
@@ -53,25 +50,23 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 			break
 		}
 
-		if sortDirection != "" {
-			query["sort"] = map[string]string{
-				"pos": sortDirection,
-			}
-		}
+	} else {
+		fmt.Println("Found empty 'sortByPosition' keyword -- defaulting to 'asc'")
 	}
-	//
 
+	query["sort"] = map[string]string{
+		"pos": sortDirection,
+	}
+
+	// encode the query
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		log.Fatalf("Error encoding query: %s", err)
+		log.Fatalf("Error encoding query: %s\n", err)
 	}
 
-	// DEBUG
-
+	// DEBUG--
 	// Unmarshal or Decode the JSON to the interface.
-	myString := string(buf.Bytes()[:])
-
-	// Temp
-	fmt.Println(myString)
+	//myString := string(buf.Bytes()[:])
+	//fmt.Println(myString)
 	// --
 
 	fmt.Printf("Query Start: %s\n", time.Now())
@@ -94,8 +89,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	defer res.Body.Close()
 
 	// Temp
-	fmt.Println(res.String())
 	resultString := res.String()
+	//fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
@@ -108,7 +103,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
 	}
 
-	fmt.Printf("Query End: %s", time.Now())
+	fmt.Printf("Query End: %s\n", time.Now())
 
 	return result
 }

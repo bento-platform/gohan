@@ -86,7 +86,6 @@ func main() {
 	})
 
 	// -- Variants
-	//e.GET("/variants/searchtest", mvc.VariantsSearchTest)
 	e.GET("variants/get/by/variantId", mvc.VariantsGetByVariantId)
 	// e.GET("variants/get/by/sampleId", mvc.VariantsGetBySampleId)
 
