@@ -176,7 +176,7 @@ func ProcessVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) 
 
 								// // Convert string's to int's, if possible
 								value, err := strconv.ParseInt(value, 10, 0)
-								if err != nil {
+								if err == nil {
 									tmpVariantMapMutex.Lock()
 									tmpVariant[key] = value
 									tmpVariantMapMutex.Unlock()
