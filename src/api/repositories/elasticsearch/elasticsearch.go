@@ -28,7 +28,6 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	}
 
 	// 'complexifying' the query
-	// Testing --
 	matchMap := make(map[string]interface{})
 
 	if variantId != "" {
@@ -54,14 +53,70 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 			"query": reference,
 		}
 	}
-	// --
 
-	if len(mustMap) > 0 {
+	rangeMapSlice := []map[string]interface{}{}
+
+	// TODO: make upperbound and lowerbound nilable, somehow?
+	if upperBound > 0 {
+		rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
+			"range": map[string]interface{}{
+				"pos": map[string]interface{}{
+					"lte": upperBound,
+				},
+			},
+		})
+	}
+
+	if lowerBound > 0 {
+		rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
+			"range": map[string]interface{}{
+				"pos": map[string]interface{}{
+					"gte": lowerBound,
+				},
+			},
+		})
+	}
+
+	// append the match components to the must map
+	if len(matchMap) > 0 {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": matchMap,
 		})
 	}
 
+	// individually append each range components to the must map
+	if len(rangeMapSlice) > 0 {
+		for _, rms := range rangeMapSlice {
+			mustMap = append(mustMap, rms)
+		}
+	}
+
+	// exclude samples from result?
+	var excludesSlice []string = make([]string, 0)
+	if includeSamplesInResultSet == false {
+		excludesSlice = append(excludesSlice, "samples")
+	}
+
+	// overall query structure
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"filter": []map[string]interface{}{{
+					"bool": map[string]interface{}{
+						"must": mustMap,
+					}},
+				},
+			},
+		},
+		"_source": map[string]interface{}{
+			"includes": [1]string{"*"}, // include every field except those that may be specified in the 'excludesSlice'
+			"excludes": excludesSlice,
+		},
+		"size": size,
+	}
+
+	// set up sorting
 	sortDirection := "asc"
 	if sortByPosition != "" {
 		switch sortByPosition {
@@ -81,19 +136,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 		fmt.Println("Found empty 'sortByPosition' keyword -- defaulting to 'asc'")
 	}
 
-	var buf bytes.Buffer
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
-				"filter": []map[string]interface{}{{
-					"bool": map[string]interface{}{
-						"must": mustMap,
-					}},
-				},
-			},
-		},
-	}
-
+	// append sorting components
 	query["sort"] = map[string]string{
 		"pos": sortDirection,
 	}
@@ -137,7 +180,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceing [200 Success] which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceing '[200 OK] ' which needs trimming (hence the [9:])
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)

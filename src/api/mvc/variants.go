@@ -86,13 +86,16 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	sizeQP := c.QueryParam("size")
 	var (
-		size int
-		sErr error
+		defaultSize = 100
+		size        int
 	)
+
+	size = defaultSize
 	if len(sizeQP) > 0 {
-		size, sErr = strconv.Atoi(sizeQP)
-		if sErr != nil {
-			return sErr
+		parsedSize, sErr := strconv.Atoi(sizeQP)
+
+		if sErr == nil && parsedSize != 0 {
+			size = parsedSize
 		}
 	}
 
