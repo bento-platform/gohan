@@ -23,18 +23,32 @@ import (
 )
 
 func VariantsGetByVariantId(c echo.Context) error {
-	// Testing ES
-	es := c.(*contexts.GohanContext).Es7Client
 
-	// retrieve query parameters
-
-	// TODO: Refactor QP retrieval ---
-	// variantIds (comma separated)
+	// retrieve variant Ids from query parameter (comma separated)
 	variantIds := strings.Split(c.QueryParam("ids"), ",")
 	if len(variantIds[0]) == 0 {
 		// if no ids were provided, assume "wildcard" search
 		variantIds = []string{"*"}
 	}
+
+	return executeGetByIds(c, variantIds, true)
+}
+
+func VariantsGetBySampleId(c echo.Context) error {
+
+	// retrieve sample Ids from query parameter (comma separated)
+	sampleIds := strings.Split(c.QueryParam("ids"), ",")
+	if len(sampleIds[0]) == 0 {
+		// if no ids were provided, assume "wildcard" search
+		sampleIds = []string{"*"}
+	}
+
+	return executeGetByIds(c, sampleIds, false)
+}
+
+func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
+
+	es := c.(*contexts.GohanContext).Es7Client
 
 	chromosome := c.QueryParam("chromosome")
 	if len(chromosome) == 0 {
@@ -102,25 +116,39 @@ func VariantsGetByVariantId(c echo.Context) error {
 
 	// TODO: optimize - make 1 repo call with all variantIds at once
 	var wg sync.WaitGroup
-	for i, vId := range variantIds {
+	for _, id := range ids {
 		wg.Add(1)
 
-		fmt.Printf("Queuing Get-Variants Query #%d for VariantId %s\n", i, vId)
-
-		go func(vid string) {
+		go func(_id string) {
 			defer wg.Done()
 
 			variantRespDataModel := models.VariantResponseDataModel{}
-			variantRespDataModel.VariantId = vid
 
-			fmt.Printf("Executing Get-Variants for VariantId %s\n", vid)
+			var docs map[string]interface{}
+			if isVariantIdQuery {
+				variantRespDataModel.VariantId = _id
+
+				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+
+				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
+					chromosome, lowerBound, upperBound,
+					_id, "", // note : "" is for sampleId
+					reference, alternative,
+					size, sortByPosition, includeSamplesInResultSet)
+			} else {
+				// implied sampleId query
+				variantRespDataModel.SampleId = _id
+
+				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
+
+				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
+					chromosome, lowerBound, upperBound,
+					"", _id, // note : "" is for variantId
+					reference, alternative,
+					size, sortByPosition, includeSamplesInResultSet)
+			}
 
 			// query for each id
-			docs := esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
-				chromosome, lowerBound, upperBound,
-				vid, "", // note : "" is for sampleId
-				reference, alternative,
-				size, sortByPosition, includeSamplesInResultSet)
 
 			docsHits := docs["hits"].(map[string]interface{})["hits"]
 			allDocHits := []map[string]interface{}{}
@@ -143,7 +171,7 @@ func VariantsGetByVariantId(c echo.Context) error {
 			respDTO.Data = append(respDTO.Data, variantRespDataModel)
 			respDTOMux.Unlock()
 
-		}(vId)
+		}(id)
 	}
 
 	wg.Wait()
@@ -153,8 +181,6 @@ func VariantsGetByVariantId(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, respDTO)
 }
-
-// func VariantsGetBySampleId(c echo.Context) error {}
 
 // func VariantsCountByVariantId(c echo.Context) error {}
 
