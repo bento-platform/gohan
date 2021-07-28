@@ -3,6 +3,7 @@ package main
 import (
 	"api/contexts"
 	"api/mvc"
+	"api/services"
 	"api/utils"
 	"flag"
 
@@ -62,6 +63,10 @@ func main() {
 	// 		(or perhaps just create an http client with credentials when necessary
 	//		rather than have one global http client ?)
 
+	// Service Singletons
+	// TODO: Get Authz parameters from config or something
+	az := services.NewAuthzService(true, "", "", []string{"X-AUTHN-TOKEN"})
+
 	// Configure Server
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -77,6 +82,9 @@ func main() {
 			return h(cc)
 		}
 	})
+
+	// Global Middleware
+	e.Use(az.MandateAuthorizationTokens)
 
 	// Begin MVC Routes
 	// -- Root
