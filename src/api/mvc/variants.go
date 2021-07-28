@@ -2,6 +2,7 @@ package mvc
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,6 +18,8 @@ import (
 	esRepo "api/repositories/elasticsearch"
 	"api/services"
 	"api/utils"
+
+	"github.com/elastic/go-elasticsearch"
 
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
@@ -46,148 +49,28 @@ func VariantsGetBySampleId(c echo.Context) error {
 	return executeGetByIds(c, sampleIds, false)
 }
 
-func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
+func VariantsCountByVariantId(c echo.Context) error {
 
-	es := c.(*contexts.GohanContext).Es7Client
-
-	chromosome := c.QueryParam("chromosome")
-	if len(chromosome) == 0 {
-		// if no chromosome is provided, assume "wildcard" search
-		chromosome = "*"
+	// retrieve variant Ids from query parameter (comma separated)
+	variantIds := strings.Split(c.QueryParam("ids"), ",")
+	if len(variantIds[0]) == 0 {
+		// if no ids were provided, assume "wildcard" search
+		variantIds = []string{"*"}
 	}
 
-	lowerBoundQP := c.QueryParam("lowerBound")
-	var (
-		lowerBound int
-		lbErr      error
-	)
-	if len(lowerBoundQP) > 0 {
-		lowerBound, lbErr = strconv.Atoi(lowerBoundQP)
-		if lbErr != nil {
-			return lbErr
-		}
-	}
-
-	upperBoundQP := c.QueryParam("upperBound")
-	var (
-		upperBound int
-		ubErr      error
-	)
-	if len(upperBoundQP) > 0 {
-		upperBound, ubErr = strconv.Atoi(upperBoundQP)
-		if ubErr != nil {
-			return ubErr
-		}
-	}
-
-	reference := c.QueryParam("reference")
-
-	alternative := c.QueryParam("alternative")
-
-	sizeQP := c.QueryParam("size")
-	var (
-		defaultSize = 100
-		size        int
-	)
-
-	size = defaultSize
-	if len(sizeQP) > 0 {
-		parsedSize, sErr := strconv.Atoi(sizeQP)
-
-		if sErr == nil && parsedSize != 0 {
-			size = parsedSize
-		}
-	}
-
-	sortByPosition := c.QueryParam("sortByPosition")
-
-	includeSamplesInResultSetQP := c.QueryParam("includeSamplesInResultSet")
-	var (
-		includeSamplesInResultSet bool
-		isirsErr                  error
-	)
-	if len(includeSamplesInResultSetQP) > 0 {
-		includeSamplesInResultSet, isirsErr = strconv.ParseBool(includeSamplesInResultSetQP)
-		if isirsErr != nil {
-			return isirsErr
-		}
-	}
-	// ---
-
-	respDTO := models.VariantsResponseDTO{}
-	respDTOMux := sync.RWMutex{}
-
-	// TODO: optimize - make 1 repo call with all variantIds at once
-	var wg sync.WaitGroup
-	for _, id := range ids {
-		wg.Add(1)
-
-		go func(_id string) {
-			defer wg.Done()
-
-			variantRespDataModel := models.VariantResponseDataModel{}
-
-			var docs map[string]interface{}
-			if isVariantIdQuery {
-				variantRespDataModel.VariantId = _id
-
-				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
-
-				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
-					chromosome, lowerBound, upperBound,
-					_id, "", // note : "" is for sampleId
-					reference, alternative,
-					size, sortByPosition, includeSamplesInResultSet)
-			} else {
-				// implied sampleId query
-				variantRespDataModel.SampleId = _id
-
-				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
-
-				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
-					chromosome, lowerBound, upperBound,
-					"", _id, // note : "" is for variantId
-					reference, alternative,
-					size, sortByPosition, includeSamplesInResultSet)
-			}
-
-			// query for each id
-
-			docsHits := docs["hits"].(map[string]interface{})["hits"]
-			allDocHits := []map[string]interface{}{}
-			mapstructure.Decode(docsHits, &allDocHits)
-
-			// grab _source for each hit
-			var allSources []map[string]interface{}
-
-			for _, r := range allDocHits {
-				source := r["_source"].(map[string]interface{})
-				allSources = append(allSources, source)
-			}
-
-			fmt.Printf("Found %d docs!\n", len(allSources))
-
-			variantRespDataModel.Count = len(allSources)
-			variantRespDataModel.Results = allSources
-
-			respDTOMux.Lock()
-			respDTO.Data = append(respDTO.Data, variantRespDataModel)
-			respDTOMux.Unlock()
-
-		}(id)
-	}
-
-	wg.Wait()
-
-	respDTO.Status = 200
-	respDTO.Message = "Success"
-
-	return c.JSON(http.StatusOK, respDTO)
+	return executeCountByIds(c, variantIds, true)
 }
 
-// func VariantsCountByVariantId(c echo.Context) error {}
+func VariantsCountBySampleId(c echo.Context) error {
+	// retrieve sample Ids from query parameter (comma separated)
+	sampleIds := strings.Split(c.QueryParam("ids"), ",")
+	if len(sampleIds[0]) == 0 {
+		// if no ids were provided, assume "wildcard" search
+		sampleIds = []string{"*"}
+	}
 
-// func VariantsCountBySampleId(c echo.Context) error {}
+	return executeCountByIds(c, sampleIds, false)
+}
 
 func VariantsIngestTest(c echo.Context) error {
 	// Testing ES
@@ -295,4 +178,207 @@ func VariantsIngestTest(c echo.Context) error {
 
 	// TODO: create a standard response object
 	return c.JSON(http.StatusOK, "{\"ingest\" : \"Done! Maybe it succeeded, maybe it failed.. Check the debug logs!\"}")
+}
+
+func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
+
+	var es, chromosome, lowerBound, upperBound, reference, alternative = retrieveCommonElements(c)
+
+	// retrieve other query parameters relevent to this 'get' query ---
+	sizeQP := c.QueryParam("size")
+	var (
+		defaultSize = 100
+		size        int
+	)
+
+	size = defaultSize
+	if len(sizeQP) > 0 {
+		parsedSize, sErr := strconv.Atoi(sizeQP)
+
+		if sErr == nil && parsedSize != 0 {
+			size = parsedSize
+		}
+	}
+
+	sortByPosition := c.QueryParam("sortByPosition")
+
+	includeSamplesInResultSetQP := c.QueryParam("includeSamplesInResultSet")
+	var (
+		includeSamplesInResultSet bool
+		isirsErr                  error
+	)
+	if len(includeSamplesInResultSetQP) > 0 {
+		includeSamplesInResultSet, isirsErr = strconv.ParseBool(includeSamplesInResultSetQP)
+		if isirsErr != nil {
+			log.Fatal(isirsErr)
+		}
+	}
+	// ---
+
+	// prepare response
+	respDTO := models.VariantsResponseDTO{}
+	respDTOMux := sync.RWMutex{}
+
+	// TODO: optimize - make 1 repo call with all variantIds at once
+	var wg sync.WaitGroup
+	for _, id := range ids {
+		wg.Add(1)
+
+		go func(_id string) {
+			defer wg.Done()
+
+			variantRespDataModel := models.VariantResponseDataModel{}
+
+			var docs map[string]interface{}
+			if isVariantIdQuery {
+				variantRespDataModel.VariantId = _id
+
+				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+
+				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
+					chromosome, lowerBound, upperBound,
+					_id, "", // note : "" is for sampleId
+					reference, alternative,
+					size, sortByPosition, includeSamplesInResultSet)
+			} else {
+				// implied sampleId query
+				variantRespDataModel.SampleId = _id
+
+				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
+
+				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
+					chromosome, lowerBound, upperBound,
+					"", _id, // note : "" is for variantId
+					reference, alternative,
+					size, sortByPosition, includeSamplesInResultSet)
+			}
+
+			// query for each id
+
+			docsHits := docs["hits"].(map[string]interface{})["hits"]
+			allDocHits := []map[string]interface{}{}
+			mapstructure.Decode(docsHits, &allDocHits)
+
+			// grab _source for each hit
+			var allSources []map[string]interface{}
+
+			for _, r := range allDocHits {
+				source := r["_source"].(map[string]interface{})
+				allSources = append(allSources, source)
+			}
+
+			fmt.Printf("Found %d docs!\n", len(allSources))
+
+			variantRespDataModel.Count = len(allSources)
+			variantRespDataModel.Results = allSources
+
+			respDTOMux.Lock()
+			respDTO.Data = append(respDTO.Data, variantRespDataModel)
+			respDTOMux.Unlock()
+
+		}(id)
+	}
+
+	wg.Wait()
+
+	respDTO.Status = 200
+	respDTO.Message = "Success"
+
+	return c.JSON(http.StatusOK, respDTO)
+}
+
+func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
+
+	var es, chromosome, lowerBound, upperBound, reference, alternative = retrieveCommonElements(c)
+
+	respDTO := models.VariantsResponseDTO{}
+	respDTOMux := sync.RWMutex{}
+
+	// TODO: optimize - make 1 repo call with all variantIds at once
+	var wg sync.WaitGroup
+	for _, id := range ids {
+		wg.Add(1)
+
+		go func(_id string) {
+			defer wg.Done()
+
+			variantRespDataModel := models.VariantResponseDataModel{}
+
+			var docs map[string]interface{}
+			if isVariantIdQuery {
+				variantRespDataModel.VariantId = _id
+
+				fmt.Printf("Executing Count-Variants for VariantId %s\n", _id)
+
+				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(es,
+					chromosome, lowerBound, upperBound,
+					_id, "", // note : "" is for sampleId
+					reference, alternative)
+			} else {
+				// implied sampleId query
+				variantRespDataModel.SampleId = _id
+
+				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
+
+				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(es,
+					chromosome, lowerBound, upperBound,
+					"", _id, // note : "" is for variantId
+					reference, alternative)
+			}
+
+			variantRespDataModel.Count = int(docs["count"].(float64))
+
+			respDTOMux.Lock()
+			respDTO.Data = append(respDTO.Data, variantRespDataModel)
+			respDTOMux.Unlock()
+
+		}(id)
+	}
+
+	wg.Wait()
+
+	respDTO.Status = 200
+	respDTO.Message = "Success"
+
+	return c.JSON(http.StatusOK, respDTO)
+}
+
+func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string) {
+	es := c.(*contexts.GohanContext).Es7Client
+
+	chromosome := c.QueryParam("chromosome")
+	if len(chromosome) == 0 {
+		// if no chromosome is provided, assume "wildcard" search
+		chromosome = "*"
+	}
+
+	lowerBoundQP := c.QueryParam("lowerBound")
+	var (
+		lowerBound int
+		lbErr      error
+	)
+	if len(lowerBoundQP) > 0 {
+		lowerBound, lbErr = strconv.Atoi(lowerBoundQP)
+		if lbErr != nil {
+			log.Fatal(lbErr)
+		}
+	}
+
+	upperBoundQP := c.QueryParam("upperBound")
+	var (
+		upperBound int
+		ubErr      error
+	)
+	if len(upperBoundQP) > 0 {
+		upperBound, ubErr = strconv.Atoi(upperBoundQP)
+		if ubErr != nil {
+			log.Fatal(ubErr)
+		}
+	}
+
+	reference := c.QueryParam("reference")
+
+	alternative := c.QueryParam("alternative")
+
+	return es, chromosome, lowerBound, upperBound, reference, alternative
 }
