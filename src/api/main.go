@@ -48,8 +48,7 @@ func main() {
 
 	flag.Parse()
 
-	fmt.Printf(
-		"Using : \n\tVCF Directory Path : %s \n\tElasticsearch Url : %s \n\tElasticsearch Username : %s\n\tDRS Url : %s\n\tDRS Username : %s\n",
+	fmt.Printf("Using : \n\tVCF Directory Path : %s \n\tElasticsearch Url : %s \n\tElasticsearch Username : %s\n\tDRS Url : %s\n\tDRS Username : %s\n",
 		vcfPath, elasticsearchUrl, elasticsearchUsername, drsUrl, drsUsername)
 	// --
 
@@ -89,8 +88,8 @@ func main() {
 	e.GET("variants/get/by/variantId", mvc.VariantsGetByVariantId)
 	e.GET("variants/get/by/sampleId", mvc.VariantsGetBySampleId)
 
-	// e.GET("variants/count/by/variantId", mvc.VariantsCountByVariantId)
-	// e.GET("variants/count/by/sampleId", mvc.VariantsCountBySampleId)
+	e.GET("variants/count/by/variantId", mvc.VariantsCountByVariantId)
+	e.GET("variants/count/by/sampleId", mvc.VariantsCountBySampleId)
 
 	e.GET("/variants/ingest", mvc.VariantsIngestTest)
 
