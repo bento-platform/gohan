@@ -20,21 +20,48 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	size int, sortByPosition string,
 	includeSamplesInResultSet bool) map[string]interface{} {
 
-	// Build the request body.
-	var buf bytes.Buffer
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
-				"must": []map[string]interface{}{{
-					"query_string": map[string]interface{}{
-						"query": "chrom:" + chromosome,
-					}},
-				},
-			},
-		},
+	// begin building the request body.
+	mustMap := []map[string]interface{}{{
+		"query_string": map[string]interface{}{
+			"query": "chrom:" + chromosome,
+		}},
 	}
 
 	// 'complexifying' the query
+	// Testing --
+	matchMap := make(map[string]interface{})
+
+	if variantId != "" {
+		matchMap["id"] = map[string]interface{}{
+			"query": variantId,
+		}
+	}
+
+	if sampleId != "" {
+		matchMap["samples.sampleId"] = map[string]interface{}{
+			"query": sampleId,
+		}
+	}
+
+	if alternative != "" {
+		matchMap["alt"] = map[string]interface{}{
+			"query": alternative,
+		}
+	}
+
+	if reference != "" {
+		matchMap["ref"] = map[string]interface{}{
+			"query": reference,
+		}
+	}
+	// --
+
+	if len(mustMap) > 0 {
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": matchMap,
+		})
+	}
+
 	sortDirection := "asc"
 	if sortByPosition != "" {
 		switch sortByPosition {
@@ -54,6 +81,19 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 		fmt.Println("Found empty 'sortByPosition' keyword -- defaulting to 'asc'")
 	}
 
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"filter": []map[string]interface{}{{
+					"bool": map[string]interface{}{
+						"must": mustMap,
+					}},
+				},
+			},
+		},
+	}
+
 	query["sort"] = map[string]string{
 		"pos": sortDirection,
 	}
@@ -65,8 +105,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// DEBUG--
 	// Unmarshal or Decode the JSON to the interface.
-	//myString := string(buf.Bytes()[:])
-	//fmt.Println(myString)
+	myString := string(buf.Bytes()[:])
+	fmt.Println(myString)
 	// --
 
 	fmt.Printf("Query Start: %s\n", time.Now())
@@ -90,7 +130,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// Temp
 	resultString := res.String()
-	//fmt.Println(resultString)
+	fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
