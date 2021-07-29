@@ -1,11 +1,18 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/labstack/echo"
 )
+
+var publicOidcErrorMessage string = "Something went wrong interfacing with the OIDC provider! Please contact the system administrators.."
+var publicOpaErrorMessage string = "Something went wrong interfacing with OPA! Please contact the system administrators.."
 
 type (
 	AuthzService struct {
@@ -41,12 +48,72 @@ func (a *AuthzService) GetRequiredHeaders() []string {
 	return a.requiredHeaders
 }
 
-func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnToken string) error {
-	// TODO:
+func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnTokenString string) error {
 	//	- retrieve JWKS from OIDC
-	//	- validate JWKS and AuthN token agains OPA
+	oidcResp, oidcErr := http.Get(a.GetOidcJwksUrl())
+	if oidcErr != nil {
+		fmt.Printf("%s\n", oidcErr.Error())
+		return errors.New(publicOidcErrorMessage)
+	}
+	defer oidcResp.Body.Close()
 
-	// Simulate permitted access :
+	//	-- interpret JWKS from response
+	jwksBody, readJwksBodyErr := ioutil.ReadAll(oidcResp.Body)
+	if readJwksBodyErr != nil {
+		fmt.Printf("%s\n", readJwksBodyErr.Error())
+		return errors.New(publicOidcErrorMessage)
+	}
+
+	//	--- transform body bytes to string
+	authnJwksString := string(jwksBody)
+
+	//	-- check for OIDC json error
+	var jwksJson map[string]interface{}
+	jwksStringJsonUnmarshallingError := json.Unmarshal([]byte(authnJwksString), &jwksJson)
+	if jwksStringJsonUnmarshallingError != nil {
+		fmt.Printf("%s\n", jwksStringJsonUnmarshallingError.Error())
+		return errors.New(publicOidcErrorMessage)
+	}
+
+	if jwksJsonError, doesContainErrorKey := jwksJson["error"]; doesContainErrorKey {
+		fmt.Printf("Error: %s\n", jwksJsonError)
+		return errors.New(publicOidcErrorMessage)
+	}
+
+	//	- validate JWKS and AuthN token agains OPA
+	opaInputJson := map[string]interface{}{
+		"input": map[string]interface{}{
+			"authN_token": authnTokenString,
+			"authN_jwks":  authnJwksString,
+		},
+	}
+
+	json_data, jsonMarshallErr := json.Marshal(opaInputJson)
+	if jsonMarshallErr != nil {
+		fmt.Printf("%w\n", jsonMarshallErr.Error())
+		return errors.New(publicOpaErrorMessage)
+	}
+
+	opaResp, opaErr := http.Post(a.GetOpaUrl(), "application/json", bytes.NewBuffer(json_data))
+	if opaErr != nil {
+		fmt.Printf("%s\n", opaErr.Error())
+		return errors.New(publicOpaErrorMessage)
+	}
+	defer opaResp.Body.Close()
+
+	var opaJson map[string]interface{}
+	json.NewDecoder(opaResp.Body).Decode(&opaJson)
+
+	if accessPermitted, isMapContainsKey := opaJson["result"]; isMapContainsKey {
+		if accessPermitted != true {
+			return errors.New("Access denied!")
+		}
+	} else {
+		fmt.Printf("%s\n", "Missing 'result' key from Opa response!")
+		return errors.New(publicOpaErrorMessage)
+	}
+
+	// Access permitted! Return no error
 	return nil
 }
 
@@ -54,7 +121,7 @@ func (a *AuthzService) EnsureAllRequiredHeadersArePresent(headers http.Header) e
 	// return error if anything is missing
 	for _, rh := range a.GetRequiredHeaders() {
 		if headers.Get(rh) == "" {
-			return errors.New("Missing " + rh + " HTTP Header!")
+			return errors.New("Missing " + rh + " HTTP header!")
 		}
 	}
 	return nil

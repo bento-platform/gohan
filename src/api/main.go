@@ -6,6 +6,9 @@ import (
 	"api/services"
 	"api/utils"
 	"flag"
+	"log"
+	"strconv"
+	"strings"
 
 	"fmt"
 	"net/http"
@@ -35,6 +38,11 @@ func main() {
 		drsUrl      string
 		drsUsername string
 		drsPassword string
+
+		isAuthorizationEnabled  string
+		oidcPublicJwksUrl       string
+		opaUrl                  string
+		requiredHeadersCommaSep string
 	)
 
 	flag.StringVar(&vcfPath, "vcfPath", "./vcfs", "VCF Path")
@@ -47,10 +55,37 @@ func main() {
 	flag.StringVar(&drsUsername, "drsUsername", "drsadmin", "DRS Basic Auth Gateway Username")
 	flag.StringVar(&drsPassword, "drsPassword", "gohandrspassword123", "DRS Basic Auth Gateway Password")
 
+	flag.StringVar(&isAuthorizationEnabled, "isAuthorizationEnabled", "true", "Authorization On/Off Toggle")
+	flag.StringVar(&oidcPublicJwksUrl, "oidcPublicJwksUrl", "http://localhost:8080/auth/realms/bento/protocol/openid-connect/certs", "OIDC Public JWKS URL")
+	flag.StringVar(&opaUrl, "opaUrl", "http://localhost:8181/v1/data/permissions/allowed", "OPA URL")
+	flag.StringVar(&requiredHeadersCommaSep, "requiredHeadersCommaSep", "X-AUTHN-TOKEN", "Required HTTP Headers")
+
 	flag.Parse()
 
-	fmt.Printf("Using : \n\tVCF Directory Path : %s \n\tElasticsearch Url : %s \n\tElasticsearch Username : %s\n\tDRS Url : %s\n\tDRS Username : %s\n",
-		vcfPath, elasticsearchUrl, elasticsearchUsername, drsUrl, drsUsername)
+	fmt.Printf(
+		"Using : \n\tVCF Directory Path : %s \n"+
+			"\tElasticsearch Url : %s \n"+
+			"\tElasticsearch Username : %s\n\n"+
+
+			"\tDRS Url : %s\n"+
+			"\tDRS Username : %s\n\n"+
+
+			"\tAuthorization Enabled : %s\n"+
+			"\tOIDC Public JWKS Url : %s\n"+
+			"\tOPA Url : %s\n"+
+			"\tRequired HTTP Headers: %s\n",
+		vcfPath,
+		elasticsearchUrl, elasticsearchUsername,
+		drsUrl, drsUsername,
+		isAuthorizationEnabled,
+		oidcPublicJwksUrl,
+		opaUrl,
+		strings.Split(requiredHeadersCommaSep, ","))
+
+	parsedBool, boolParseErr := strconv.ParseBool(isAuthorizationEnabled)
+	if boolParseErr != nil {
+		log.Fatalf("Could not parse 'isAuthorizationEnabled' \"%s\" as true or false", isAuthorizationEnabled)
+	}
 	// --
 
 	// Instantiate Server
@@ -64,8 +99,9 @@ func main() {
 	//		rather than have one global http client ?)
 
 	// Service Singletons
-	// TODO: Get Authz parameters from config or something
-	az := services.NewAuthzService(true, "", "", []string{"X-AUTHN-TOKEN"})
+	az := services.NewAuthzService(bool(parsedBool),
+		oidcPublicJwksUrl, opaUrl,
+		strings.Split(requiredHeadersCommaSep, ","))
 
 	// Configure Server
 	e.Use(middleware.Recover())
