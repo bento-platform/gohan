@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo"
@@ -40,64 +41,52 @@ func (a *AuthzService) GetRequiredHeaders() []string {
 	return a.requiredHeaders
 }
 
-func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnToken string) bool {
-	accessPermitted := true
-
+func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnToken string) error {
 	// TODO:
 	//	- retrieve JWKS from OIDC
 	//	- validate JWKS and AuthN token agains OPA
 
 	// Simulate permitted access :
-	return accessPermitted
+	return nil
 }
 
-func (a *AuthzService) EnsureAllRequiredHeadersArePresent(headers http.Header) bool {
-	allRequiredHeadersArePresent := true
-
+func (a *AuthzService) EnsureAllRequiredHeadersArePresent(headers http.Header) error {
+	// return error if anything is missing
 	for _, rh := range a.GetRequiredHeaders() {
 		if headers.Get(rh) == "" {
-			allRequiredHeadersArePresent = false
-			break
+			return errors.New("Missing " + rh + " HTTP Header!")
 		}
 	}
-
-	return allRequiredHeadersArePresent
+	return nil
 }
 
-// AuthZ middleware --
-func (a *AuthzService) MandateAuthorizationTokens(next echo.HandlerFunc) echo.HandlerFunc {
+func (a *AuthzService) MandateAuthorizationTokensMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if a.IsEnabled() {
+			// check headers
 			presentHeaders := c.Request().Header
 
-			if a.EnsureAllRequiredHeadersArePresent(presentHeaders) {
-
-				// TEMP
-				authnTokenHeader := "X-AUTHN-TOKEN"
-				authnToken := presentHeaders.Get(authnTokenHeader)
-
-				if a.EnsureRepositoryAccessPermittedForUser(authnToken) {
-					// blah
-					if err := next(c); err != nil {
-						c.Error(err)
-					}
-
-				} else {
-					return echo.NewHTTPError(http.StatusUnauthorized, "User not permitted here!")
-				}
-
-			} else {
-				return echo.NewHTTPError(http.StatusForbidden, "Missing required headers! check again")
+			missingHeadersErr := a.EnsureAllRequiredHeadersArePresent(presentHeaders)
+			if missingHeadersErr != nil {
+				return echo.NewHTTPError(http.StatusForbidden, missingHeadersErr.Error())
 			}
-		} else {
-			// AuthZ check disabled -- allow all calls
-			if err := next(c); err != nil {
-				c.Error(err)
+
+			// TEMP
+			authnTokenHeader := "X-AUTHN-TOKEN"
+			authnToken := presentHeaders.Get(authnTokenHeader)
+
+			// check user permission
+			accessError := a.EnsureRepositoryAccessPermittedForUser(authnToken)
+			if accessError != nil {
+				return echo.NewHTTPError(http.StatusUnauthorized, accessError.Error())
 			}
+		}
+
+		// access granted!
+		if err := next(c); err != nil {
+			c.Error(err)
 		}
 
 		return nil
 	}
 }
-
-// --

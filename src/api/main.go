@@ -84,7 +84,7 @@ func main() {
 	})
 
 	// Global Middleware
-	e.Use(az.MandateAuthorizationTokens)
+	e.Use(az.MandateAuthorizationTokensMiddleware)
 
 	// Begin MVC Routes
 	// -- Root
