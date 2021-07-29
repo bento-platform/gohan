@@ -20,6 +20,7 @@ import (
 func main() {
 	// Gather environment variables
 	var (
+		port    string
 		vcfPath string
 
 		elasticsearchUrl      string
@@ -36,13 +37,15 @@ func main() {
 		requiredHeadersCommaSep string
 	)
 
+	port = os.Getenv("GOHAN_API_INTERNAL_PORT")
+
 	vcfPath = os.Getenv("GOHAN_API_VCF_PATH")
 
 	elasticsearchUrl = os.Getenv("GOHAN_ES_URL")
 	elasticsearchUsername = os.Getenv("GOHAN_ES_USERNAME")
 	elasticsearchPassword = os.Getenv("GOHAN_ES_PASSWORD")
 
-	drsUrl = os.Getenv("GOHAN_PUBLIC_DRS_URL")
+	drsUrl = os.Getenv("GOHAN_DRS_URL")
 	drsUsername = os.Getenv("GOHAN_DRS_BASIC_AUTH_USERNAME")
 	drsPassword = os.Getenv("GOHAN_DRS_BASIC_AUTH_PASSWORD")
 
@@ -51,25 +54,29 @@ func main() {
 	opaUrl = os.Getenv("GOHAN_PRIVATE_AUTHZ_URL")
 	requiredHeadersCommaSep = os.Getenv("GOHAN_AUTHZ_REQHEADS")
 
-	fmt.Printf(
-		"Using : \n\tVCF Directory Path : %s \n"+
-			"\tElasticsearch Url : %s \n"+
-			"\tElasticsearch Username : %s\n\n"+
+	fmt.Printf("Using : \n"+
+		"\tVCF Directory Path : %s \n"+
+		"\tElasticsearch Url : %s \n"+
+		"\tElasticsearch Username : %s\n\n"+
 
-			"\tDRS Url : %s\n"+
-			"\tDRS Username : %s\n\n"+
+		"\tDRS Url : %s\n"+
+		"\tDRS Username : %s\n\n"+
 
-			"\tAuthorization Enabled : %s\n"+
-			"\tOIDC Public JWKS Url : %s\n"+
-			"\tOPA Url : %s\n"+
-			"\tRequired HTTP Headers: %s\n",
+		"\tAuthorization Enabled : %s\n"+
+		"\tOIDC Public JWKS Url : %s\n"+
+		"\tOPA Url : %s\n"+
+		"\tRequired HTTP Headers: %s\n\n"+
+
+		"Running on Port : %s\n",
+
 		vcfPath,
 		elasticsearchUrl, elasticsearchUsername,
 		drsUrl, drsUsername,
 		isAuthorizationEnabled,
 		oidcPublicJwksUrl,
 		opaUrl,
-		strings.Split(requiredHeadersCommaSep, ","))
+		strings.Split(requiredHeadersCommaSep, ","),
+		port)
 
 	parsedBool, boolParseErr := strconv.ParseBool(isAuthorizationEnabled)
 	if boolParseErr != nil {
@@ -127,5 +134,5 @@ func main() {
 	e.GET("/variants/ingest", mvc.VariantsIngestTest)
 
 	// Run
-	e.Logger.Fatal(e.Start(":5000"))
+	e.Logger.Fatal(e.Start(":" + port))
 }

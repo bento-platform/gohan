@@ -8,12 +8,19 @@ services:
     #     extends:
     #         file: docker-compose.yaml
     #         service: api
-    api-alpine:
+    # api-alpine:
+    #     ports:
+    #         - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
+    #     extends:
+    #         file: docker-compose.yaml
+    #         service: api-alpine
+    api-go-alpine:
         ports:
             - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
         extends:
             file: docker-compose.yaml
             service: api-alpine
+
     ###
 
     elasticsearch:
