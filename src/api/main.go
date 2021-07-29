@@ -5,7 +5,6 @@ import (
 	"api/mvc"
 	"api/services"
 	"api/utils"
-	"flag"
 	"log"
 	"strconv"
 	"strings"
@@ -20,14 +19,6 @@ import (
 
 func main() {
 	// Gather environment variables
-	// TODO: use only flags instead?
-	port := os.Getenv("GOHAN_API_PORT")
-	if port == "" {
-		fmt.Println("Port unset - using default")
-		port = "5000"
-	}
-
-	// -- Gather flags (if any)
 	var (
 		vcfPath string
 
@@ -45,22 +36,20 @@ func main() {
 		requiredHeadersCommaSep string
 	)
 
-	flag.StringVar(&vcfPath, "vcfPath", "./vcfs", "VCF Path")
+	vcfPath = os.Getenv("GOHAN_API_VCF_PATH")
 
-	flag.StringVar(&elasticsearchUrl, "elasticsearchUrl", "https://elasticsearch.gohan.local", "Elasticsearch URL")
-	flag.StringVar(&elasticsearchUsername, "elasticsearchUsername", "elastic", "Elasticsearch Username")
-	flag.StringVar(&elasticsearchPassword, "elasticsearchPassword", "changeme!", "Elasticsearch Password")
+	elasticsearchUrl = os.Getenv("GOHAN_ES_URL")
+	elasticsearchUsername = os.Getenv("GOHAN_ES_USERNAME")
+	elasticsearchPassword = os.Getenv("GOHAN_ES_PASSWORD")
 
-	flag.StringVar(&drsUrl, "drsUrl", "https://drs.gohan.local", "DRS URL")
-	flag.StringVar(&drsUsername, "drsUsername", "drsadmin", "DRS Basic Auth Gateway Username")
-	flag.StringVar(&drsPassword, "drsPassword", "gohandrspassword123", "DRS Basic Auth Gateway Password")
+	drsUrl = os.Getenv("GOHAN_PUBLIC_DRS_URL")
+	drsUsername = os.Getenv("GOHAN_DRS_BASIC_AUTH_USERNAME")
+	drsPassword = os.Getenv("GOHAN_DRS_BASIC_AUTH_PASSWORD")
 
-	flag.StringVar(&isAuthorizationEnabled, "isAuthorizationEnabled", "true", "Authorization On/Off Toggle")
-	flag.StringVar(&oidcPublicJwksUrl, "oidcPublicJwksUrl", "http://localhost:8080/auth/realms/bento/protocol/openid-connect/certs", "OIDC Public JWKS URL")
-	flag.StringVar(&opaUrl, "opaUrl", "http://localhost:8181/v1/data/permissions/allowed", "OPA URL")
-	flag.StringVar(&requiredHeadersCommaSep, "requiredHeadersCommaSep", "X-AUTHN-TOKEN", "Required HTTP Headers")
-
-	flag.Parse()
+	isAuthorizationEnabled = os.Getenv("GOHAN_AUTHZ_ENABLED")
+	oidcPublicJwksUrl = os.Getenv("GOHAN_PUBLIC_AUTHN_JWKS_URL")
+	opaUrl = os.Getenv("GOHAN_PRIVATE_AUTHZ_URL")
+	requiredHeadersCommaSep = os.Getenv("GOHAN_AUTHZ_REQHEADS")
 
 	fmt.Printf(
 		"Using : \n\tVCF Directory Path : %s \n"+
@@ -138,5 +127,5 @@ func main() {
 	e.GET("/variants/ingest", mvc.VariantsIngestTest)
 
 	// Run
-	e.Logger.Fatal(e.Start(":" + port))
+	e.Logger.Fatal(e.Start(":5000"))
 }
