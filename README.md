@@ -8,8 +8,8 @@
 
 
 ## Prerequisites
-- .NET Core 3.1
-  - installation: https://dotnet.microsoft.com/download/dotnet-core/3.1
+- Golang >= 1.14.2
+  - installation: https://golang.org/doc/install
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
@@ -262,21 +262,21 @@ Generalized Response Body Structure
 <br />
 
 
-***/vcfs*** <br />
 Request
-> &nbsp;&nbsp;**GET** `/vcfs/get/by/sampleId`<br/>
+> &nbsp;&nbsp;**GET** `/variants/ingest`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(required)`
->   - lowerBound : **number**
->   - upperBound : **number**
->   - id : **string** `(a single sample ID alphanumeric code)`
->   - size : **number** `(maximum number of results per id)`
+>   - filename : **string** `(required)`
 
 <br/>
 
 Response
-
-*`- A VCF file -`*
+>```json  
+>{
+>     "status":  `number` ("Running" | "Done" | "Error"),
+>     "id": `string`,
+>     "message": `string`,
+> }
+> ```
 
 <br />
 <br />

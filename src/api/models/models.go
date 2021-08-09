@@ -1,5 +1,7 @@
 package models
 
+import "github.com/google/uuid"
+
 var VcfHeaders = []string{"chrom", "pos", "id", "ref", "alt", "qual", "filter", "info", "format"}
 
 type Variant struct {
@@ -38,4 +40,13 @@ type VariantsResponseDTO struct {
 	Status  int                        `json:"status"`
 	Message string                     `json:"message"`
 	Data    []VariantResponseDataModel `json:"data"`
+}
+
+type IngestRequest struct {
+	Id        uuid.UUID
+	Filename  string
+	State     string
+	Message   string
+	CreatedAt string
+	UpdatedAt string
 }

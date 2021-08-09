@@ -44,7 +44,6 @@ func MandateCalibratedBounds(next echo.HandlerFunc) echo.HandlerFunc {
 			(upperBoundPointer != nil && lowerBoundPointer != nil && upperBound < lowerBound) {
 			// if upper bound is less than the lower bound
 			return echo.NewHTTPError(http.StatusBadRequest, "Invalid lower and upper bounds!")
-
 		}
 
 		return next(c)

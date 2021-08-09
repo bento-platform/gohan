@@ -3,12 +3,14 @@ package main
 import (
 	"api/contexts"
 	gam "api/middleware"
+	"api/models"
 	"api/mvc"
 	"api/services"
 	"api/utils"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"fmt"
 	"net/http"
@@ -17,6 +19,9 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
+
+var ingestRequestChan = make(chan *models.IngestRequest)
+var ingestRequestMap = map[string]*models.IngestRequest{}
 
 func main() {
 	// Gather environment variables
@@ -107,11 +112,25 @@ func main() {
 		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
 	}))
 
+	// Temp
+	// spin up a listener for state updates
+	go func() {
+		for {
+			select {
+			case newRequest := <-ingestRequestChan:
+				fmt.Printf("Received new request for %s", newRequest.Filename)
+				newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
+				ingestRequestMap[newRequest.Id.String()] = newRequest
+			}
+		}
+	}()
+	// --
+
 	// -- Override handlers with "custom Gohan" context
 	//		to be able to provide variables and global singletons
 	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cc := &contexts.GohanContext{c, es, vcfPath, drsUrl, drsUsername, drsPassword}
+			cc := &contexts.GohanContext{c, es, vcfPath, drsUrl, drsUsername, drsPassword, ingestRequestChan}
 			return h(cc)
 		}
 	})
@@ -125,24 +144,32 @@ func main() {
 		return c.JSON(http.StatusOK, "Welcome to the next generation Gohan v2 API using Golang!")
 	})
 
+	e.GET("/requests", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, ingestRequestMap)
+	})
+
 	// -- Variants
-	e.GET("variants/get/by/variantId", mvc.VariantsGetByVariantId,
+	e.GET("/variants/get/by/variantId", mvc.VariantsGetByVariantId,
+		// middleware
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds)
-	e.GET("variants/get/by/sampleId", mvc.VariantsGetBySampleId,
+	e.GET("/variants/get/by/sampleId", mvc.VariantsGetBySampleId,
+		// middleware
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateSampleIdsPluralAttribute)
 
-	e.GET("variants/count/by/variantId", mvc.VariantsCountByVariantId,
+	e.GET("/variants/count/by/variantId", mvc.VariantsCountByVariantId,
+		// middleware
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds)
-	e.GET("variants/count/by/sampleId", mvc.VariantsCountBySampleId,
+	e.GET("/variants/count/by/sampleId", mvc.VariantsCountBySampleId,
+		// middleware
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateSampleIdsSingularAttribute)
 
-	e.GET("/variants/ingest", mvc.VariantsIngestTest)
+	e.GET("/variants/ingest", mvc.VariantsIngest)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + port))

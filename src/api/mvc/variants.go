@@ -20,6 +20,7 @@ import (
 	"api/utils"
 
 	"github.com/elastic/go-elasticsearch"
+	"github.com/google/uuid"
 
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
@@ -72,13 +73,14 @@ func VariantsCountBySampleId(c echo.Context) error {
 	return executeCountByIds(c, sampleIds, false)
 }
 
-func VariantsIngestTest(c echo.Context) error {
-	// Testing ES
+func VariantsIngest(c echo.Context) error {
 	es := c.(*contexts.GohanContext).Es7Client
 	vcfPath := c.(*contexts.GohanContext).VcfPath
 	drsUrl := c.(*contexts.GohanContext).DrsUrl
 	drsUsername := c.(*contexts.GohanContext).DrsUsername
 	drsPassword := c.(*contexts.GohanContext).DrsPassword
+
+	ingestRequestChannel := c.(*contexts.GohanContext).IngestRequestChannel
 
 	// retrieve query parameters (comman separated)
 	fileNames := strings.Split(c.QueryParam("fileNames"), ",")
@@ -140,25 +142,53 @@ func VariantsIngestTest(c echo.Context) error {
 	// of long-running process
 	for _, fileName := range fileNames {
 		go func(file string) {
+
+			newRequestState := &models.IngestRequest{
+				Id:        uuid.New(),
+				Filename:  file,
+				CreatedAt: fmt.Sprintf("%s", startTime),
+			}
+
+			newRequestState.State = "Running"
+			ingestRequestChannel <- newRequestState
+
 			// ---	 decompress vcf.gz
 			gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", file)
 			r, err := os.Open(gzippedFilePath)
 			if err != nil {
-				fmt.Printf("error opening %s: %s\n", file, err)
+				msg := fmt.Sprintf("error opening %s: %s\n", file, err)
+				fmt.Printf(msg)
+
+				newRequestState.State = "Error"
+				newRequestState.Message = msg
+				ingestRequestChannel <- newRequestState
+
 				return
 			}
 			defer r.Close()
 
 			vcfFilePath := services.ExtractVcfGz(gzippedFilePath, r, vcfTmpPath)
 			if vcfFilePath == "" {
-				fmt.Println("Something went wrong: filepath is empty for ", file)
+				msg := "Something went wrong: filepath is empty for " + file
+				fmt.Println(msg)
+
+				newRequestState.State = "Error"
+				newRequestState.Message = msg
+				ingestRequestChannel <- newRequestState
+
 				return
 			}
 
 			// ---   push compressed to DRS
 			drsFileId := services.UploadVcfGzToDrs(gzippedFilePath, r, drsUrl, drsUsername, drsPassword)
 			if drsFileId == "" {
-				fmt.Println("Something went wrong: DRS File Id is empty for ", file)
+				msg := "Something went wrong: DRS File Id is empty for " + file
+				fmt.Println(msg)
+
+				newRequestState.State = "Error"
+				newRequestState.Message = msg
+				ingestRequestChannel <- newRequestState
+
 				return
 			}
 
@@ -173,6 +203,10 @@ func VariantsIngestTest(c echo.Context) error {
 			//os.RemoveAll(vcfTmpPath)
 
 			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Now().Sub(startTime))
+
+			newRequestState.State = "Done"
+			ingestRequestChannel <- newRequestState
+
 		}(fileName)
 	}
 
