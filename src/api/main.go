@@ -2,6 +2,7 @@ package main
 
 import (
 	"api/contexts"
+	gam "api/middleware"
 	"api/mvc"
 	"api/services"
 	"api/utils"
@@ -125,11 +126,21 @@ func main() {
 	})
 
 	// -- Variants
-	e.GET("variants/get/by/variantId", mvc.VariantsGetByVariantId)
-	e.GET("variants/get/by/sampleId", mvc.VariantsGetBySampleId)
+	e.GET("variants/get/by/variantId", mvc.VariantsGetByVariantId,
+		gam.MandateChromosomeAttribute,
+		gam.MandateCalibratedBounds)
+	e.GET("variants/get/by/sampleId", mvc.VariantsGetBySampleId,
+		gam.MandateChromosomeAttribute,
+		gam.MandateCalibratedBounds,
+		gam.MandateSampleIdsPluralAttribute)
 
-	e.GET("variants/count/by/variantId", mvc.VariantsCountByVariantId)
-	e.GET("variants/count/by/sampleId", mvc.VariantsCountBySampleId)
+	e.GET("variants/count/by/variantId", mvc.VariantsCountByVariantId,
+		gam.MandateChromosomeAttribute,
+		gam.MandateCalibratedBounds)
+	e.GET("variants/count/by/sampleId", mvc.VariantsCountBySampleId,
+		gam.MandateChromosomeAttribute,
+		gam.MandateCalibratedBounds,
+		gam.MandateSampleIdsSingularAttribute)
 
 	e.GET("/variants/ingest", mvc.VariantsIngestTest)
 
