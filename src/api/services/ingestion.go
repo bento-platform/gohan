@@ -2,6 +2,7 @@ package services
 
 import (
 	"api/models"
+	"api/models/ingest"
 	"api/utils"
 	"bufio"
 	"bytes"
@@ -34,16 +35,16 @@ import (
 type (
 	IngestionService struct {
 		Initialized       bool
-		IngestRequestChan chan *models.IngestRequest
-		IngestRequestMap  map[string]*models.IngestRequest
+		IngestRequestChan chan *ingest.IngestRequest
+		IngestRequestMap  map[string]*ingest.IngestRequest
 	}
 )
 
 func NewIngestionService() *IngestionService {
 	iz := &IngestionService{
 		Initialized:       false,
-		IngestRequestChan: make(chan *models.IngestRequest),
-		IngestRequestMap:  map[string]*models.IngestRequest{},
+		IngestRequestChan: make(chan *ingest.IngestRequest),
+		IngestRequestMap:  map[string]*ingest.IngestRequest{},
 	}
 	iz.Init()
 
@@ -58,7 +59,7 @@ func (i *IngestionService) Init() {
 			for {
 				select {
 				case newRequest := <-i.IngestRequestChan:
-					if newRequest.State == "Queuing" {
+					if newRequest.State == ingest.Queued {
 						fmt.Printf("Received new request for %s", newRequest.Filename)
 					}
 
@@ -369,7 +370,7 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
 	for _, v := range i.IngestRequestMap {
-		if v.Filename == filename && (v.State == "Queuing" || v.State == "Running") {
+		if v.Filename == filename && (v.State == ingest.Queued || v.State == ingest.Running) {
 			return true
 		}
 	}

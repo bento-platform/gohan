@@ -15,6 +15,7 @@ import (
 
 	"api/contexts"
 	"api/models"
+	"api/models/ingest"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
 
@@ -136,37 +137,37 @@ func VariantsIngest(c echo.Context) error {
 	}
 
 	// ingest vcf
-	responseDtos := []models.IngestResponseDTO{}
+	responseDtos := []ingest.IngestResponseDTO{}
 	for _, fileName := range fileNames {
 
 		// check if there is an already exisiting ingestion request state
 		if ingestionService.FilenameAlreadyRunning(fileName) {
-			responseDtos = append(responseDtos, models.IngestResponseDTO{
+			responseDtos = append(responseDtos, ingest.IngestResponseDTO{
 				Filename: fileName,
-				State:    "Error",
+				State:    ingest.Error,
 				Message:  "File already being ingested..",
 			})
 			continue
 		}
 
 		// if not, execute
-		newRequestState := &models.IngestRequest{
+		newRequestState := &ingest.IngestRequest{
 			Id:        uuid.New(),
 			Filename:  fileName,
-			State:     "Queueing",
+			State:     ingest.Queued,
 			CreatedAt: fmt.Sprintf("%s", startTime),
 		}
 
-		responseDtos = append(responseDtos, models.IngestResponseDTO{
+		responseDtos = append(responseDtos, ingest.IngestResponseDTO{
 			Id:       newRequestState.Id,
 			Filename: newRequestState.Filename,
 			State:    newRequestState.State,
 			Message:  "Successfully queued..",
 		})
 
-		go func(file string, reqStat *models.IngestRequest) {
+		go func(file string, reqStat *ingest.IngestRequest) {
 
-			reqStat.State = "Running"
+			reqStat.State = ingest.Running
 			ingestionService.IngestRequestChan <- reqStat
 
 			// ---	 decompress vcf.gz
@@ -176,7 +177,7 @@ func VariantsIngest(c echo.Context) error {
 				msg := fmt.Sprintf("error opening %s: %s\n", file, err)
 				fmt.Printf(msg)
 
-				reqStat.State = "Error"
+				reqStat.State = ingest.Error
 				reqStat.Message = msg
 				ingestionService.IngestRequestChan <- reqStat
 
@@ -189,7 +190,7 @@ func VariantsIngest(c echo.Context) error {
 				msg := "Something went wrong: filepath is empty for " + file
 				fmt.Println(msg)
 
-				reqStat.State = "Error"
+				reqStat.State = ingest.Error
 				reqStat.Message = msg
 				ingestionService.IngestRequestChan <- reqStat
 
@@ -202,7 +203,7 @@ func VariantsIngest(c echo.Context) error {
 				msg := "Something went wrong: DRS File Id is empty for " + file
 				fmt.Println(msg)
 
-				reqStat.State = "Error"
+				reqStat.State = ingest.Error
 				reqStat.Message = msg
 				ingestionService.IngestRequestChan <- reqStat
 
@@ -221,7 +222,7 @@ func VariantsIngest(c echo.Context) error {
 
 			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Now().Sub(startTime))
 
-			reqStat.State = "Done"
+			reqStat.State = ingest.Done
 			ingestionService.IngestRequestChan <- reqStat
 
 		}(fileName, newRequestState)
@@ -234,7 +235,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 	izMap := c.(*contexts.GohanContext).IngestionService.IngestRequestMap
 
 	// transform map of it-to-ingestRequests to an array
-	m := make([]*models.IngestRequest, 0, len(izMap))
+	m := make([]*ingest.IngestRequest, 0, len(izMap))
 	for _, val := range izMap {
 		m = append(m, val)
 	}
