@@ -1,7 +1,5 @@
 package models
 
-import "github.com/google/uuid"
-
 var VcfHeaders = []string{"chrom", "pos", "id", "ref", "alt", "qual", "filter", "info", "format"}
 
 type Variant struct {
@@ -27,26 +25,4 @@ type Info struct {
 type Sample struct {
 	SampleId  string `json:"sampleId"`
 	Variation string `json:"variation"`
-}
-
-type VariantResponseDataModel struct {
-	VariantId string                   `json:"variantId"`
-	SampleId  string                   `json:"sampleId"`
-	Count     int                      `json:"count"`
-	Results   []map[string]interface{} `json:"results"` // []Variant
-}
-
-type VariantsResponseDTO struct {
-	Status  int                        `json:"status"`
-	Message string                     `json:"message"`
-	Data    []VariantResponseDataModel `json:"data"`
-}
-
-type IngestRequest struct {
-	Id        uuid.UUID
-	Filename  string
-	State     string
-	Message   string
-	CreatedAt string
-	UpdatedAt string
 }

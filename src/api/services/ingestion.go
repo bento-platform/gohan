@@ -31,7 +31,44 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-func ExtractVcfGz(gzippedFilePath string, gzipStream io.Reader, vcfTmpPath string) string {
+type (
+	IngestionService struct {
+		Initialized       bool
+		IngestRequestChan chan *models.IngestRequest
+		IngestRequestMap  map[string]*models.IngestRequest
+	}
+)
+
+func NewIngestionService() *IngestionService {
+	iz := &IngestionService{
+		Initialized:       false,
+		IngestRequestChan: make(chan *models.IngestRequest),
+		IngestRequestMap:  map[string]*models.IngestRequest{},
+	}
+	iz.Init()
+
+	return iz
+}
+
+func (i *IngestionService) Init() {
+	// safeguard to prevent multiple initilizations
+	if i.Initialized == false {
+		// spin up a listener for state updates
+		go func() {
+			for {
+				select {
+				case newRequest := <-i.IngestRequestChan:
+					fmt.Printf("Received new request for %s", newRequest.Filename)
+					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
+					i.IngestRequestMap[newRequest.Id.String()] = newRequest
+				}
+			}
+		}()
+		i.Initialized = true
+	}
+}
+
+func (i *IngestionService) ExtractVcfGz(gzippedFilePath string, gzipStream io.Reader, vcfTmpPath string) string {
 	uncompressedStream, err := gzip.NewReader(gzipStream)
 	if err != nil {
 		log.Fatal("ExtractTarGz: NewReader failed - ", err)
@@ -62,7 +99,7 @@ func ExtractVcfGz(gzippedFilePath string, gzipStream io.Reader, vcfTmpPath strin
 	return newVcfFilePath
 }
 
-func UploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File, drsUrl, drsUsername, drsPassword string) string {
+func (i *IngestionService) UploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File, drsUrl, drsUsername, drsPassword string) string {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	part, _ := writer.CreateFormFile("file", filepath.Base(gzipStream.Name()))
@@ -105,7 +142,7 @@ func UploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File, drsUrl, drsUs
 	return id
 }
 
-func ProcessVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) {
+func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) {
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
