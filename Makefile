@@ -28,79 +28,21 @@ init:
 run-all:
 	docker-compose -f docker-compose.yaml up -d --force-recreate
 
-run-gateway:
-	docker-compose -f docker-compose.yaml up -d --force-recreate gateway
-
-# run-api:
-# 	docker-compose -f docker-compose.yaml up -d --force-recreate api
-
-# run-api-alpine:
-# 	docker-compose -f docker-compose.yaml up -d --force-recreate api-alpine
-
-run-api-go-alpine:
-	docker-compose -f docker-compose.yaml up -d --force-recreate api-go-alpine
-
-run-elasticsearch:
-	docker-compose -f docker-compose.yaml up -d --force-recreate elasticsearch
-
-run-kibana:
-	docker-compose -f docker-compose.yaml up -d --force-recreate kibana
-
-run-drs:
-	docker-compose -f docker-compose.yaml up -d --force-recreate drs
-
-run-authz:
-	docker-compose -f docker-compose.yaml up -d --force-recreate authorization
-
-
-# DEV --
 run-dev-all:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate
 
-# run-dev-api:
-# 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api
+run-dev-%:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate $*
 
-# run-dev-api-alpine:
-# 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api-alpine
+run-%:
+	docker-compose -f docker-compose.yaml up -d --force-recreate $*
 
-run-dev-api-go-alpine:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api-go-alpine
-
-run-dev-elasticsearch:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate elasticsearch
-
-run-dev-kibana:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate kibana
-
-
-run-dev-drs:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate drs
-
-run-dev-authz:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate authorization
-# --
 
 
 # Build
 build-gateway: stop-gateway clean-gateway
 	echo "-- Building Gateway Container --"
 	docker-compose -f docker-compose.yaml build gateway
-
-# build-api: stop-api clean-api
-# 	echo "-- Building Api Binaries --"
-# 	cd Gohan.Api/;
-# 	dotnet clean; dotnet restore; dotnet publish -c Release --self-contained;
-# 	cd ..
-# 	echo "-- Building Api Container --"
-# 	docker-compose -f docker-compose.yaml build api
-
-# build-api-alpine: stop-api-alpine clean-api-alpine
-# 	echo "-- Building Api-Alpine Binaries --"
-# 	cd Gohan.Api/;
-# 	dotnet clean; dotnet restore; dotnet publish -c ReleaseAlpine --self-contained;
-# 	cd ..
-# 	echo "-- Building Api-Alpine Container --"
-# 	docker-compose -f docker-compose.yaml build api-alpine
 
 build-api-go-alpine-binaries:
 	@echo "-- Building Golang-Api-Alpine Binaries --"
@@ -132,23 +74,8 @@ build-authz: stop-authz clean-authz
 stop-all:
 	docker-compose -f docker-compose.yaml down
 
-stop-gateway:
-	docker-compose -f docker-compose.yaml stop gateway
-
-# stop-api:
-# 	docker-compose -f docker-compose.yaml stop api
-
-# stop-api-alpine:
-# 	docker-compose -f docker-compose.yaml stop api-alpine
-
-stop-api-go-alpine:
-	docker-compose -f docker-compose.yaml stop api-go-alpine
-
-stop-drs:
-	docker-compose -f docker-compose.yaml stop drs
-
-stop-authz:
-	docker-compose -f docker-compose.yaml stop authorization
+stop-%:
+	docker-compose -f docker-compose.yaml stop $*
 
 
 

@@ -1,19 +1,6 @@
 version: '2.4'
 
 services:
-    ### TODO: Deduplicate
-    # api:
-    #     ports:
-    #         - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
-    #     extends:
-    #         file: docker-compose.yaml
-    #         service: api
-    # api-alpine:
-    #     ports:
-    #         - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
-    #     extends:
-    #         file: docker-compose.yaml
-    #         service: api-alpine
     api-go-alpine:
         ports:
             - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
@@ -21,7 +8,6 @@ services:
             file: docker-compose.yaml
             service: api-go-alpine
 
-    ###
 
     elasticsearch:
         ports:
@@ -51,7 +37,6 @@ services:
         extends:
             file: docker-compose.yaml
             service: authorization
-
 
 
 networks: 
