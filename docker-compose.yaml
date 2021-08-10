@@ -117,7 +117,7 @@ services:
       - bridge-net
     environment:
       # API
-      - GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
+      - GOHAN_API_VCF_PATH=${GOHAN_API_CONTAINERIZED_VCF_PATH}
 
       # Elasticsearch
       - GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
@@ -134,6 +134,8 @@ services:
       - GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
       - GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
       - GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
+    volumes: 
+      - ${GOHAN_API_VCF_PATH}:${GOHAN_API_CONTAINERIZED_VCF_PATH}
 
 
   elasticsearch:

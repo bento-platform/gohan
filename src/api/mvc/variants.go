@@ -142,7 +142,7 @@ func VariantsIngest(c echo.Context) error {
 			responseDtos = append(responseDtos, models.IngestResponseDTO{
 				Filename: fileName,
 				State:    "Error",
-				Message:  "File currently being ingested already..",
+				Message:  "File already being ingested..",
 			})
 			continue
 		}
