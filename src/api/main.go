@@ -127,10 +127,6 @@ func main() {
 		return c.JSON(http.StatusOK, "Welcome to the next generation Gohan v2 API using Golang!")
 	})
 
-	e.GET("/requests", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, iz.IngestRequestMap)
-	})
-
 	// -- Variants
 	e.GET("/variants/get/by/variantId", mvc.VariantsGetByVariantId,
 		// middleware
@@ -152,7 +148,8 @@ func main() {
 		gam.MandateCalibratedBounds,
 		gam.MandateSampleIdsSingularAttribute)
 
-	e.GET("/variants/ingest", mvc.VariantsIngest)
+	e.GET("/variants/ingestion/run", mvc.VariantsIngest)
+	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + port))

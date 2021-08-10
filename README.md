@@ -119,7 +119,6 @@ make build-gateway
 make run-gateway
 ```
 
-
 <br />
 <br />
 
@@ -128,12 +127,30 @@ make run-gateway
 
 From the project root, run 
 ```
-dotnet clean
-dotnet restore
-dotnet build
+export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
+export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
 
-dotnet run --project Gohan.Api
+# Elasticsearch
+export GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
+export GOHAN_ES_USERNAME=${GOHAN_ES_USERNAME}
+export GOHAN_ES_PASSWORD=${GOHAN_ES_PASSWORD}
+
+# AuthX
+export GOHAN_AUTHZ_ENABLED=${GOHAN_API_AUTHZ_ENABLED}
+export GOHAN_PUBLIC_AUTHN_JWKS_URL=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
+export GOHAN_PRIVATE_AUTHZ_URL=${GOHAN_PRIVATE_AUTHZ_URL}
+export GOHAN_AUTHZ_REQHEADS=${GOHAN_API_AUTHZ_REQHEADS}
+
+# DRS
+export GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
+export GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
+export GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
+
+cd src/api
+
+go run .
 ```
+
 
 <b>Endpoints :</b>
 
@@ -263,7 +280,7 @@ Generalized Response Body Structure
 
 
 Request
-> &nbsp;&nbsp;**GET** `/variants/ingest`<br/>
+> &nbsp;&nbsp;**GET** `/variants/ingestion/run`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
 >   - filename : **string** `(required)`
 
@@ -272,8 +289,9 @@ Request
 Response
 >```json  
 >{
->     "status":  `number` ("Running" | "Done" | "Error"),
+>     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
 >     "id": `string`,
+>     "filename": `string`,
 >     "message": `string`,
 > }
 > ```
@@ -281,150 +299,59 @@ Response
 <br />
 <br />
 
-### **Console**
-
-*Purpose*: to ingest a set of VCFs into Elasticsearch and DRS.
-
-From the project root directory, copy your compressed VCFs `(*.vcf.gz)` to a directory local to the console project (*i.e. ./Gohan.Console/**vcfs***)
-
-**(Recommended):** If you first want to split a compressed VCF that contains multiple samples into individual VCF files that only contain one sample each, move that file into the above mentionned directory local to the console project, and then, from the project root, run
-
-
-```
-bash Gohan.Console/preprocess.sh Gohan.Console/vcfs/ORIGINAL.vcf.gz
-```
-
-> Note: preprocessing currently only works on **Linux** machines with **bash**
-
-otherwise, just run 
-```
-source .env
-
-dotnet clean
-dotnet restore
-dotnet build
-
-dotnet run --project Gohan.Console --vcfPath Gohan.Console/vcfs \
-  --elasticsearchUrl ${GOHAN_ES_PUBLIC_URL} \
-  --elasticsearchUsername ${GOHAN_ES_USERNAME} \
-  --elasticsearchPassword ${GOHAN_ES_PASSWORD} \
-  --drsUrl ${GOHAN_DRS_PUBLIC_URL} \
-  --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
-  --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
-  --documentBulkSizeLimit 10000
-
-```
-> Note: 
->
-> on **Windows** machines, the vcfPath forward slashes above have to be converted to two backslashes, i.e.
->
->     Gohan.Console\\vcfs
->
->
-> `--documentBulkSizeLimit` is an optional flag! Tune it as you see fit to minimize ingestion time (`10000` is the default)
-
-<br />
-<br />
 
 ## Releases
 
 ### **API :**
 Local Release: 
 
-&nbsp;First, from ***Gohan.Api/***, run 
+&nbsp;From the project root, run 
 
 ```
-dotnet clean
-dotnet restore
-```
-```
-dotnet publish -c Release --self-contained
+make build-api-go-alpine-binaries
 ```
 
 
 
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Gohan.Api* and executed with
-
+&nbsp;The binary can then be found at *bin/api_${GOOS}_${GOARCH}* and executed with
 
 ```
-export ElasticSearch__Username=${GOHAN_ES_USERNAME}
-export ElasticSearch__Password=${GOHAN_ES_PASSWORD}
-export ElasticSearch__GatewayPath=${GOHAN_ES_PUBLIC_GATEWAY_PATH}
-export ElasticSearch__PrimaryIndex=${GOHAN_ES_PASSWORD}
-export ElasticSearch__Protocol=${GOHAN_PUBLIC_PROTO}
-export ElasticSearch__Host=${GOHAN_PUBLIC_HOSTNAME}
-export ElasticSearch__Port=${GOHAN_PUBLIC_PORT}
+export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
+export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
 
-cd bin/Release/netcoreapp3.1/linux-x64/publish
+# Elasticsearch
+export GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
+export GOHAN_ES_USERNAME=${GOHAN_ES_USERNAME}
+export GOHAN_ES_PASSWORD=${GOHAN_ES_PASSWORD}
 
-./Gohan.Api --urls http://localhost:5000
+# AuthX
+export GOHAN_AUTHZ_ENABLED=${GOHAN_API_AUTHZ_ENABLED}
+export GOHAN_PUBLIC_AUTHN_JWKS_URL=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
+export GOHAN_PRIVATE_AUTHZ_URL=${GOHAN_PRIVATE_AUTHZ_URL}
+export GOHAN_AUTHZ_REQHEADS=${GOHAN_API_AUTHZ_REQHEADS}
+
+# DRS
+export GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
+export GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
+export GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
+
+cd bin/
+
+./api_${GOOS}_${GOARCH}
 ```
+
 <br />
 
 Containerized Alpine Release: 
 
-&nbsp; If all is well with the `Release`, from ***Gohan.Api/***, run 
-
-```
-dotnet publish -c ReleaseAlpine --self-contained
-```
-
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Gohan.Api*
-
 &nbsp;When ready, build the `docker image` and spawn the `container` by running
 
 ```
-make run-api
-```
-or
-```
-make run-api-alpine
+make build-api-go-alpine-container
+make run-api-go-alpine
 ```
 
 &nbsp;and the `docker-compose.yaml` file will handle the configuration.
-
-<br />
-
-### **Console :**
-Local Release: 
-
-&nbsp;From ***Gohan.Console/***, run 
-```
-dotnet clean
-dotnet restore
-```
-```
-dotnet publish -c Release --self-contained
-```
-
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Gohan.Console* and executed with
-
-```
-source ../.env
- 
-cd bin/Release/netcoreapp3.1/linux-x64/publish
-
-./Gohan.Console --vcfPath Gohan.Console/vcfs \
-  --elasticsearchUrl ${GOHAN_ES_PUBLIC_URL} \
-  --elasticsearchUsername ${GOHAN_ES_USERNAME} \
-  --elasticsearchPassword ${GOHAN_ES_PASSWORD} \
-  --drsUrl ${GOHAN_DRS_PUBLIC_URL} \
-  --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
-  --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
-  --documentBulkSizeLimit 10000
-
-```
-
-Local Alpine Release: 
-```
-dotnet publish -c ReleaseAlpine --self-contained
-```
-
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Gohan.Console*
-
-> **Note:** this method is not recommended unless you are running your host machine on Alpine Linux. Unlike the **API** (seen below), this binary has no utility in being containerized. If you need to use this, run the same commands as you would with just a `Release` above but with `ReleaseAlpine` instead
-
-<br />
 
 <br />
 <br />
@@ -436,8 +363,9 @@ dotnet publish -c ReleaseAlpine --self-contained
 All in all, run 
 ```
 make run-elasticsearch 
+make run-drs
 make build-gateway && make run-gateway 
-make build-api && make run-api
+make build-api-go-alpine && make run-api-go-alpine
 
 # and optionally
 make run-kibana
