@@ -369,7 +369,7 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
 	for _, v := range i.IngestRequestMap {
-		if v.Filename == filename && v.State == "Running" {
+		if v.Filename == filename && (v.State == "Queuing" || v.State == "Running") {
 			return true
 		}
 	}

@@ -10,6 +10,8 @@
 ## Prerequisites
 - Golang >= 1.14.2
   - installation: https://golang.org/doc/install
+- UPX
+  - docs: https://github.com/upx/upx
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
@@ -288,12 +290,36 @@ Request
 
 Response
 >```json  
->{
+> {
 >     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
 >     "id": `string`,
 >     "filename": `string`,
 >     "message": `string`,
 > }
+> ```
+
+<br />
+<br />
+
+Request
+> &nbsp;&nbsp;**GET** `/variants/ingestion/requests`<br/>
+> &nbsp;&nbsp;&nbsp;params: `none`
+
+<br/>
+
+Response
+>```json  
+> [
+>   {
+>     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
+>     "id": `string`,
+>     "filename": `string`,
+>     "message": `string`,
+>     "createdAt": `timestamp string`,
+>     "updatedAt": `timestamp string`
+>   },
+>   ...
+> ]
 > ```
 
 <br />
