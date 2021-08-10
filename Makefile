@@ -102,7 +102,7 @@ build-gateway: stop-gateway clean-gateway
 # 	echo "-- Building Api-Alpine Container --"
 # 	docker-compose -f docker-compose.yaml build api-alpine
 
-build-api-go-alpine: stop-api-go-alpine clean-api-go-alpine
+build-api-go-alpine-binaries:
 	@echo "-- Building Golang-Api-Alpine Binaries --"
 	
 	cd src/api && \
@@ -110,8 +110,10 @@ build-api-go-alpine: stop-api-go-alpine clean-api-go-alpine
 	\
 	go build -ldflags="-s -w" -o ../../bin/api_${GOOS}_${GOARCH} && \
 	\
-	cd ../.. 
+	cd ../.. && \
+	upx --brute bin/api_${GOOS}_${GOARCH}
 
+build-api-go-alpine-container: stop-api-go-alpine clean-api-go-alpine build-api-go-alpine-binaries
 	@echo "-- Building Golang-Api-Alpine Container --"
 	cp bin/api_${GOOS}_${GOARCH} src/api
 	docker-compose -f docker-compose.yaml build api-go-alpine

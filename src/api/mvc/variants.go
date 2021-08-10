@@ -134,19 +134,38 @@ func VariantsIngest(c echo.Context) error {
 	}
 
 	// ingest vcf
-	// TODO: create long-polling for status check
-	// of long-running process
+	responseDtos := []models.IngestResponseDTO{}
 	for _, fileName := range fileNames {
-		go func(file string) {
 
-			newRequestState := &models.IngestRequest{
-				Id:        uuid.New(),
-				Filename:  file,
-				CreatedAt: fmt.Sprintf("%s", startTime),
-			}
+		// check if there is an already exisiting ingestion request state
+		if ingestionService.FilenameAlreadyRunning(fileName) {
+			responseDtos = append(responseDtos, models.IngestResponseDTO{
+				Filename: fileName,
+				State:    "Error",
+				Message:  "File currently being ingested already..",
+			})
+			continue
+		}
 
-			newRequestState.State = "Running"
-			ingestionService.IngestRequestChan <- newRequestState
+		// if not, execute
+		newRequestState := &models.IngestRequest{
+			Id:        uuid.New(),
+			Filename:  fileName,
+			State:     "Queueing",
+			CreatedAt: fmt.Sprintf("%s", startTime),
+		}
+
+		responseDtos = append(responseDtos, models.IngestResponseDTO{
+			Id:       newRequestState.Id,
+			Filename: newRequestState.Filename,
+			State:    newRequestState.State,
+			Message:  "Successfully queued..",
+		})
+
+		go func(file string, reqStat *models.IngestRequest) {
+
+			reqStat.State = "Running"
+			ingestionService.IngestRequestChan <- reqStat
 
 			// ---	 decompress vcf.gz
 			gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", file)
@@ -155,9 +174,9 @@ func VariantsIngest(c echo.Context) error {
 				msg := fmt.Sprintf("error opening %s: %s\n", file, err)
 				fmt.Printf(msg)
 
-				newRequestState.State = "Error"
-				newRequestState.Message = msg
-				ingestionService.IngestRequestChan <- newRequestState
+				reqStat.State = "Error"
+				reqStat.Message = msg
+				ingestionService.IngestRequestChan <- reqStat
 
 				return
 			}
@@ -168,9 +187,9 @@ func VariantsIngest(c echo.Context) error {
 				msg := "Something went wrong: filepath is empty for " + file
 				fmt.Println(msg)
 
-				newRequestState.State = "Error"
-				newRequestState.Message = msg
-				ingestionService.IngestRequestChan <- newRequestState
+				reqStat.State = "Error"
+				reqStat.Message = msg
+				ingestionService.IngestRequestChan <- reqStat
 
 				return
 			}
@@ -181,9 +200,9 @@ func VariantsIngest(c echo.Context) error {
 				msg := "Something went wrong: DRS File Id is empty for " + file
 				fmt.Println(msg)
 
-				newRequestState.State = "Error"
-				newRequestState.Message = msg
-				ingestionService.IngestRequestChan <- newRequestState
+				reqStat.State = "Error"
+				reqStat.Message = msg
+				ingestionService.IngestRequestChan <- reqStat
 
 				return
 			}
@@ -200,14 +219,24 @@ func VariantsIngest(c echo.Context) error {
 
 			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Now().Sub(startTime))
 
-			newRequestState.State = "Done"
-			ingestionService.IngestRequestChan <- newRequestState
+			reqStat.State = "Done"
+			ingestionService.IngestRequestChan <- reqStat
 
-		}(fileName)
+		}(fileName, newRequestState)
 	}
 
-	// TODO: create a standard response object
-	return c.JSON(http.StatusOK, "{\"ingest\" : \"Done! Maybe it succeeded, maybe it failed.. Check the debug logs!\"}")
+	return c.JSON(http.StatusOK, responseDtos)
+}
+
+func GetAllVariantIngestionRequests(c echo.Context) error {
+	izMap := c.(*contexts.GohanContext).IngestionService.IngestRequestMap
+
+	// transform map of it-to-ingestRequests to an array
+	m := make([]*models.IngestRequest, 0, len(izMap))
+	for _, val := range izMap {
+		m = append(m, val)
+	}
+	return c.JSON(http.StatusOK, m)
 }
 
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {

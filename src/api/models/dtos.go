@@ -23,3 +23,10 @@ type IngestRequest struct {
 	CreatedAt string    `json:"createdAt"`
 	UpdatedAt string    `json:"updatedAt"`
 }
+
+type IngestResponseDTO struct {
+	Id       uuid.UUID `json:"id"`
+	Filename string    `json:"filename"`
+	State    string    `json:"state"`
+	Message  string    `json:"message"`
+}

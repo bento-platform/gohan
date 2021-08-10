@@ -58,7 +58,10 @@ func (i *IngestionService) Init() {
 			for {
 				select {
 				case newRequest := <-i.IngestRequestChan:
-					fmt.Printf("Received new request for %s", newRequest.Filename)
+					if newRequest.State == "Queuing" {
+						fmt.Printf("Received new request for %s", newRequest.Filename)
+					}
+
 					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
 					i.IngestRequestMap[newRequest.Id.String()] = newRequest
 				}
@@ -362,4 +365,13 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
+	for _, v := range i.IngestRequestMap {
+		if v.Filename == filename && v.State == "Running" {
+			return true
+		}
+	}
+	return false
 }
