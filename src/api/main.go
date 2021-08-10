@@ -3,14 +3,12 @@ package main
 import (
 	"api/contexts"
 	gam "api/middleware"
-	"api/models"
 	"api/mvc"
 	"api/services"
 	"api/utils"
 	"log"
 	"strconv"
 	"strings"
-	"time"
 
 	"fmt"
 	"net/http"
@@ -19,9 +17,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
-
-var ingestRequestChan = make(chan *models.IngestRequest)
-var ingestRequestMap = map[string]*models.IngestRequest{}
 
 func main() {
 	// Gather environment variables
@@ -105,6 +100,8 @@ func main() {
 		oidcPublicJwksUrl, opaUrl,
 		strings.Split(requiredHeadersCommaSep, ","))
 
+	iz := services.NewIngestionService()
+
 	// Configure Server
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -112,25 +109,11 @@ func main() {
 		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
 	}))
 
-	// Temp
-	// spin up a listener for state updates
-	go func() {
-		for {
-			select {
-			case newRequest := <-ingestRequestChan:
-				fmt.Printf("Received new request for %s", newRequest.Filename)
-				newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
-				ingestRequestMap[newRequest.Id.String()] = newRequest
-			}
-		}
-	}()
-	// --
-
 	// -- Override handlers with "custom Gohan" context
 	//		to be able to provide variables and global singletons
 	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cc := &contexts.GohanContext{c, es, vcfPath, drsUrl, drsUsername, drsPassword, ingestRequestChan}
+			cc := &contexts.GohanContext{c, es, vcfPath, drsUrl, drsUsername, drsPassword, *iz}
 			return h(cc)
 		}
 	})
@@ -145,7 +128,7 @@ func main() {
 	})
 
 	e.GET("/requests", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, ingestRequestMap)
+		return c.JSON(http.StatusOK, iz.IngestRequestMap)
 	})
 
 	// -- Variants

@@ -19,7 +19,7 @@ services:
             - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
         extends:
             file: docker-compose.yaml
-            service: api-alpine
+            service: api-go-alpine
 
     ###
 

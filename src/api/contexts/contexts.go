@@ -1,7 +1,7 @@
 package contexts
 
 import (
-	"api/models"
+	"api/services"
 
 	es7 "github.com/elastic/go-elasticsearch"
 	"github.com/labstack/echo"
@@ -12,11 +12,11 @@ type (
 	//  an elasticsearch client and other variables
 	GohanContext struct {
 		echo.Context
-		Es7Client            *es7.Client
-		VcfPath              string
-		DrsUrl               string
-		DrsUsername          string
-		DrsPassword          string
-		IngestRequestChannel chan *models.IngestRequest
+		Es7Client        *es7.Client
+		VcfPath          string
+		DrsUrl           string
+		DrsUsername      string
+		DrsPassword      string
+		IngestionService services.IngestionService
 	}
 )
