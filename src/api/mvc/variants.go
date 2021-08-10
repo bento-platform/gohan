@@ -48,25 +48,27 @@ func VariantsGetBySampleId(c echo.Context) error {
 }
 
 func VariantsCountByVariantId(c echo.Context) error {
-	// retrieve variant Ids from query parameter (comma separated)
-	variantIds := strings.Split(c.QueryParam("ids"), ",")
-	if len(variantIds[0]) == 0 {
-		// if no ids were provided, assume "wildcard" search
-		variantIds = []string{"*"}
+	// retrieve single variant id from query parameter and map to a list
+	// to conform to function signature
+	singleVariantIdSlice := []string{c.QueryParam("id")}
+	if len(singleVariantIdSlice[0]) == 0 {
+		// if no id was provided, assume "wildcard" search
+		singleVariantIdSlice = []string{"*"}
 	}
 
-	return executeCountByIds(c, variantIds, true)
+	return executeCountByIds(c, singleVariantIdSlice, true)
 }
 
 func VariantsCountBySampleId(c echo.Context) error {
-	// retrieve sample Ids from query parameter (comma separated)
-	sampleIds := strings.Split(c.QueryParam("ids"), ",")
-	if len(sampleIds[0]) == 0 {
-		// if no ids were provided, assume "wildcard" search
-		sampleIds = []string{"*"}
+	// retrieve single sample id from query parameter and map to a list
+	// to conform to function signature
+	singleSampleIdSlice := []string{c.QueryParam("id")}
+	if len(singleSampleIdSlice[0]) == 0 {
+		// if no id was provided, assume "wildcard" search
+		singleSampleIdSlice = []string{"*"}
 	}
 
-	return executeCountByIds(c, sampleIds, false)
+	return executeCountByIds(c, singleSampleIdSlice, false)
 }
 
 func VariantsIngest(c echo.Context) error {
