@@ -15,93 +15,7 @@ services:
       - bridge-net
     ports:
       - "80:80"
-      - "443:443"
-
-  # DUPLICATES - almost
-  # api:
-  #   build:
-  #     context: $PWD/Gohan.Api
-  #     args:
-  #       BASE_IMAGE: ${GOHAN_API_BASE_IMAGE}
-  #       SRC_DIR: ${GOHAN_API_SRC_DIR}
-  #       INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT}
-  #   image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
-  #   container_name: ${GOHAN_API_CONTAINER_NAME}
-  #   networks:
-  #     - bridge-net
-  #   environment:
-  #     # Elasticsearch
-  #     - ElasticSearch__Username=${GOHAN_ES_USERNAME}
-  #     - ElasticSearch__Password=${GOHAN_ES_PASSWORD}
-
-  #     - ElasticSearch__GatewayPath=${GOHAN_ES_GATEWAY_PATH}
-
-  #     - ElasticSearch__PrimaryIndex=${GOHAN_API_ES_PI}
-  #     - ElasticSearch__Protocol=${GOHAN_API_ES_PROTO}
-  #     - ElasticSearch__Host=${GOHAN_API_ES_HOST}
-  #     - ElasticSearch__Port=${GOHAN_API_ES_PORT}
-
-
-  #     # AuthX
-  #     - Authorization__IsEnabled=${GOHAN_API_AUTHZ_ENABLED}
-  #     - Authorization__AgreedToDisabledAuthzRiskTerms=${GOHAN_API_AUTHZ_AGREED_DISABLED_RISK}
-  #     - Authorization__OpaUrl=${GOHAN_PRIVATE_AUTHZ_URL}
-  #     - Authorization__RequiredHeadersCommaSep=${GOHAN_API_AUTHZ_REQHEADS}
-
-  #     - Authentication__OidcPublicJwksUrl=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
-      
-
-  #     # DRS
-  #     - Drs__PrivateUrl=${GOHAN_PRIVATE_DRS_URL}
-
-
-  #     # .NET
-  #     - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
-  #     - DOTNET_CLI_TELEMETRY_OPTOUT=1
-
-  # DUPLICATES - almost
-  # api-alpine:
-  #   build:
-  #     context: $PWD/Gohan.Api
-  #     args:
-  #       BASE_IMAGE: ${GOHAN_API_ALPINE_BASE_IMAGE}
-  #       SRC_DIR: ${GOHAN_API_ALPINE_SRC_DIR}
-  #       INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT}
-  #       IS_ALPINE: "true"
-  #   image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
-  #   container_name: ${GOHAN_API_CONTAINER_NAME}
-  #   networks:
-  #     - bridge-net
-  #   environment:
-  #     # Elasticsearch
-  #     - ElasticSearch__Username=${GOHAN_ES_USERNAME}
-  #     - ElasticSearch__Password=${GOHAN_ES_PASSWORD}
-
-  #     - ElasticSearch__GatewayPath=${GOHAN_ES_GATEWAY_PATH}
-
-  #     - ElasticSearch__PrimaryIndex=${GOHAN_API_ES_PI}
-  #     - ElasticSearch__Protocol=${GOHAN_API_ES_PROTO}
-  #     - ElasticSearch__Host=${GOHAN_API_ES_HOST}
-  #     - ElasticSearch__Port=${GOHAN_API_ES_PORT}
-
-
-  #     # AuthX
-  #     - Authorization__IsEnabled=${GOHAN_API_AUTHZ_ENABLED}
-  #     - Authorization__AgreedToDisabledAuthzRiskTerms=${GOHAN_API_AUTHZ_AGREED_DISABLED_RISK}
-  #     - Authorization__OpaUrl=${GOHAN_PRIVATE_AUTHZ_URL}
-  #     - Authorization__RequiredHeadersCommaSep=${GOHAN_API_AUTHZ_REQHEADS}
-
-  #     - Authentication__OidcPublicJwksUrl=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
-      
-
-  #     # DRS
-  #     - Drs__PrivateUrl=${GOHAN_PRIVATE_DRS_URL}
-
-
-  #     # .NET
-  #     - DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # optimized alpine linux container needs this
-  #     - DOTNET_CLI_TELEMETRY_OPTOUT=1
-  
+      - "443:443"  
 
   api-go-alpine:
     build:
@@ -137,7 +51,6 @@ services:
     volumes: 
       - ${GOHAN_API_VCF_PATH}:${GOHAN_API_CONTAINERIZED_VCF_PATH}
 
-
   elasticsearch:
     image: ${GOHAN_ES_BASE_IMAGE}:${GOHAN_ES_BASE_VERSION}
     mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
@@ -154,8 +67,6 @@ services:
       - discovery.type=${GOHAN_ES_DISC_TYP}
     volumes: 
       - ${GOHAN_ES_DATA_DIR}:/usr/share/elasticsearch/data
-  ####
-
 
   kibana:
     image: ${GOHAN_KB_BASE_IMAGE}:${GOHAN_KB_BASE_VERSION}
@@ -188,7 +99,6 @@ services:
       - bridge-net
     volumes:
       - ${GOHAN_DRS_DATA_DIR}:/drs/chord_drs/data
-
 
   authorization:
     build:
