@@ -8,7 +8,7 @@
 
 
 ## Prerequisites
-- Golang >= 1.14.2
+- Golang >= 1.15.5
   - installation: https://golang.org/doc/install
 - UPX
   - docs: https://github.com/upx/upx
@@ -402,7 +402,7 @@ For other handy tools, see the Makefile. Among those already mentionned here, yo
 
 ## Tests :
 
-Once `elasticsearch`, the `api`, and the `gateway` are up, run 
+Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run 
 ```
 make test-api-dev
 ```

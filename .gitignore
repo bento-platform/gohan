@@ -31,6 +31,7 @@ authorization/*.policy.rego
 
 # temp test file
 Gohan.Tests/appsettings.test.json
+src/tests/common/test.config.yml
 
 # executables
 */Gohan.Console
