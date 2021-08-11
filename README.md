@@ -160,7 +160,7 @@ go run .
 Requests
 > &nbsp;&nbsp;**GET** `/variants/get/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
+>   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele ( "A" | "C" | "G" | "T"  or some combination thereof)`
@@ -172,7 +172,7 @@ Requests
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
+>   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -181,7 +181,7 @@ Requests
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
+>   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -193,16 +193,13 @@ Requests
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
+>   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >
-> &nbsp;&nbsp;**GET** `/variants/remove/sampleId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - id : **string** `(a single sample ID alphanumeric code)`
 
 <br />
 

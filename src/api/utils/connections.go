@@ -1,24 +1,25 @@
 package utils
 
 import (
+	"api/models"
+
 	"fmt"
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/elastic/go-elasticsearch"
 	es7 "github.com/elastic/go-elasticsearch"
 )
 
-func CreateEsConnection(elasticsearchUrl string, elasticsearchUsername string, elasticsearchPassword string) *es7.Client {
+func CreateEsConnection(cfg *models.Config) *es7.Client {
 	var (
-		clusterURLs  = []string{elasticsearchUrl} // TODO: Add more URLs if necessary
+		clusterURLs  = []string{cfg.Elasticsearch.Url} // TODO: Add more URLs if necessary
 		retryBackoff = backoff.NewExponentialBackOff()
 	)
 
-	cfg := elasticsearch.Config{
+	esCfg := es7.Config{
 		Addresses: clusterURLs,
-		Username:  elasticsearchUsername,
-		Password:  elasticsearchPassword,
+		Username:  cfg.Elasticsearch.Username,
+		Password:  cfg.Elasticsearch.Password,
 
 		RetryOnStatus: []int{502, 503, 504, 429},
 
@@ -36,7 +37,7 @@ func CreateEsConnection(elasticsearchUrl string, elasticsearchUsername string, e
 		MaxRetries: 5,
 	}
 
-	es7Client, _ := es7.NewClient(cfg)
+	es7Client, _ := es7.NewClient(esCfg)
 
 	fmt.Printf("Using ES7 Client Version %s", es7.Version)
 

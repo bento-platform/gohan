@@ -1,12 +1,14 @@
 package services
 
 import (
+	"api/models"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo"
 )
@@ -23,12 +25,12 @@ type (
 	}
 )
 
-func NewAuthzService(_isEnabled bool, _oidcJwksUrl string, _opaUrl string, _requiredHeaders []string) *AuthzService {
+func NewAuthzService(cfg *models.Config) *AuthzService {
 	return &AuthzService{
-		isEnabled:       _isEnabled,
-		oidcJwksUrl:     _oidcJwksUrl,
-		opaUrl:          _opaUrl,
-		requiredHeaders: _requiredHeaders,
+		isEnabled:       cfg.AuthX.IsAuthorizationEnabled,
+		oidcJwksUrl:     cfg.AuthX.OidcPublicJwksUrl,
+		opaUrl:          cfg.AuthX.OpaUrl,
+		requiredHeaders: strings.Split(cfg.AuthX.RequiredHeadersCommaSep, ","),
 	}
 }
 

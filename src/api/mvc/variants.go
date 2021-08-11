@@ -74,10 +74,12 @@ func VariantsCountBySampleId(c echo.Context) error {
 
 func VariantsIngest(c echo.Context) error {
 	es := c.(*contexts.GohanContext).Es7Client
-	vcfPath := c.(*contexts.GohanContext).VcfPath
-	drsUrl := c.(*contexts.GohanContext).DrsUrl
-	drsUsername := c.(*contexts.GohanContext).DrsUsername
-	drsPassword := c.(*contexts.GohanContext).DrsPassword
+
+	cfg := c.(*contexts.GohanContext).Config
+	vcfPath := cfg.Api.VcfPath
+	drsUrl := cfg.Drs.Url
+	drsUsername := cfg.Drs.Username
+	drsPassword := cfg.Drs.Password
 
 	ingestionService := c.(*contexts.GohanContext).IngestionService
 

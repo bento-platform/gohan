@@ -1,6 +1,7 @@
 package contexts
 
 import (
+	"api/models"
 	"api/services"
 
 	es7 "github.com/elastic/go-elasticsearch"
@@ -13,10 +14,7 @@ type (
 	GohanContext struct {
 		echo.Context
 		Es7Client        *es7.Client
-		VcfPath          string
-		DrsUrl           string
-		DrsUsername      string
-		DrsPassword      string
+		Config           *models.Config
 		IngestionService services.IngestionService
 	}
 )
