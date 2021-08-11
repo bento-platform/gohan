@@ -122,18 +122,20 @@ clean-drs-data:
 
 ## Tests
 test-api-dev: prepare-test-config
-	# Run the tests
-	dotnet test -c Debug Gohan.Tests/Gohan.Tests.csproj
+	@# Run the tests
+	@# dotnet test -c Debug Gohan.Tests/Gohan.Tests.csproj
+	go test tests/integration/...
 
 # test-api-release:
 # 	dotnet test -c Release Gohan.Tests/Gohan.Tests.csproj
 
 prepare-test-config:
-	# Prepare environment variables dynamically via a JSON file 
-	# since xUnit doens't support loading env variables natively
-	# (see `./Gohan.Tests/IntegrationTestFixture.cs`)
-	envsubst < ./etc/appsettings.test.json.tpl > ./Gohan.Tests/appsettings.test.json
+	@# Prepare environment variables dynamically via a JSON file 
+	@# since xUnit doens't support loading env variables natively
+	@# (see `./Gohan.Tests/IntegrationTestFixture.cs`)
+	@# envsubst < ./etc/appsettings.test.json.tpl > ./Gohan.Tests/appsettings.test.json
+	envsubst < ./etc/test.config.yml.tpl > ./src/tests/common/test.config.yml
 
 clean-tests:
-	# Clean up
+	@# Clean up
 	rm ./Gohan.Tests/appsettings.test.json
