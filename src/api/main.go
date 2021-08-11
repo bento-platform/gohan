@@ -3,57 +3,29 @@ package main
 import (
 	"api/contexts"
 	gam "api/middleware"
+	"api/models"
 	"api/mvc"
 	"api/services"
 	"api/utils"
-	"log"
-	"strconv"
 	"strings"
 
 	"fmt"
 	"net/http"
 	"os"
 
+	"github.com/kelseyhightower/envconfig"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
 
 func main() {
 	// Gather environment variables
-	var (
-		port    string
-		vcfPath string
-
-		elasticsearchUrl      string
-		elasticsearchUsername string
-		elasticsearchPassword string
-
-		drsUrl      string
-		drsUsername string
-		drsPassword string
-
-		isAuthorizationEnabled  string
-		oidcPublicJwksUrl       string
-		opaUrl                  string
-		requiredHeadersCommaSep string
-	)
-
-	port = os.Getenv("GOHAN_API_INTERNAL_PORT")
-
-	vcfPath = os.Getenv("GOHAN_API_VCF_PATH")
-
-	elasticsearchUrl = os.Getenv("GOHAN_ES_URL")
-	elasticsearchUsername = os.Getenv("GOHAN_ES_USERNAME")
-	elasticsearchPassword = os.Getenv("GOHAN_ES_PASSWORD")
-
-	drsUrl = os.Getenv("GOHAN_DRS_URL")
-	drsUsername = os.Getenv("GOHAN_DRS_BASIC_AUTH_USERNAME")
-	drsPassword = os.Getenv("GOHAN_DRS_BASIC_AUTH_PASSWORD")
-
-	isAuthorizationEnabled = os.Getenv("GOHAN_AUTHZ_ENABLED")
-	oidcPublicJwksUrl = os.Getenv("GOHAN_PUBLIC_AUTHN_JWKS_URL")
-	opaUrl = os.Getenv("GOHAN_PRIVATE_AUTHZ_URL")
-	requiredHeadersCommaSep = os.Getenv("GOHAN_AUTHZ_REQHEADS")
+	var cfg models.Config
+	err := envconfig.Process("", &cfg)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(2)
+	}
 
 	fmt.Printf("Using : \n"+
 		"\tVCF Directory Path : %s \n"+
@@ -63,26 +35,21 @@ func main() {
 		"\tDRS Url : %s\n"+
 		"\tDRS Username : %s\n\n"+
 
-		"\tAuthorization Enabled : %s\n"+
+		"\tAuthorization Enabled : %b\n"+
 		"\tOIDC Public JWKS Url : %s\n"+
 		"\tOPA Url : %s\n"+
 		"\tRequired HTTP Headers: %s\n\n"+
 
 		"Running on Port : %s\n",
 
-		vcfPath,
-		elasticsearchUrl, elasticsearchUsername,
-		drsUrl, drsUsername,
-		isAuthorizationEnabled,
-		oidcPublicJwksUrl,
-		opaUrl,
-		strings.Split(requiredHeadersCommaSep, ","),
-		port)
-
-	parsedBool, boolParseErr := strconv.ParseBool(isAuthorizationEnabled)
-	if boolParseErr != nil {
-		log.Fatalf("Could not parse 'isAuthorizationEnabled' \"%s\" as true or false", isAuthorizationEnabled)
-	}
+		cfg.Api.VcfPath,
+		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,
+		cfg.Drs.Url, cfg.Drs.Username,
+		cfg.AuthX.IsAuthorizationEnabled,
+		cfg.AuthX.OidcPublicJwksUrl,
+		cfg.AuthX.OpaUrl,
+		strings.Split(cfg.AuthX.RequiredHeadersCommaSep, ","),
+		cfg.Api.Port)
 	// --
 
 	// Instantiate Server
@@ -90,16 +57,13 @@ func main() {
 
 	// Service Connections:
 	// -- Elasticsearch
-	es := utils.CreateEsConnection(elasticsearchUrl, elasticsearchUsername, elasticsearchPassword)
+	es := utils.CreateEsConnection(&cfg)
 	// -- TODO: DRS ?
 	// 		(or perhaps just create an http client with credentials when necessary
 	//		rather than have one global http client ?)
 
 	// Service Singletons
-	az := services.NewAuthzService(bool(parsedBool),
-		oidcPublicJwksUrl, opaUrl,
-		strings.Split(requiredHeadersCommaSep, ","))
-
+	az := services.NewAuthzService(&cfg)
 	iz := services.NewIngestionService()
 
 	// Configure Server
@@ -113,7 +77,7 @@ func main() {
 	//		to be able to provide variables and global singletons
 	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cc := &contexts.GohanContext{c, es, vcfPath, drsUrl, drsUsername, drsPassword, *iz}
+			cc := &contexts.GohanContext{c, es, &cfg, *iz}
 			return h(cc)
 		}
 	})
@@ -152,5 +116,5 @@ func main() {
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
 
 	// Run
-	e.Logger.Fatal(e.Start(":" + port))
+	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))
 }
