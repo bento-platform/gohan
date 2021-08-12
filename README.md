@@ -156,7 +156,56 @@ go run .
 
 <b>Endpoints :</b>
 
-***/variants*** <br />
+**`/variants`**
+
+
+Request
+> &nbsp;&nbsp;**GET** `/variants/overview`<br/>
+> &nbsp;&nbsp;&nbsp;params: `none`
+
+<br/>
+
+Response
+>```json
+> {
+>     "chromosomes": {
+>         "<CHROMOSOME>": `number`,
+>         ...
+>     },
+>     "sampleIDs": {
+>         "<SAMPLEID>": `number`,
+>         ...
+>     },
+>     "variantIDs": {
+>         "<VARIANTID>": `number`,
+>         ...
+>     }
+> }
+>
+>```
+<br />
+
+<b>Example :</b>
+>```json
+> {
+>     "chromosomes": {
+>         "21": 90548
+>     },
+>     "sampleIDs": {
+>         "hg00096": 33664,
+>         "hg00099": 31227,
+>         "hg00111": 25657
+>     },
+>     "variantIDs": {
+>         ".": 90548
+>     }
+> }
+>
+>```
+
+<br />
+<br />
+
 Requests
 > &nbsp;&nbsp;**GET** `/variants/get/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
@@ -318,6 +367,7 @@ Response
 >   ...
 > ]
 > ```
+
 
 <br />
 <br />
