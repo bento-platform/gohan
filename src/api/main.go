@@ -92,6 +92,8 @@ func main() {
 	})
 
 	// -- Variants
+	e.GET("/variants/overview", mvc.GetVariantsOverview)
+
 	e.GET("/variants/get/by/variantId", mvc.VariantsGetByVariantId,
 		// middleware
 		gam.MandateChromosomeAttribute,
