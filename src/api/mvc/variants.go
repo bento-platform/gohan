@@ -324,11 +324,17 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			mapstructure.Decode(docsHits, &allDocHits)
 
 			// grab _source for each hit
-			var allSources []map[string]interface{}
+			var allSources []models.Variant
 
 			for _, r := range allDocHits {
 				source := r["_source"].(map[string]interface{})
-				allSources = append(allSources, source)
+
+				// cast map[string]interface{} to struct
+				var resultingVariant models.Variant
+				mapstructure.Decode(source, &resultingVariant)
+
+				// accumulate structs
+				allSources = append(allSources, resultingVariant)
 			}
 
 			fmt.Printf("Found %d docs!\n", len(allSources))
