@@ -7,8 +7,8 @@ type VariantsResponseDTO struct {
 }
 
 type VariantResponseDataModel struct {
-	VariantId string                   `json:"variantId"`
-	SampleId  string                   `json:"sampleId"`
-	Count     int                      `json:"count"`
-	Results   []map[string]interface{} `json:"results"` // []Variant
+	VariantId string    `json:"variantId"`
+	SampleId  string    `json:"sampleId"`
+	Count     int       `json:"count"`
+	Results   []Variant `json:"results"` // []Variant
 }
