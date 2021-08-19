@@ -4,6 +4,7 @@ import (
 	"api/contexts"
 	gam "api/middleware"
 	"api/models"
+	serviceInfo "api/models/constants/service-info"
 	"api/mvc"
 	"api/services"
 	"api/utils"
@@ -35,7 +36,7 @@ func main() {
 		"\tDRS Url : %s\n"+
 		"\tDRS Username : %s\n\n"+
 
-		"\tAuthorization Enabled : %b\n"+
+		"\tAuthorization Enabled : %t\n"+
 		"\tOIDC Public JWKS Url : %s\n"+
 		"\tOPA Url : %s\n"+
 		"\tRequired HTTP Headers: %s\n\n"+
@@ -88,12 +89,34 @@ func main() {
 	// Begin MVC Routes
 	// -- Root
 	e.GET("/", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, "Welcome to the next generation Gohan v2 API using Golang!")
+		return c.JSON(http.StatusOK, serviceInfo.SERVICE_NAME)
 	})
+
+	// -- Service Info
+	e.GET("/service-info", func(c echo.Context) error {
+		// Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"id":          serviceInfo.SERVICE_ID,
+			"name":        serviceInfo.SERVICE_NAME,
+			"type":        serviceInfo.SERVICE_TYPE,
+			"description": "Gohan Variant service for a Bento platform node.",
+			"organization": map[string]string{
+				"name": "C3G",
+				"url":  "http://c3g.ca",
+			},
+			"contactUrl": "mailto:brennan.brouillette@computationgenomics.ca",
+			"version":    serviceInfo.SERVICE_VERSION,
+		})
+	})
+
+	// -- Data-Type
+	e.GET("/data-types", mvc.GetDataTypes)
+	e.GET("/data-types/variant", mvc.GetVariantDataType)
+	e.GET("/data-types/variant/schema", mvc.GetVariantDataTypeSchema)
+	e.GET("/data-types/variant/metadata_schema", mvc.GetVariantDataTypeMetadataSchema)
 
 	// -- Variants
 	e.GET("/variants/overview", mvc.GetVariantsOverview)
-
 	e.GET("/variants/get/by/variantId", mvc.VariantsGetByVariantId,
 		// middleware
 		gam.MandateChromosomeAttribute,
@@ -103,7 +126,6 @@ func main() {
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateSampleIdsPluralAttribute)
-
 	e.GET("/variants/count/by/variantId", mvc.VariantsCountByVariantId,
 		// middleware
 		gam.MandateChromosomeAttribute,
@@ -113,7 +135,6 @@ func main() {
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateSampleIdsSingularAttribute)
-
 	e.GET("/variants/ingestion/run", mvc.VariantsIngest)
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
 
