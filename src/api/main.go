@@ -89,7 +89,7 @@ func main() {
 	// Begin MVC Routes
 	// -- Root
 	e.GET("/", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, serviceInfo.SERVICE_NAME)
+		return c.JSON(http.StatusOK, serviceInfo.SERVICE_WELCOME)
 	})
 
 	// -- Service Info
@@ -99,12 +99,12 @@ func main() {
 			"id":          serviceInfo.SERVICE_ID,
 			"name":        serviceInfo.SERVICE_NAME,
 			"type":        serviceInfo.SERVICE_TYPE,
-			"description": "Gohan Variant service for a Bento platform node.",
+			"description": serviceInfo.SERVICE_DESCRIPTION,
 			"organization": map[string]string{
 				"name": "C3G",
 				"url":  "http://c3g.ca",
 			},
-			"contactUrl": "mailto:brennan.brouillette@computationgenomics.ca",
+			"contactUrl": serviceInfo.SERVICE_CONTACT,
 			"version":    serviceInfo.SERVICE_VERSION,
 		})
 	})
