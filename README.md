@@ -42,8 +42,6 @@ cp ./etc/example.env .env
 ```
  and make any necessary changes, such as the Elasticsearch `GOHAN_ES_USERNAME` and `GOHAN_ES_PASSWORD` when in production.
 
- > Note: if `GOHAN_ES_USERNAME` and `GOHAN_ES_PASSWORD` are to be modified for development, be sure to mirror the changes done in `.env` in the `Gohan.Api/appsettings.Development.json` to give the API access, as the dev username and password is hard-coded in both files.
-
 <br >
 
 ### **Init**
