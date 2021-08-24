@@ -9,6 +9,8 @@ import (
 	"testing"
 	common "tests/common"
 
+	. "github.com/ahmetb/go-linq"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -95,85 +97,87 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 
 	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "")
 
-	// assert that at least one of the responses include a valid sample set
-	noSamplesAreEmpty := true
-	for _, dtoResponse := range allDtoResponses {
-		for _, datum := range dtoResponse.Data {
-			for _, result := range datum.Results {
-				for _, sample := range result.Samples {
-					if sample.SampleId == "" ||
-						sample.Variation == "" {
-						noSamplesAreEmpty = false
-						break
-					}
-				}
-			}
-		}
-	}
+	// assert that all of the responses include valid sample sets
+	// - * accumulate all samples into a single list using the set of
+	//   SelectManyT's and the SelectT
+	// - ** iterate over each sample in the ForEachT
 
-	assert.True(t, noSamplesAreEmpty)
+	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
+		return From(resp.Data)
+	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
+		return From(data.Results)
+	}).SelectManyT(func(variant models.Variant) Query {
+		return From(variant.Samples)
+	}).SelectT(func(sample models.Sample) models.Sample {
+		return sample
+	}).ForEachT(func(sample models.Sample) { // **
+		assert.NotEmpty(t, sample.SampleId)
+		assert.NotEmpty(t, sample.Variation)
+	})
 }
 
 func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
-
+	// retrieve responses in ascending order
 	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "asc")
 
-	// assert that all variants are in ascending order
-	isAscendingOrder := true
-	for _, dtoResponse := range allDtoResponses {
-		for _, dtoResponse := range dtoResponse.Data {
-			for i, result := range dtoResponse.Results {
-				if i == 0 {
-					continue
+	// assert the dto response slice is plentiful
+	assert.NotNil(t, allDtoResponses)
+
+	From(allDtoResponses).ForEachT(func(dto models.VariantsResponseDTO) {
+		// assert there is data
+		assert.NotNil(t, dto.Data)
+
+		// check the data
+		From(dto.Data).ForEachT(func(d models.VariantResponseDataModel) {
+			// assert the variants slice is plentiful
+			assert.NotNil(t, d.Results)
+
+			latestSmallest := 0
+			From(d.Results).ForEachT(func(dd models.Variant) {
+				// verify order
+				if latestSmallest != 0 {
+					assert.True(t, latestSmallest <= dd.Pos)
 				}
 
-				// Fail if 'this' variant position is less than the previous
-				if result.Pos < dtoResponse.Results[i-1].Pos {
-					isAscendingOrder = false
-					break
-				}
-			}
-			if isAscendingOrder != true { // 1 failure = break all loops
-				break
-			}
-		}
-		if isAscendingOrder != true { // 1 failure = break all loops
-			break
-		}
-	}
-
-	assert.True(t, isAscendingOrder)
+				latestSmallest = dd.Pos
+			})
+		})
+	})
 }
 
 func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
-
+	// retrieve responses in descending order
 	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "desc")
 
-	// assert that all variants are in ascending order
-	isDescendingOrder := true
-	for _, dtoResponse := range allDtoResponses {
-		for _, dtoResponse := range dtoResponse.Data {
-			for i, result := range dtoResponse.Results {
-				if i == 0 {
-					continue
+	// assert the dto response slice is plentiful
+	assert.NotNil(t, allDtoResponses)
+
+	From(allDtoResponses).ForEach(func(dtoInt interface{}) {
+		dto := dtoInt.(models.VariantsResponseDTO)
+
+		// assert there is data
+		assert.NotNil(t, dto.Data)
+
+		// check the data
+		From(dto.Data).ForEach(func(dInt interface{}) {
+			d := dInt.(models.VariantResponseDataModel)
+
+			// assert the variants slice is plentiful
+			assert.NotNil(t, d.Results)
+
+			latestGreatest := 0
+
+			From(d.Results).ForEach(func(ddInt interface{}) {
+				dd := ddInt.(models.Variant)
+
+				if latestGreatest != 0 {
+					assert.True(t, latestGreatest >= dd.Pos)
 				}
 
-				// Fail if 'this' variant position is greater than the previous
-				if result.Pos > dtoResponse.Results[i-1].Pos {
-					isDescendingOrder = false
-					break
-				}
-			}
-			if isDescendingOrder != true { // 1 failure = break all loops
-				break
-			}
-		}
-		if isDescendingOrder != true { // 1 failure = break all loops
-			break
-		}
-	}
-
-	assert.True(t, isDescendingOrder)
+				latestGreatest = dd.Pos
+			})
+		})
+	})
 }
 
 // -- Common utility functions for api tests
