@@ -29,10 +29,11 @@ RUN git clone "${REPO}"
 
 WORKDIR /drs/chord_drs
 
-RUN git fetch && \
+RUN git config --global user.email "you@example.com" && \
+	git config --global user.name "Your Name" && \
+	git fetch && \
     git checkout "${BRANCH}" && \
-    git pull ${REPO}
-#    git pull $(echo "${REPO} refs/tags/${TAG}:refs/tags/${TAG}") && \
+    git pull $(echo "${REPO} refs/tags/${TAG}:refs/tags/${TAG}")
 
 RUN ["pip", "install", "-r", "requirements.txt"]
 
