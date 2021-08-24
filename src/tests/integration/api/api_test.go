@@ -76,13 +76,13 @@ func TestApiGetIngestionRequests(t *testing.T) {
 	ingestionRequestsStringJsonUnmarshallingError := json.Unmarshal([]byte(ingestionRequestsRespBodyString), &ingestionRequestsRespJsonSlice)
 	assert.Nil(t, ingestionRequestsStringJsonUnmarshallingError)
 
-	// -- insure it's an empty array
-	assert.Equal(t, 0, len(ingestionRequestsRespJsonSlice))
+	// -- ensure the response is not nil
+	assert.NotNil(t, len(ingestionRequestsRespJsonSlice))
 }
 
 func TestCanGetVariantsWithoutSamplesInResultset(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false)
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "")
 
 	// assert that all responses from all combinations have no results
 	for _, dtoResponse := range allDtoResponses {
@@ -93,13 +93,13 @@ func TestCanGetVariantsWithoutSamplesInResultset(t *testing.T) {
 
 func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true)
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "")
 
 	// assert that at least one of the responses include a valid sample set
 	atLeastOneIsNotNil := false
 	for _, dtoResponse := range allDtoResponses {
 		firstDataPointResults := dtoResponse.Data[0].Results
-		if firstDataPointResults[0].Samples != nil {
+		if firstDataPointResults[0].Samples != nil { // TODO: more precision
 			atLeastOneIsNotNil = true
 			break
 		}
@@ -108,36 +108,79 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 	assert.True(t, atLeastOneIsNotNil)
 }
 
+func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
+
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "asc")
+
+	// assert that all variants are in ascending order
+	isAscendingOrder := true
+	for _, dtoResponse := range allDtoResponses {
+		for _, dtoResponse := range dtoResponse.Data {
+			for i, result := range dtoResponse.Results {
+				if i == 0 {
+					continue
+				}
+
+				// Fail if 'this' variant position is less than the previous
+				if result.Pos < dtoResponse.Results[i-1].Pos {
+					isAscendingOrder = false
+					break
+				}
+			}
+			if isAscendingOrder != true { // 1 failure = break all loops
+				break
+			}
+		}
+		if isAscendingOrder != true { // 1 failure = break all loops
+			break
+		}
+	}
+
+	assert.True(t, isAscendingOrder)
+}
+
+func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
+
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "desc")
+
+	// assert that all variants are in ascending order
+	isDescendingOrder := true
+	for _, dtoResponse := range allDtoResponses {
+		for _, dtoResponse := range dtoResponse.Data {
+			for i, result := range dtoResponse.Results {
+				if i == 0 {
+					continue
+				}
+
+				// Fail if 'this' variant position is greater than the previous
+				if result.Pos > dtoResponse.Results[i-1].Pos {
+					isDescendingOrder = false
+					break
+				}
+			}
+			if isDescendingOrder != true { // 1 failure = break all loops
+				break
+			}
+		}
+		if isDescendingOrder != true { // 1 failure = break all loops
+			break
+		}
+	}
+
+	assert.True(t, isDescendingOrder)
+}
+
 // -- Common utility functions for api tests
-func getVariantsWithSamplesInResultset(chromosome string, sampleId string, includeSamples bool, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
+func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
 
-	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t", chromosome, sampleId, includeSamples)
+	if sortByPosition != "asc" && sortByPosition != "desc" {
+		sortByPosition = "" // default to empty (will trigger ascending)
+	}
+
+	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t&sortByPosition=%s", chromosome, sampleId, includeSamples, sortByPosition)
 	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
-	request, _ := http.NewRequest("GET", url, nil)
 
-	client := &http.Client{}
-	response, responseErr := client.Do(request)
-	assert.Nil(_t, responseErr)
-
-	defer response.Body.Close()
-
-	// this test (at the time of writing) will only work if authorization is disabled
-	shouldBe := 200
-	assert.Equal(_t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET %s Status: %s ; Should be %d", url, response.Status, shouldBe))
-
-	//	-- interpret array of ingestion requests from response
-	respBody, respBodyErr := ioutil.ReadAll(response.Body)
-	assert.Nil(_t, respBodyErr)
-
-	//	--- transform body bytes to string
-	respBodyString := string(respBody)
-
-	//	-- convert to json and check for error
-	var respDto models.VariantsResponseDTO
-	jsonUnmarshallingError := json.Unmarshal([]byte(respBodyString), &respDto)
-	assert.Nil(_t, jsonUnmarshallingError)
-
-	return respDto
+	return makeGetVariantsCall(url, _t)
 }
 
 func getVariantsOverview(_t *testing.T, _cfg *models.Config) map[string]interface{} {
@@ -193,7 +236,7 @@ func getChromsAndSampleIDs(chromosomeStruct interface{}, sampleIdsStruct interfa
 	return allCombinations
 }
 
-func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool) []models.VariantsResponseDTO {
+func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool, sortByPosition string) []models.VariantsResponseDTO {
 	cfg := common.InitConfig()
 
 	// todo: deduplicate
@@ -207,12 +250,40 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 		chrom := combination[0]
 		sampleId := combination[1]
 
-		dto := getVariantsWithSamplesInResultset(chrom, sampleId, includeSamples, _t, cfg)
+		dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, _t, cfg)
 		assert.Equal(_t, 1, len(dto.Data))
 		allDtoResponses = append(allDtoResponses, dto)
 	}
 
 	return allDtoResponses
+}
+
+func makeGetVariantsCall(url string, _t *testing.T) models.VariantsResponseDTO {
+	request, _ := http.NewRequest("GET", url, nil)
+
+	client := &http.Client{}
+	response, responseErr := client.Do(request)
+	assert.Nil(_t, responseErr)
+
+	defer response.Body.Close()
+
+	// this test (at the time of writing) will only work if authorization is disabled
+	shouldBe := 200
+	assert.Equal(_t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET %s Status: %s ; Should be %d", url, response.Status, shouldBe))
+
+	//	-- interpret array of ingestion requests from response
+	respBody, respBodyErr := ioutil.ReadAll(response.Body)
+	assert.Nil(_t, respBodyErr)
+
+	//	--- transform body bytes to string
+	respBodyString := string(respBody)
+
+	//	-- convert to json and check for error
+	var respDto models.VariantsResponseDTO
+	jsonUnmarshallingError := json.Unmarshal([]byte(respBodyString), &respDto)
+	assert.Nil(_t, jsonUnmarshallingError)
+
+	return respDto
 }
 
 // --
