@@ -96,16 +96,22 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "")
 
 	// assert that at least one of the responses include a valid sample set
-	atLeastOneIsNotNil := false
+	noSamplesAreEmpty := true
 	for _, dtoResponse := range allDtoResponses {
-		firstDataPointResults := dtoResponse.Data[0].Results
-		if firstDataPointResults[0].Samples != nil { // TODO: more precision
-			atLeastOneIsNotNil = true
-			break
+		for _, datum := range dtoResponse.Data {
+			for _, result := range datum.Results {
+				for _, sample := range result.Samples {
+					if sample.SampleId == "" ||
+						sample.Variation == "" {
+						noSamplesAreEmpty = false
+						break
+					}
+				}
+			}
 		}
 	}
 
-	assert.True(t, atLeastOneIsNotNil)
+	assert.True(t, noSamplesAreEmpty)
 }
 
 func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
