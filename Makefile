@@ -6,6 +6,9 @@ env ?= .env
 include $(env)
 export $(shell sed 's/=.*//' $(env))
 
+export GOOS=linux
+export GOARCH=amd64
+
 # initialize services
 init:
 	# Gateway: 
@@ -25,52 +28,15 @@ init:
 run-all:
 	docker-compose -f docker-compose.yaml up -d --force-recreate
 
-run-gateway:
-	docker-compose -f docker-compose.yaml up -d --force-recreate gateway
-
-# run-api:
-# 	docker-compose -f docker-compose.yaml up -d --force-recreate api
-
-run-api-alpine:
-	docker-compose -f docker-compose.yaml up -d --force-recreate api-alpine
-
-run-elasticsearch:
-	docker-compose -f docker-compose.yaml up -d --force-recreate elasticsearch
-
-run-kibana:
-	docker-compose -f docker-compose.yaml up -d --force-recreate kibana
-
-run-drs:
-	docker-compose -f docker-compose.yaml up -d --force-recreate drs
-
-run-authz:
-	docker-compose -f docker-compose.yaml up -d --force-recreate authorization
-
-
-# DEV --
 run-dev-all:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate
 
-# run-dev-api:
-# 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api
+run-dev-%:
+	docker-compose -f docker-compose.dev.yaml up -d --force-recreate $*
 
-run-dev-api-alpine:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate api-alpine
+run-%:
+	docker-compose -f docker-compose.yaml up -d --force-recreate $*
 
-
-run-dev-elasticsearch:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate elasticsearch
-
-run-dev-kibana:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate kibana
-
-
-run-dev-drs:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate drs
-
-run-dev-authz:
-	docker-compose -f docker-compose.dev.yaml up -d --force-recreate authorization
-# --
 
 
 # Build
@@ -78,28 +44,29 @@ build-gateway: stop-gateway clean-gateway
 	echo "-- Building Gateway Container --"
 	docker-compose -f docker-compose.yaml build gateway
 
-build-api: stop-api clean-api
-	echo "-- Building Api Binaries --"
-	cd Gohan.Api/;
-	dotnet clean; dotnet restore; dotnet publish -c Release --self-contained;
-	cd ..
-	echo "-- Building Api Container --"
-	docker-compose -f docker-compose.yaml build api
+build-api-go-alpine-binaries:
+	@echo "-- Building Golang-Api-Alpine Binaries --"
+	
+	cd src/api && \
+	export CGO_ENABLED=0 && \
+	\
+	go build -ldflags="-s -w" -o ../../bin/api_${GOOS}_${GOARCH} && \
+	\
+	cd ../.. && \
+	upx --brute bin/api_${GOOS}_${GOARCH}
 
-build-api-alpine: stop-api-alpine clean-api-alpine
-	echo "-- Building Api-Alpine Binaries --"
-	cd Gohan.Api/;
-	dotnet clean; dotnet restore; dotnet publish -c ReleaseAlpine --self-contained;
-	cd ..
-	echo "-- Building Api-Alpine Container --"
-	docker-compose -f docker-compose.yaml build api-alpine
+build-api-go-alpine-container: stop-api-go-alpine clean-api-go-alpine build-api-go-alpine-binaries
+	@echo "-- Building Golang-Api-Alpine Container --"
+	cp bin/api_${GOOS}_${GOARCH} src/api
+	docker-compose -f docker-compose.yaml build api-go-alpine
+	rm src/api/api_${GOOS}_${GOARCH}
 
 build-drs: stop-drs clean-drs
-	echo "-- Building DRS Container --"
+	@echo "-- Building DRS Container --"
 	docker-compose -f docker-compose.yaml build drs
 
 build-authz: stop-authz clean-authz
-	echo "-- Building Authorization Container --"
+	@echo "-- Building Authorization Container --"
 	docker-compose -f docker-compose.yaml build authorization
 
 
@@ -107,20 +74,8 @@ build-authz: stop-authz clean-authz
 stop-all:
 	docker-compose -f docker-compose.yaml down
 
-stop-gateway:
-	docker-compose -f docker-compose.yaml stop gateway
-
-stop-api:
-	docker-compose -f docker-compose.yaml stop api
-
-stop-api-alpine:
-	docker-compose -f docker-compose.yaml stop api-alpine
-
-stop-drs:
-	docker-compose -f docker-compose.yaml stop drs
-
-stop-authz:
-	docker-compose -f docker-compose.yaml stop authorization
+stop-%:
+	docker-compose -f docker-compose.yaml stop $*
 
 
 
@@ -131,11 +86,16 @@ clean-gateway:
 	docker rm ${GOHAN_GATEWAY_CONTAINER_NAME} --force; \
 	docker rmi ${GOHAN_GATEWAY_IMAGE}:${GOHAN_GATEWAY_VERSION} --force;
 
-clean-api:
-	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
-	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
+# clean-api:
+# 	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
+# 	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
 
-clean-api-alpine:
+# clean-api-alpine:
+# 	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
+# 	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
+
+clean-api-go-alpine:
+	rm -f bin/api_${GOOS}_${GOARCH}
 	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
 	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
 
@@ -162,18 +122,14 @@ clean-drs-data:
 
 ## Tests
 test-api-dev: prepare-test-config
-	# Run the tests
-	dotnet test -c Debug Gohan.Tests/Gohan.Tests.csproj
-
-# test-api-release:
-# 	dotnet test -c Release Gohan.Tests/Gohan.Tests.csproj
+	@# Run the tests
+	go test tests/integration/...
 
 prepare-test-config:
-	# Prepare environment variables dynamically via a JSON file 
-	# since xUnit doens't support loading env variables natively
-	# (see `./Gohan.Tests/IntegrationTestFixture.cs`)
-	envsubst < ./etc/appsettings.test.json.tpl > ./Gohan.Tests/appsettings.test.json
+	@# Prepare environment variables dynamically via a JSON file 
+	@# since xUnit doens't support loading env variables natively
+	envsubst < ./etc/test.config.yml.tpl > ./src/tests/common/test.config.yml
 
 clean-tests:
-	# Clean up
-	rm ./Gohan.Tests/appsettings.test.json
+	@# Clean up
+	rm ./src/tests/common/test.config.yml

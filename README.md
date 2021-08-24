@@ -8,8 +8,10 @@
 
 
 ## Prerequisites
-- .NET Core 3.1
-  - installation: https://dotnet.microsoft.com/download/dotnet-core/3.1
+- Golang >= 1.15.5
+  - installation: https://golang.org/doc/install
+- UPX
+  - docs: https://github.com/upx/upx
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
@@ -39,8 +41,6 @@ First, from the project root, create a local file for environment variables with
 cp ./etc/example.env .env
 ```
  and make any necessary changes, such as the Elasticsearch `GOHAN_ES_USERNAME` and `GOHAN_ES_PASSWORD` when in production.
-
- > Note: if `GOHAN_ES_USERNAME` and `GOHAN_ES_PASSWORD` are to be modified for development, be sure to mirror the changes done in `.env` in the `Gohan.Api/appsettings.Development.json` to give the API access, as the dev username and password is hard-coded in both files.
 
 <br >
 
@@ -119,7 +119,6 @@ make build-gateway
 make run-gateway
 ```
 
-
 <br />
 <br />
 
@@ -128,20 +127,87 @@ make run-gateway
 
 From the project root, run 
 ```
-dotnet clean
-dotnet restore
-dotnet build
+export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
+export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
 
-dotnet run --project Gohan.Api
+# Elasticsearch
+export GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
+export GOHAN_ES_USERNAME=${GOHAN_ES_USERNAME}
+export GOHAN_ES_PASSWORD=${GOHAN_ES_PASSWORD}
+
+# AuthX
+export GOHAN_AUTHZ_ENABLED=${GOHAN_API_AUTHZ_ENABLED}
+export GOHAN_PUBLIC_AUTHN_JWKS_URL=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
+export GOHAN_PRIVATE_AUTHZ_URL=${GOHAN_PRIVATE_AUTHZ_URL}
+export GOHAN_AUTHZ_REQHEADS=${GOHAN_API_AUTHZ_REQHEADS}
+
+# DRS
+export GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
+export GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
+export GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
+
+cd src/api
+
+go run .
 ```
+
 
 <b>Endpoints :</b>
 
-***/variants*** <br />
+**`/variants`**
+
+
+Request
+> &nbsp;&nbsp;**GET** `/variants/overview`<br/>
+> &nbsp;&nbsp;&nbsp;params: `none`
+
+<br/>
+
+Response
+>```json
+> {
+>     "chromosomes": {
+>         "<CHROMOSOME>": `number`,
+>         ...
+>     },
+>     "sampleIDs": {
+>         "<SAMPLEID>": `number`,
+>         ...
+>     },
+>     "variantIDs": {
+>         "<VARIANTID>": `number`,
+>         ...
+>     }
+> }
+>
+>```
+<br />
+
+<b>Example :</b>
+>```json
+> {
+>     "chromosomes": {
+>         "21": 90548
+>     },
+>     "sampleIDs": {
+>         "hg00096": 33664,
+>         "hg00099": 31227,
+>         "hg00111": 25657
+>     },
+>     "variantIDs": {
+>         ".": 90548
+>     }
+> }
+>
+>```
+
+<br />
+<br />
+
 Requests
 > &nbsp;&nbsp;**GET** `/variants/get/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
+>   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele ( "A" | "C" | "G" | "T"  or some combination thereof)`
@@ -153,7 +219,7 @@ Requests
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
+>   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -162,7 +228,7 @@ Requests
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
+>   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -174,16 +240,13 @@ Requests
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(default is "*" if not specified)`
+>   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >
-> &nbsp;&nbsp;**GET** `/variants/remove/sampleId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - id : **string** `(a single sample ID alphanumeric code)`
 
 <br />
 
@@ -262,169 +325,104 @@ Generalized Response Body Structure
 <br />
 
 
-***/vcfs*** <br />
 Request
-> &nbsp;&nbsp;**GET** `/vcfs/get/by/sampleId`<br/>
+> &nbsp;&nbsp;**GET** `/variants/ingestion/run`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number** `(required)`
->   - lowerBound : **number**
->   - upperBound : **number**
->   - id : **string** `(a single sample ID alphanumeric code)`
->   - size : **number** `(maximum number of results per id)`
+>   - filename : **string** `(required)`
 
 <br/>
 
 Response
+>```json  
+> {
+>     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
+>     "id": `string`,
+>     "filename": `string`,
+>     "message": `string`,
+> }
+> ```
 
-*`- A VCF file -`*
+<br />
+<br />
+
+Request
+> &nbsp;&nbsp;**GET** `/variants/ingestion/requests`<br/>
+> &nbsp;&nbsp;&nbsp;params: `none`
+
+<br/>
+
+Response
+>```json  
+> [
+>   {
+>     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
+>     "id": `string`,
+>     "filename": `string`,
+>     "message": `string`,
+>     "createdAt": `timestamp string`,
+>     "updatedAt": `timestamp string`
+>   },
+>   ...
+> ]
+> ```
+
 
 <br />
 <br />
 
-### **Console**
-
-*Purpose*: to ingest a set of VCFs into Elasticsearch and DRS.
-
-From the project root directory, copy your compressed VCFs `(*.vcf.gz)` to a directory local to the console project (*i.e. ./Gohan.Console/**vcfs***)
-
-**(Recommended):** If you first want to split a compressed VCF that contains multiple samples into individual VCF files that only contain one sample each, move that file into the above mentionned directory local to the console project, and then, from the project root, run
-
-
-```
-bash Gohan.Console/preprocess.sh Gohan.Console/vcfs/ORIGINAL.vcf.gz
-```
-
-> Note: preprocessing currently only works on **Linux** machines with **bash**
-
-otherwise, just run 
-```
-source .env
-
-dotnet clean
-dotnet restore
-dotnet build
-
-dotnet run --project Gohan.Console --vcfPath Gohan.Console/vcfs \
-  --elasticsearchUrl ${GOHAN_ES_PUBLIC_URL} \
-  --elasticsearchUsername ${GOHAN_ES_USERNAME} \
-  --elasticsearchPassword ${GOHAN_ES_PASSWORD} \
-  --drsUrl ${GOHAN_DRS_PUBLIC_URL} \
-  --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
-  --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
-  --documentBulkSizeLimit 10000
-
-```
-> Note: 
->
-> on **Windows** machines, the vcfPath forward slashes above have to be converted to two backslashes, i.e.
->
->     Gohan.Console\\vcfs
->
->
-> `--documentBulkSizeLimit` is an optional flag! Tune it as you see fit to minimize ingestion time (`10000` is the default)
-
-<br />
-<br />
 
 ## Releases
 
 ### **API :**
 Local Release: 
 
-&nbsp;First, from ***Gohan.Api/***, run 
+&nbsp;From the project root, run 
 
 ```
-dotnet clean
-dotnet restore
-```
-```
-dotnet publish -c Release --self-contained
+make build-api-go-alpine-binaries
 ```
 
 
 
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Gohan.Api* and executed with
-
+&nbsp;The binary can then be found at *bin/api_${GOOS}_${GOARCH}* and executed with
 
 ```
-export ElasticSearch__Username=${GOHAN_ES_USERNAME}
-export ElasticSearch__Password=${GOHAN_ES_PASSWORD}
-export ElasticSearch__GatewayPath=${GOHAN_ES_PUBLIC_GATEWAY_PATH}
-export ElasticSearch__PrimaryIndex=${GOHAN_ES_PASSWORD}
-export ElasticSearch__Protocol=${GOHAN_PUBLIC_PROTO}
-export ElasticSearch__Host=${GOHAN_PUBLIC_HOSTNAME}
-export ElasticSearch__Port=${GOHAN_PUBLIC_PORT}
+export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
+export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
 
-cd bin/Release/netcoreapp3.1/linux-x64/publish
+# Elasticsearch
+export GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
+export GOHAN_ES_USERNAME=${GOHAN_ES_USERNAME}
+export GOHAN_ES_PASSWORD=${GOHAN_ES_PASSWORD}
 
-./Gohan.Api --urls http://localhost:5000
+# AuthX
+export GOHAN_AUTHZ_ENABLED=${GOHAN_API_AUTHZ_ENABLED}
+export GOHAN_PUBLIC_AUTHN_JWKS_URL=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
+export GOHAN_PRIVATE_AUTHZ_URL=${GOHAN_PRIVATE_AUTHZ_URL}
+export GOHAN_AUTHZ_REQHEADS=${GOHAN_API_AUTHZ_REQHEADS}
+
+# DRS
+export GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
+export GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
+export GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
+
+cd bin/
+
+./api_${GOOS}_${GOARCH}
 ```
+
 <br />
 
 Containerized Alpine Release: 
 
-&nbsp; If all is well with the `Release`, from ***Gohan.Api/***, run 
-
-```
-dotnet publish -c ReleaseAlpine --self-contained
-```
-
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Gohan.Api*
-
 &nbsp;When ready, build the `docker image` and spawn the `container` by running
 
 ```
-make run-api
-```
-or
-```
-make run-api-alpine
+make build-api-go-alpine-container
+make run-api-go-alpine
 ```
 
 &nbsp;and the `docker-compose.yaml` file will handle the configuration.
-
-<br />
-
-### **Console :**
-Local Release: 
-
-&nbsp;From ***Gohan.Console/***, run 
-```
-dotnet clean
-dotnet restore
-```
-```
-dotnet publish -c Release --self-contained
-```
-
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-x64**/publish/Gohan.Console* and executed with
-
-```
-source ../.env
- 
-cd bin/Release/netcoreapp3.1/linux-x64/publish
-
-./Gohan.Console --vcfPath Gohan.Console/vcfs \
-  --elasticsearchUrl ${GOHAN_ES_PUBLIC_URL} \
-  --elasticsearchUsername ${GOHAN_ES_USERNAME} \
-  --elasticsearchPassword ${GOHAN_ES_PASSWORD} \
-  --drsUrl ${GOHAN_DRS_PUBLIC_URL} \
-  --drsUsername ${GOHAN_DRS_BASIC_AUTH_USERNAME} \
-  --drsPassword ${GOHAN_DRS_BASIC_AUTH_PASSWORD} \
-  --documentBulkSizeLimit 10000
-
-```
-
-Local Alpine Release: 
-```
-dotnet publish -c ReleaseAlpine --self-contained
-```
-
-&nbsp;The binary can then be found at *bin/Release/netcoreapp3.1/**linux-musl-x64**/publish/Gohan.Console*
-
-> **Note:** this method is not recommended unless you are running your host machine on Alpine Linux. Unlike the **API** (seen below), this binary has no utility in being containerized. If you need to use this, run the same commands as you would with just a `Release` above but with `ReleaseAlpine` instead
-
-<br />
 
 <br />
 <br />
@@ -436,8 +434,9 @@ dotnet publish -c ReleaseAlpine --self-contained
 All in all, run 
 ```
 make run-elasticsearch 
+make run-drs
 make build-gateway && make run-gateway 
-make build-api && make run-api
+make build-api-go-alpine && make run-api-go-alpine
 
 # and optionally
 make run-kibana
@@ -451,7 +450,7 @@ For other handy tools, see the Makefile. Among those already mentionned here, yo
 
 ## Tests :
 
-Once `elasticsearch`, the `api`, and the `gateway` are up, run 
+Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run 
 ```
 make test-api-dev
 ```
