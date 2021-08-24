@@ -30,7 +30,17 @@ authorization/policy.rego
 authorization/*.policy.rego
 
 # temp test file
-Gohan.Tests/appsettings.test.json
+src/tests/common/test.config.yml
 
 # executables
-*/Gohan.Console
+
+# golang debug files
+*/*/__debug_bin
+
+# golang api binaries
+bin/*
+*/*/api_*_*
+
+# tmp directories
+*/tmp
+*/*/tmp
