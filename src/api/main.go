@@ -65,7 +65,7 @@ func main() {
 
 	// Service Singletons
 	az := services.NewAuthzService(&cfg)
-	iz := services.NewIngestionService()
+	iz := services.NewIngestionService(es)
 
 	// Configure Server
 	e.Use(middleware.Recover())

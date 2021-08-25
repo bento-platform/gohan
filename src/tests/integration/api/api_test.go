@@ -124,12 +124,12 @@ func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
 	assert.NotNil(t, allDtoResponses)
 
 	From(allDtoResponses).ForEachT(func(dto models.VariantsResponseDTO) {
-		// assert there is data
+		// ensure there is data
 		assert.NotNil(t, dto.Data)
 
 		// check the data
 		From(dto.Data).ForEachT(func(d models.VariantResponseDataModel) {
-			// assert the variants slice is plentiful
+			// ensure the variants slice is plentiful
 			assert.NotNil(t, d.Results)
 
 			latestSmallest := 0
@@ -152,24 +152,17 @@ func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 	// assert the dto response slice is plentiful
 	assert.NotNil(t, allDtoResponses)
 
-	From(allDtoResponses).ForEach(func(dtoInt interface{}) {
-		dto := dtoInt.(models.VariantsResponseDTO)
-
-		// assert there is data
+	From(allDtoResponses).ForEachT(func(dto models.VariantsResponseDTO) {
+		// ensure there is data
 		assert.NotNil(t, dto.Data)
 
 		// check the data
-		From(dto.Data).ForEach(func(dInt interface{}) {
-			d := dInt.(models.VariantResponseDataModel)
-
-			// assert the variants slice is plentiful
+		From(dto.Data).ForEachT(func(d models.VariantResponseDataModel) {
+			// ensure the variants slice is plentiful
 			assert.NotNil(t, d.Results)
 
 			latestGreatest := 0
-
-			From(d.Results).ForEach(func(ddInt interface{}) {
-				dd := ddInt.(models.Variant)
-
+			From(d.Results).ForEachT(func(dd models.Variant) {
 				if latestGreatest != 0 {
 					assert.True(t, latestGreatest >= dd.Pos)
 				}

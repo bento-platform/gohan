@@ -44,3 +44,6 @@ bin/*
 # tmp directories
 */tmp
 */*/tmp
+
+*.vcf
+*.vcf.gz
