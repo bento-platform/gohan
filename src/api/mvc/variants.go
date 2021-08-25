@@ -73,8 +73,6 @@ func VariantsCountBySampleId(c echo.Context) error {
 }
 
 func VariantsIngest(c echo.Context) error {
-	es := c.(*contexts.GohanContext).Es7Client
-
 	cfg := c.(*contexts.GohanContext).Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
@@ -213,7 +211,7 @@ func VariantsIngest(c echo.Context) error {
 			}
 
 			// ---	 load back into memory and process
-			ingestionService.ProcessVcf(vcfFilePath, drsFileId, es)
+			ingestionService.ProcessVcf(vcfFilePath, drsFileId)
 
 			// ---   delete the temporary vcf file
 			os.Remove(vcfFilePath)
@@ -222,7 +220,7 @@ func VariantsIngest(c echo.Context) error {
 			// 		 (WARNING : Only do this when running over a single file)
 			//os.RemoveAll(vcfTmpPath)
 
-			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Now().Sub(startTime))
+			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(startTime))
 
 			reqStat.State = ingest.Done
 			ingestionService.IngestRequestChan <- reqStat

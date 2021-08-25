@@ -34,17 +34,26 @@ import (
 
 type (
 	IngestionService struct {
-		Initialized       bool
-		IngestRequestChan chan *ingest.IngestRequest
-		IngestRequestMap  map[string]*ingest.IngestRequest
+		Initialized                   bool
+		IngestRequestChan             chan *ingest.IngestRequest
+		IngestRequestMap              map[string]*ingest.IngestRequest
+		IngestionBulkIndexingCapacity int
+		IngestionBulkIndexingQueue    chan *models.Variant
+		ElasticsearchClient           *elasticsearch.Client
 	}
 )
 
-func NewIngestionService() *IngestionService {
+const defaultBulkIndexingCap int = 50000
+
+func NewIngestionService(es *elasticsearch.Client) *IngestionService {
+
 	iz := &IngestionService{
-		Initialized:       false,
-		IngestRequestChan: make(chan *ingest.IngestRequest),
-		IngestRequestMap:  map[string]*ingest.IngestRequest{},
+		Initialized:                   false,
+		IngestRequestChan:             make(chan *ingest.IngestRequest),
+		IngestRequestMap:              map[string]*ingest.IngestRequest{},
+		IngestionBulkIndexingCapacity: defaultBulkIndexingCap,
+		IngestionBulkIndexingQueue:    make(chan *models.Variant, defaultBulkIndexingCap),
+		ElasticsearchClient:           es,
 	}
 	iz.Init()
 
@@ -53,8 +62,8 @@ func NewIngestionService() *IngestionService {
 
 func (i *IngestionService) Init() {
 	// safeguard to prevent multiple initilizations
-	if i.Initialized == false {
-		// spin up a listener for state updates
+	if !i.Initialized {
+		// spin up a listener for ingest request updates
 		go func() {
 			for {
 				select {
@@ -68,6 +77,12 @@ func (i *IngestionService) Init() {
 				}
 			}
 		}()
+
+		// spin up a listener for bulk indexing
+		go func() {
+
+		}()
+
 		i.Initialized = true
 	}
 }
@@ -146,7 +161,7 @@ func (i *IngestionService) UploadVcfGzToDrs(gzippedFilePath string, gzipStream *
 	return id
 }
 
-func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *elasticsearch.Client) {
+func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string) {
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
@@ -158,10 +173,9 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 	var discoveredHeaders bool = false
 	var headers []string
 
-	var variants []*models.Variant
-	variantsMutex := sync.RWMutex{}
-
 	nonNumericRegexp := regexp.MustCompile("[^.0-9]")
+
+	var _fileWG sync.WaitGroup
 
 	for scanner.Scan() {
 		//fmt.Println(scanner.Text())
@@ -182,7 +196,9 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 			}
 		}
 
-		go func(line string, drsFileId string) {
+		_fileWG.Add(1)
+		go func(line string, drsFileId string, fileWg *sync.WaitGroup) {
+			defer fileWg.Done()
 
 			// ----  break up line
 			rowComponents := strings.Split(line, "\t")
@@ -285,27 +301,51 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 			var resultingVariant models.Variant
 			mapstructure.Decode(tmpVariant, &resultingVariant)
 
-			variantsMutex.Lock()
-			variants = append(variants, &resultingVariant)
-			variantsMutex.Unlock()
+			select {
+			case i.IngestionBulkIndexingQueue <- &resultingVariant: // Put variant in the channel unless it is full
+			default:
+				// ingest full capacity queue
+				i.PerformBulkIndexIngestion()
+			}
 
-		}(line, drsFileId)
+		}(line, drsFileId, &_fileWG)
 	}
 
+	// let all lines be queued up and processed as many as possible
+	_fileWG.Wait()
+
+	// perform final bulk push
+	i.PerformBulkIndexIngestion()
+}
+
+func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
+	for _, v := range i.IngestRequestMap {
+		if v.Filename == filename && (v.State == ingest.Queued || v.State == ingest.Running) {
+			return true
+		}
+	}
+	return false
+}
+
+func (i *IngestionService) PerformBulkIndexIngestion() {
+
+	// perform bulk indexing
 	// ---	 push all data to the bulk indexer
 	fmt.Printf("Number of CPUs available: %d\n", runtime.NumCPU())
+
+	close(i.IngestionBulkIndexingQueue)
 
 	var countSuccessful uint64
 	var countFailed uint64
 
 	// see: https://www.elastic.co/blog/why-am-i-seeing-bulk-rejections-in-my-elasticsearch-cluster
-	var numWorkers = len(variants) / 50
+	var numWorkers = i.IngestionBulkIndexingCapacity / 100
 	// the lower the denominator (the number of documents per bulk upload). the higher
 	// the chances of 100% successful upload, though the longer it may take (negligible)
 
-	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+	bi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
 		Index:      "variants",
-		Client:     es,
+		Client:     i.ElasticsearchClient,
 		NumWorkers: numWorkers,
 		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 50MB ?)
 		FlushInterval: 30 * time.Second, // The periodic flush interval
@@ -313,8 +353,9 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 
 	var wg sync.WaitGroup
 
-	for _, v := range variants {
-
+	count := 0
+	for v := range i.IngestionBulkIndexingQueue {
+		count = count + 1
 		wg.Add(1)
 
 		// Prepare the data payload: encode article to JSON
@@ -337,8 +378,6 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 				OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
 					defer wg.Done()
 					atomic.AddUint64(&countSuccessful, 1)
-
-					//log.Printf("Added item: %s", item.DocumentID)
 				},
 
 				// OnFailure is called for each failed operation
@@ -361,18 +400,8 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, es *
 
 	wg.Wait()
 
-	fmt.Printf("Done processing %s with %d variants, with %d stats!\n", vcfFilePath, len(variants), bi.Stats())
+	fmt.Printf("Done processing %d variants, with %d stats!\n", count, bi.Stats())
 
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
-	for _, v := range i.IngestRequestMap {
-		if v.Filename == filename && (v.State == ingest.Queued || v.State == ingest.Running) {
-			return true
-		}
-	}
-	return false
+	// recreate queue (mimic "reopening")
+	i.IngestionBulkIndexingQueue = make(chan *models.Variant, defaultBulkIndexingCap)
 }
