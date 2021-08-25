@@ -174,7 +174,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// Temp
 	resultString := res.String()
-	fmt.Println(resultString)
+	// fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
@@ -316,7 +316,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 
 	// Temp
 	resultString := res.String()
-	fmt.Println(resultString)
+	// fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
@@ -373,7 +373,7 @@ func GetBucketsByKeyword(es *elasticsearch.Client, keyword string) map[string]in
 
 	// Temp
 	resultString := res.String()
-	fmt.Println(resultString)
+	//fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
