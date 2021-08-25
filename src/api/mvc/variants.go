@@ -113,7 +113,7 @@ func VariantsIngest(c echo.Context) error {
 		}
 	}
 
-	fmt.Printf("Found .vcf.gz files: %s\n", vcfGzfiles)
+	//fmt.Printf("Found .vcf.gz files: %s\n", vcfGzfiles)
 
 	// Locate fileName from request inside found files
 	for _, fileName := range fileNames {
