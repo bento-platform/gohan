@@ -282,7 +282,7 @@ func GetVariantsOverview(c echo.Context) error {
 
 	// get distribution of sample IDs
 	wg.Add(1)
-	go callGetBucketsByKeyword("sampleIDs", "samples.sampleId.keyword", &wg)
+	go callGetBucketsByKeyword("sampleIDs", "samples.id.keyword", &wg)
 
 	wg.Wait()
 
@@ -319,6 +319,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			size = parsedSize
 		}
 	}
+
+	//genotype := c.QueryParam("genotype")
 
 	sortByPosition := c.QueryParam("sortByPosition")
 

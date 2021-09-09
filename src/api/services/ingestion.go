@@ -268,8 +268,9 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string) {
 			rowComponents := strings.Split(line, "\t")
 
 			// ----  process more...
-			var samples []*models.Sample
-			samplesMutex := sync.RWMutex{}
+			var tmpSamples []map[string]interface{}
+			tmpSamplesMutex := sync.RWMutex{}
+
 			tmpVariant := make(map[string]interface{})
 			tmpVariantMapMutex := sync.RWMutex{}
 
@@ -281,86 +282,190 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string) {
 			for rowIndex, rowComponent := range rowComponents {
 				go func(i int, rc string, rwg *sync.WaitGroup) {
 					defer rwg.Done()
-					if rc != "0|0" {
-						key := strings.ToLower(strings.TrimSpace(strings.Replace(headers[i], "#", "", -1)))
-						value := strings.TrimSpace(rc)
+					key := strings.ToLower(strings.TrimSpace(strings.Replace(headers[i], "#", "", -1)))
+					value := strings.TrimSpace(rc)
 
-						// if not a vcf header, assume it's a sampleId header
-						if utils.StringInSlice(key, models.VcfHeaders) {
+					// if not a vcf header, assume it's a sampleId header
+					if utils.StringInSlice(key, models.VcfHeaders) {
 
-							// filter field type by column name
-							if key == "chrom" || key == "pos" || key == "qual" {
-								if key == "chrom" {
-									// Strip out all non-numeric characters
-									value = nonNumericRegexp.ReplaceAllString(value, "")
-								}
+						// filter field type by column name
+						if key == "chrom" || key == "pos" || key == "qual" {
+							if key == "chrom" {
+								// Strip out all non-numeric characters
+								value = nonNumericRegexp.ReplaceAllString(value, "")
+							}
 
-								// // Convert string's to int's, if possible
-								value, err := strconv.ParseInt(value, 10, 0)
-								if err == nil {
-									tmpVariantMapMutex.Lock()
-									tmpVariant[key] = value
-									tmpVariantMapMutex.Unlock()
-								} else {
-									tmpVariantMapMutex.Lock()
-									tmpVariant[key] = -1 // here to simulate a null value (such as when the string value is empty, or
-									//                      is something as arbitrary as a single period '.')
-									tmpVariantMapMutex.Unlock()
-								}
-
-							} else if key == "alt" || key == "ref" {
-								// Split all alleles by comma
-								tmpVariantMapMutex.Lock()
-								tmpVariant[key] = strings.Split(value, ",")
-								tmpVariantMapMutex.Unlock()
-							} else if key == "info" {
-								var allInfos []*models.Info
-
-								// Split all alleles by semi-colon
-								semiColonSeparations := strings.Split(value, ";")
-
-								for _, scSep := range semiColonSeparations {
-									// Split by equality symbol
-									equalitySeparations := strings.Split(scSep, "=")
-
-									if len(equalitySeparations) == 2 {
-										allInfos = append(allInfos, &models.Info{
-											Id:    equalitySeparations[0],
-											Value: equalitySeparations[1],
-										})
-									} else { // len(equalitySeparations) == 1
-										allInfos = append(allInfos, &models.Info{
-											Id:    "",
-											Value: equalitySeparations[0],
-										})
-									}
-								}
-
-								tmpVariantMapMutex.Lock()
-								tmpVariant[key] = allInfos
-								tmpVariantMapMutex.Unlock()
-
-							} else {
+							// // Convert string's to int's, if possible
+							value, err := strconv.ParseInt(value, 10, 0)
+							if err == nil {
 								tmpVariantMapMutex.Lock()
 								tmpVariant[key] = value
 								tmpVariantMapMutex.Unlock()
+							} else {
+								tmpVariantMapMutex.Lock()
+								tmpVariant[key] = -1 // here to simulate a null value (such as when the string value is empty, or
+								//                      is something as arbitrary as a single period '.')
+								tmpVariantMapMutex.Unlock()
 							}
-						} else { // assume its a sampleId header
-							samplesMutex.Lock()
-							samples = append(samples, &models.Sample{
-								SampleId:  key,
-								Variation: value,
-							})
-							samplesMutex.Unlock()
+
+						} else if key == "alt" || key == "ref" {
+							// Split all alleles by comma
+							tmpVariantMapMutex.Lock()
+							tmpVariant[key] = strings.Split(value, ",")
+							tmpVariantMapMutex.Unlock()
+						} else if key == "format" {
+							// Split all formats by colon
+							tmpVariantMapMutex.Lock()
+							tmpVariant[key] = strings.Split(value, ":")
+							tmpVariantMapMutex.Unlock()
+						} else if key == "info" {
+							var allInfos []*models.Info
+
+							// Split all alleles by semi-colon
+							semiColonSeparations := strings.Split(value, ";")
+
+							for _, scSep := range semiColonSeparations {
+								// Split by equality symbol
+								equalitySeparations := strings.Split(scSep, "=")
+
+								if len(equalitySeparations) == 2 {
+									allInfos = append(allInfos, &models.Info{
+										Id:    equalitySeparations[0],
+										Value: equalitySeparations[1],
+									})
+								} else { // len(equalitySeparations) == 1
+									allInfos = append(allInfos, &models.Info{
+										Id:    "",
+										Value: equalitySeparations[0],
+									})
+								}
+							}
+
+							tmpVariantMapMutex.Lock()
+							tmpVariant[key] = allInfos
+							tmpVariantMapMutex.Unlock()
+
+						} else {
+							tmpVariantMapMutex.Lock()
+							tmpVariant[key] = value
+							tmpVariantMapMutex.Unlock()
 						}
+					} else { // assume its a sampleId header
+						tmpSamplesMutex.Lock()
+
+						tmpSamples = append(tmpSamples, map[string]interface{}{
+							"key":    key,
+							"values": strings.Split(value, ":"),
+						})
+
+						tmpSamplesMutex.Unlock()
 					}
 				}(rowIndex, rowComponent, &rowWg)
 			}
 
 			rowWg.Wait()
 
-			tmpVariant["samples"] = samples
+			// --- TODO: prep formats + samples
+			var samples []*models.Sample
 
+			// ---- get genotype stuff
+			var (
+				hasGenotype      bool = false
+				genotypePosition int  = 0
+
+				hasGenotypeProbability      bool = false
+				genotypeProbabilityPosition int  = 0
+
+				hasPhredScaleLikelyhood      bool = false
+				phredScaleLikelyhoodPosition int  = 0
+			)
+
+			for i, f := range tmpVariant["format"].([]string) {
+				// ----- check formats
+				switch f {
+				case "GT":
+					hasGenotype = true
+					genotypePosition = i
+				case "GP":
+					hasGenotypeProbability = true
+					genotypeProbabilityPosition = i
+				case "PL":
+					hasPhredScaleLikelyhood = true
+					phredScaleLikelyhoodPosition = i
+				}
+			}
+
+			for _, ts := range tmpSamples {
+				sample := &models.Sample{}
+				variation := &models.Variation{}
+
+				tmpKeyString := ts["key"].(string)
+				tmpValueStrings := ts["values"].([]string)
+				for k := range tmpValueStrings {
+					if hasGenotype && k == genotypePosition {
+						// create genotype from value
+						gtString := tmpValueStrings[k]
+						phased := strings.Contains(gtString, "|")
+
+						var (
+							alleleStringSplits []string
+							alleleLeft         int
+							alleleRight        int
+						)
+						if phased {
+							alleleStringSplits = strings.Split(gtString, "|")
+						} else {
+							alleleStringSplits = strings.Split(gtString, "/")
+						}
+
+						// convert string to int
+						// -- if error, assume it's a period and assign -1
+						alleleLeft, errLeft := strconv.Atoi(alleleStringSplits[0])
+						if errLeft != nil {
+							alleleLeft = -1
+						}
+
+						alleleRight, errRight := strconv.Atoi(alleleStringSplits[1])
+						if errRight != nil {
+							alleleRight = -1
+						}
+
+						variation.Genotype = models.Genotype{
+							Phased:      phased,
+							AlleleLeft:  alleleLeft,
+							AlleleRight: alleleRight,
+						}
+					} else if hasGenotypeProbability && k == genotypeProbabilityPosition {
+						// create genotype probability from value
+						probValStrings := strings.Split(tmpValueStrings[k], ",")
+						for _, val := range probValStrings {
+							if n, err := strconv.ParseFloat(val, 64); err == nil {
+								variation.GenotypeProbability = append(variation.GenotypeProbability, n)
+							} else {
+								variation.GenotypeProbability = append(variation.GenotypeProbability, -1)
+							}
+						}
+					} else if hasPhredScaleLikelyhood && k == phredScaleLikelyhoodPosition {
+						// create phred scale likelyhood from value
+						likelyhoodValStrings := strings.Split(tmpValueStrings[k], ",")
+						for _, val := range likelyhoodValStrings {
+							if n, err := strconv.ParseFloat(val, 64); err == nil {
+								variation.PhredScaleLikelyhood = append(variation.PhredScaleLikelyhood, n)
+							} else {
+								variation.PhredScaleLikelyhood = append(variation.PhredScaleLikelyhood, -1)
+							}
+						}
+
+					}
+				}
+
+				sample.Id = tmpKeyString
+				sample.Variation = *variation
+
+				samples = append(samples, sample)
+			}
+
+			tmpVariant["samples"] = samples
 			// ---	 push to a bulk "queue"
 			var resultingVariant models.Variant
 			mapstructure.Decode(tmpVariant, &resultingVariant)

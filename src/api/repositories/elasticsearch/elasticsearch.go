@@ -38,7 +38,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	}
 
 	if sampleId != "" {
-		matchMap["samples.sampleId"] = map[string]interface{}{
+		matchMap["samples.id"] = map[string]interface{}{
 			"query": sampleId,
 		}
 	}
