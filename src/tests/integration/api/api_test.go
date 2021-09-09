@@ -111,7 +111,7 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 	}).SelectT(func(sample models.Sample) models.Sample {
 		return sample
 	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(t, sample.SampleId)
+		assert.NotEmpty(t, sample.Id)
 		assert.NotEmpty(t, sample.Variation)
 	})
 }
