@@ -1,5 +1,9 @@
 package models
 
+import (
+	c "api/models/constants"
+)
+
 var VcfHeaders = []string{"chrom", "pos", "id", "ref", "alt", "qual", "filter", "info", "format"}
 
 type Variant struct {
@@ -34,7 +38,8 @@ type Variation struct {
 }
 
 type Genotype struct {
-	Phased      bool `json:"phased"`
-	AlleleLeft  int  `json:"alleleLeft"`  // -1 = no call (equivalent to a '.')
-	AlleleRight int  `json:"alleleRight"` // -1 = no call (equivalent to a '.')
+	Phased      bool       `json:"phased"`
+	AlleleLeft  int        `json:"alleleLeft"`  // -1 = no call (equivalent to a '.')
+	AlleleRight int        `json:"alleleRight"` // -1 = no call (equivalent to a '.')
+	Zygosity    c.Zygosity `json:"zygosity"`
 }

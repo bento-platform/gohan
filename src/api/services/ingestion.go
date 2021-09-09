@@ -2,6 +2,8 @@ package services
 
 import (
 	"api/models"
+	"api/models/constants"
+	z "api/models/constants/zygosity"
 	"api/models/ingest"
 	"api/utils"
 	"bufio"
@@ -430,10 +432,25 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string) {
 							alleleRight = -1
 						}
 
+						// -- zygosity:
+						var zygosity constants.Zygosity
+
+						if alleleLeft == -1 || alleleRight == -1 {
+							zygosity = z.Unknown
+						} else {
+							switch alleleLeft == alleleRight {
+							case true:
+								zygosity = z.Homozygous
+							case false:
+								zygosity = z.Heterozygous
+							}
+						}
+
 						variation.Genotype = models.Genotype{
 							Phased:      phased,
 							AlleleLeft:  alleleLeft,
 							AlleleRight: alleleRight,
+							Zygosity:    zygosity,
 						}
 					} else if hasGenotypeProbability && k == genotypeProbabilityPosition {
 						// create genotype probability from value
