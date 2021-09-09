@@ -15,6 +15,8 @@ import (
 
 	"api/contexts"
 	"api/models"
+	"api/models/constants"
+	z "api/models/constants/zygosity"
 	"api/models/ingest"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
@@ -302,7 +304,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype = retrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
 	sizeQP := c.QueryParam("size")
@@ -319,8 +321,6 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			size = parsedSize
 		}
 	}
-
-	//genotype := c.QueryParam("genotype")
 
 	sortByPosition := c.QueryParam("sortByPosition")
 
@@ -361,7 +361,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
-					size, sortByPosition, includeSamplesInResultSet)
+					size, sortByPosition,
+					includeSamplesInResultSet, genotype)
 			} else {
 				// implied sampleId query
 				variantRespDataModel.SampleId = _id
@@ -372,7 +373,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
 					reference, alternative,
-					size, sortByPosition, includeSamplesInResultSet)
+					size, sortByPosition,
+					includeSamplesInResultSet, genotype)
 			}
 
 			// query for each id
@@ -417,7 +419,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype = retrieveCommonElements(c)
 
 	respDTO := models.VariantsResponseDTO{}
 	respDTOMux := sync.RWMutex{}
@@ -441,7 +443,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
-					reference, alternative)
+					reference, alternative, genotype)
 			} else {
 				// implied sampleId query
 				variantRespDataModel.SampleId = _id
@@ -451,7 +453,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
-					reference, alternative)
+					reference, alternative, genotype)
 			}
 
 			variantRespDataModel.Count = int(docs["count"].(float64))
@@ -471,7 +473,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 	return c.JSON(http.StatusOK, respDTO)
 }
 
-func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string) {
+func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, constants.Zygosity) {
 	es := c.(*contexts.GohanContext).Es7Client
 
 	chromosome := c.QueryParam("chromosome")
@@ -508,5 +510,15 @@ func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 
 	alternative := c.QueryParam("alternative")
 
-	return es, chromosome, lowerBound, upperBound, reference, alternative
+	genotype := z.Empty
+	genotypeQP := c.QueryParam("genotype")
+	if len(genotypeQP) > 0 {
+		parsedGenotype, gErr := strconv.Atoi(genotypeQP)
+
+		if gErr == nil && z.IsValidQuery(parsedGenotype) {
+			genotype = constants.Zygosity(parsedGenotype)
+		}
+	}
+
+	return es, chromosome, lowerBound, upperBound, reference, alternative, genotype
 }

@@ -5,7 +5,16 @@ import (
 )
 
 const (
-	Unknown constants.Zygosity = iota
+	Empty constants.Zygosity = iota - 1
+	Unknown
 	Homozygous
 	Heterozygous
 )
+
+func IsValid(value int) bool {
+	return value <= int(Heterozygous)
+}
+
+func IsValidQuery(value int) bool {
+	return value > int(Empty) && IsValid(value)
+}
