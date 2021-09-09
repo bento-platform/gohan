@@ -1,3 +1,9 @@
 package constants
 
-type Zygosity int
+type enumString string
+type enumInt int
+
+type GenotypeQuery enumString
+type SearchOperation enumString
+
+type Zygosity enumInt

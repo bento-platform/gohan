@@ -3,9 +3,8 @@ package middleware
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
-	z "api/models/constants/zygosity"
+	gq "api/models/constants/genotype-query"
 
 	"github.com/labstack/echo"
 )
@@ -14,12 +13,10 @@ func ValidatePotentialGenotypeQueryParameter(next echo.HandlerFunc) echo.Handler
 	return func(c echo.Context) error {
 		genotypeQP := c.QueryParam("genotype")
 
-		// TODO: improve checking
 		if len(genotypeQP) > 0 {
-			genInt, genotypeErr := strconv.Atoi(genotypeQP)
-
-			if genotypeErr != nil || !z.IsValidQuery(genInt) {
-				return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid genotype query %s", genotypeQP))
+			_, genotypeErr := gq.CastToGenoType(genotypeQP)
+			if genotypeErr != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid genotype query %s, %s", genotypeQP, genotypeErr))
 			}
 		}
 

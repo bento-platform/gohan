@@ -16,7 +16,7 @@ import (
 	"api/contexts"
 	"api/models"
 	"api/models/constants"
-	z "api/models/constants/zygosity"
+	gq "api/models/constants/genotype-query"
 	"api/models/ingest"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
@@ -473,7 +473,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 	return c.JSON(http.StatusOK, respDTO)
 }
 
-func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, constants.Zygosity) {
+func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, constants.GenotypeQuery) {
 	es := c.(*contexts.GohanContext).Es7Client
 
 	chromosome := c.QueryParam("chromosome")
@@ -510,13 +510,11 @@ func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 
 	alternative := c.QueryParam("alternative")
 
-	genotype := z.Empty
+	genotype := gq.UNCALLED
 	genotypeQP := c.QueryParam("genotype")
 	if len(genotypeQP) > 0 {
-		parsedGenotype, gErr := strconv.Atoi(genotypeQP)
-
-		if gErr == nil && z.IsValidQuery(parsedGenotype) {
-			genotype = constants.Zygosity(parsedGenotype)
+		if parsedGenotype, gErr := gq.CastToGenoType(genotypeQP); gErr == nil {
+			genotype = parsedGenotype
 		}
 	}
 

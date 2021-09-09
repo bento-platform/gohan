@@ -11,6 +11,7 @@ import (
 	"time"
 
 	c "api/models/constants"
+	gq "api/models/constants/genotype-query"
 	z "api/models/constants/zygosity"
 
 	"github.com/elastic/go-elasticsearch"
@@ -21,7 +22,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	variantId string, sampleId string,
 	reference string, alternative string,
 	size int, sortByPosition string,
-	includeSamplesInResultSet bool, zygosity c.Zygosity) map[string]interface{} {
+	includeSamplesInResultSet bool, genotype c.GenotypeQuery) map[string]interface{} {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -81,11 +82,42 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 		})
 	}
 
-	zygosityMatchMap := make(map[string]interface{})
-	if zygosity != z.Empty {
-		zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-			"query": zygosity,
+	if genotype != gq.UNCALLED {
+		zygosityMatchMap := make(map[string]interface{})
+
+		switch genotype {
+		case gq.HETEROZYGOUS:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Heterozygous,
+			}
+
+		case gq.HOMOZYGOUS_REFERENCE:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Homozygous,
+			}
+
+			mustMap = append(mustMap, map[string]interface{}{
+				"match": map[string]interface{}{
+					"samples.variation.genotype.alleleLeft": map[string]interface{}{
+						"query": 0,
+					},
+				},
+			})
+
+		case gq.HOMOZYGOUS_ALTERNATE:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Homozygous,
+			}
+
+			rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
+				"range": map[string]interface{}{
+					"samples.variation.genotype.alleleLeft": map[string]interface{}{
+						"gte": 0,
+					},
+				},
+			})
 		}
+
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": zygosityMatchMap,
 		})
@@ -187,7 +219,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// Temp
 	resultString := res.String()
-	// fmt.Println(resultString)
+	fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
@@ -208,7 +240,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
-	reference string, alternative string, zygosity c.Zygosity) map[string]interface{} {
+	reference string, alternative string, genotype c.GenotypeQuery) map[string]interface{} {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -268,11 +300,42 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 		})
 	}
 
-	zygosityMatchMap := make(map[string]interface{})
-	if zygosity != z.Empty {
-		zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-			"query": zygosity,
+	if genotype != gq.UNCALLED {
+		zygosityMatchMap := make(map[string]interface{})
+
+		switch genotype {
+		case gq.HETEROZYGOUS:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Heterozygous,
+			}
+
+		case gq.HOMOZYGOUS_REFERENCE:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Homozygous,
+			}
+
+			mustMap = append(mustMap, map[string]interface{}{
+				"match": map[string]interface{}{
+					"samples.variation.genotype.alleleLeft": map[string]interface{}{
+						"query": 0,
+					},
+				},
+			})
+
+		case gq.HOMOZYGOUS_ALTERNATE:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Homozygous,
+			}
+
+			rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
+				"range": map[string]interface{}{
+					"samples.variation.genotype.alleleLeft": map[string]interface{}{
+						"gte": 0,
+					},
+				},
+			})
 		}
+
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": zygosityMatchMap,
 		})
