@@ -194,8 +194,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// DEBUG--
 	// Unmarshal or Decode the JSON to the interface.
-	myString := string(buf.Bytes()[:])
-	fmt.Println(myString)
+	// myString := string(buf.Bytes()[:])
+	// fmt.Println(myString)
 	// --
 
 	fmt.Printf("Query Start: %s\n", time.Now())
@@ -219,7 +219,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// Temp
 	resultString := res.String()
-	fmt.Println(resultString)
+	//fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
@@ -378,8 +378,8 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 
 	// DEBUG--
 	// Unmarshal or Decode the JSON to the interface.
-	myString := string(buf.Bytes()[:])
-	fmt.Println(myString)
+	// myString := string(buf.Bytes()[:])
+	// fmt.Println(myString)
 	// --
 
 	fmt.Printf("Query Start: %s\n", time.Now())
