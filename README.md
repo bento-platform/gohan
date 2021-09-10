@@ -269,12 +269,8 @@ Generalized Response Body Structure
 >                 {
 >                    "filter": `string`,
 >                    "pos": `number`,
->                    "ref": [
->                        `string`,  // an allele
->                    ],
->                    "alt": [
->                         `string`,  // an allele
->                    ],
+>                    "ref": `[]string`,  // list of alleles
+>                    "alt": `[]string`,  // list of alleles
 >                    "info": [
 >                        {
 >                            "id": `string`,
@@ -287,8 +283,17 @@ Generalized Response Body Structure
 >                    "id": `string`,
 >                    "samples": [
 >                        {
->                            "sampleId": `string`,
->                            "variation": `string`,
+>                            "id": `string`,
+>                            "variation": {
+>                                "genotype": {
+>                                    "phased": `boolean`,
+>                                    "alleleLeft": `number`,
+>                                    "alleleRight": `number`,
+>                                    "zygosity": `number` (0 : "Unknown" | 1 : "Homozygous" | 2 : "Heterozygous")
+>                                },
+>                                "genotypeProbability": `[]float` | null,
+>                                "phredScaleLikelyhood": `[]float` | null,
+>                            }
 >                        },
 >                        ...
 >                    ]
