@@ -430,6 +430,7 @@ func GetBucketsByKeyword(es *elasticsearch.Client, keyword string) map[string]in
 			"items": map[string]interface{}{
 				"terms": map[string]interface{}{
 					"field": keyword,
+					"size":  "10000", // increases the number of buckets returned (default is 10)
 				},
 			},
 		},
@@ -459,7 +460,7 @@ func GetBucketsByKeyword(es *elasticsearch.Client, keyword string) map[string]in
 
 	// Temp
 	resultString := res.String()
-	//fmt.Println(resultString)
+	fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
