@@ -2,6 +2,7 @@ package api
 
 import (
 	"api/models"
+	c "api/models/constants"
 	gq "api/models/constants/genotype-query"
 	z "api/models/constants/zygosity"
 	"encoding/json"
@@ -22,7 +23,7 @@ const (
 	IngestionRequestsPath                     string = "%s/variants/ingestion/requests"
 )
 
-func TestApiWithInvalidAuthenticationToken(t *testing.T) {
+func TestWithInvalidAuthenticationToken(t *testing.T) {
 	cfg := common.InitConfig()
 
 	request, _ := http.NewRequest("GET", cfg.Api.Url, nil)
@@ -46,14 +47,14 @@ func TestApiWithInvalidAuthenticationToken(t *testing.T) {
 	assert.Equal(t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET / Status: %s ; Should be %d", response.Status, shouldBe))
 }
 
-func TestApiVariantsOverview(t *testing.T) {
+func TestVariantsOverview(t *testing.T) {
 	cfg := common.InitConfig()
 
 	overviewJson := getVariantsOverview(t, cfg)
 	assert.NotNil(t, overviewJson)
 }
 
-func TestApiGetIngestionRequests(t *testing.T) {
+func TestGetIngestionRequests(t *testing.T) {
 	cfg := common.InitConfig()
 
 	request, _ := http.NewRequest("GET", fmt.Sprintf(IngestionRequestsPath, cfg.Api.Url), nil)
@@ -175,95 +176,68 @@ func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 	})
 }
 
-func TestApiCanGetHeterozygousSamples(t *testing.T) {
+func TestCanGetHeterozygousSamples(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "", string(gq.HETEROZYGOUS))
-
-	// assert that all of the responses include heterozygous sample sets
-	// - * accumulate all samples into a single list using the set of
-	//   SelectManyT's and the SelectT
-	// - ** iterate over each sample in the ForEachT
-
-	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
-		return From(resp.Data)
-	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
-		return From(data.Results)
-	}).SelectManyT(func(variant models.Variant) Query {
-		return From(variant.Samples)
-	}).SelectT(func(sample models.Sample) models.Sample {
-		return sample
-	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(t, sample.Id)
-		assert.NotEmpty(t, sample.Variation)
-		assert.NotEmpty(t, sample.Variation.Genotype)
-		assert.NotEmpty(t, sample.Variation.Genotype.Zygosity)
-
+	specificValidation := func(__t *testing.T, sample models.Sample) {
 		assert.True(t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
 		assert.True(t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
-	})
+	}
+
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
 }
 
-func TestApiCanGetHomozygousReferenceSamples(t *testing.T) {
+func TestCanGetHomozygousReferenceSamples(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "", string(gq.HOMOZYGOUS_REFERENCE))
-
-	// assert that all of the responses include heterozygous sample sets
-	// - * accumulate all samples into a single list using the set of
-	//   SelectManyT's and the SelectT
-	// - ** iterate over each sample in the ForEachT
-
-	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
-		return From(resp.Data)
-	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
-		return From(data.Results)
-	}).SelectManyT(func(variant models.Variant) Query {
-		return From(variant.Samples)
-	}).SelectT(func(sample models.Sample) models.Sample {
-		return sample
-	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(t, sample.Id)
-		assert.NotEmpty(t, sample.Variation)
-		assert.NotEmpty(t, sample.Variation.Genotype)
-		assert.NotEmpty(t, sample.Variation.Genotype.Zygosity)
-
-		assert.True(t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-		assert.True(t,
+	specificValidation := func(__t *testing.T, sample models.Sample) {
+		assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
+		assert.True(__t,
 			sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
 				sample.Variation.Genotype.AlleleLeft == 0)
-	})
+	}
+
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
 }
 
-func TestApiCanGetHomozygousAlternateSamples(t *testing.T) {
+func TestCanGetHomozygousAlternateSamples(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "", string(gq.HOMOZYGOUS_ALTERNATE))
-
-	// assert that all of the responses include heterozygous sample sets
-	// - * accumulate all samples into a single list using the set of
-	//   SelectManyT's and the SelectT
-	// - ** iterate over each sample in the ForEachT
-
-	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
-		return From(resp.Data)
-	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
-		return From(data.Results)
-	}).SelectManyT(func(variant models.Variant) Query {
-		return From(variant.Samples)
-	}).SelectT(func(sample models.Sample) models.Sample {
-		return sample
-	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(t, sample.Id)
-		assert.NotEmpty(t, sample.Variation)
-		assert.NotEmpty(t, sample.Variation.Genotype)
-		assert.NotEmpty(t, sample.Variation.Genotype.Zygosity)
-
-		assert.True(t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-		assert.True(t,
+	specificValidation := func(__t *testing.T, sample models.Sample) {
+		assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
+		assert.True(__t,
 			sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
 				sample.Variation.Genotype.AlleleLeft > 0)
-	})
+	}
+
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_ALTERNATE, specificValidation)
 }
 
 // -- Common utility functions for api tests
+func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, specificValidation func(__t *testing.T, sample models.Sample)) {
+
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, "", string(genotypeQuery))
+
+	// assert that all of the responses include heterozygous sample sets
+	// - * accumulate all samples into a single list using the set of
+	//   SelectManyT's and the SelectT
+	// - ** iterate over each sample in the ForEachT
+
+	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
+		return From(resp.Data)
+	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
+		return From(data.Results)
+	}).SelectManyT(func(variant models.Variant) Query {
+		return From(variant.Samples)
+	}).SelectT(func(sample models.Sample) models.Sample {
+		return sample
+	}).ForEachT(func(sample models.Sample) { // **
+		assert.NotEmpty(_t, sample.Id)
+		assert.NotEmpty(_t, sample.Variation)
+		assert.NotEmpty(_t, sample.Variation.Genotype)
+		assert.NotEmpty(_t, sample.Variation.Genotype.Zygosity)
+
+		specificValidation(_t, sample)
+	})
+}
+
 func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition string, genotype string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
 
 	if sortByPosition != "asc" && sortByPosition != "desc" {
