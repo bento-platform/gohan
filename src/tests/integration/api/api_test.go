@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"testing"
 	common "tests/common"
 
@@ -313,14 +314,27 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 	chromSampleIdCombinations := getChromsAndSampleIDs(overviewJson["chromosomes"], overviewJson["sampleIDs"])
 
 	allDtoResponses := []models.VariantsResponseDTO{}
-	for _, combination := range chromSampleIdCombinations {
-		chrom := combination[0]
-		sampleId := combination[1]
+	allDtoResponsesMux := sync.RWMutex{}
 
-		dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, genotype, _t, cfg)
-		assert.Equal(_t, 1, len(dto.Data))
-		allDtoResponses = append(allDtoResponses, dto)
+	var combWg sync.WaitGroup
+	for _, combination := range chromSampleIdCombinations {
+		combWg.Add(1)
+		go func(_wg *sync.WaitGroup, _combination []string) {
+			defer _wg.Done()
+
+			chrom := _combination[0]
+			sampleId := _combination[1]
+
+			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, genotype, _t, cfg)
+			assert.Equal(_t, 1, len(dto.Data))
+
+			allDtoResponsesMux.Lock()
+			allDtoResponses = append(allDtoResponses, dto)
+			allDtoResponsesMux.Unlock()
+		}(&combWg, combination)
 	}
+
+	combWg.Wait()
 
 	return allDtoResponses
 }
