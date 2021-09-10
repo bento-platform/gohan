@@ -2,6 +2,8 @@ package schemas
 
 import (
 	c "api/models/constants"
+	gq "api/models/constants/genotype-query"
+	so "api/models/constants/search"
 )
 
 type Schema map[string]interface{}
@@ -39,7 +41,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 			"enum":        []string{"GRCh38", "GRCh37", "NCBI36", "Other"},
 			"description": "Reference genome assembly ID.",
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 				"queryable":  "all",
 				"canNegate":  false,
 				"required":   true,
@@ -52,7 +54,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 			// TODO: Choices
 			"description": "Reference genome chromosome identifier (e.g. 17 or X)",
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 				"queryable":  "all",
 				"canNegate":  false,
 				"required":   true,
@@ -64,7 +66,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 			"type":        "integer",
 			"description": "1-indexed start location of the variant on the chromosome.",
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ, c.SEARCH_OP_LT, c.SEARCH_OP_LE, c.SEARCH_OP_GT, c.SEARCH_OP_GE},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ, so.SEARCH_OP_LT, so.SEARCH_OP_LE, so.SEARCH_OP_GT, so.SEARCH_OP_GE},
 				"queryable":  "all",
 				"canNegate":  false,
 				"required":   true,        // TODO: Shouldn't be "required" here; but should show up by default anyway
@@ -77,7 +79,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 			"description": ("1-indexed end location (exclusive) of the variant on the chromosome, in terms of the " +
 				"number of bases in the reference sequence for the variant."),
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ, c.SEARCH_OP_LT, c.SEARCH_OP_LE, c.SEARCH_OP_GT, c.SEARCH_OP_GE},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ, so.SEARCH_OP_LT, so.SEARCH_OP_LE, so.SEARCH_OP_GT, so.SEARCH_OP_GE},
 				"queryable":  "all",
 				"canNegate":  true,
 				"required":   false,
@@ -89,7 +91,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 			"type":        "string",
 			"description": "Reference base sequence for the variant.",
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 				"queryable":  "all",
 				"canNegate":  true,
 				"required":   false,
@@ -104,7 +106,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 				"type":        "string",
 				"description": "Alternate base sequence for the variant.",
 				"search": map[string]interface{}{
-					"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+					"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 					"queryable":  "all",
 					"canNegate":  true,
 					"required":   false,
@@ -141,7 +143,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 				"file_uri": map[string]interface{}{
 					"type": "string",
 					"search": map[string]interface{}{
-						"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+						"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 						"queryable":  "internal",
 						"canNegate":  true,
 						"required":   false,
@@ -170,7 +172,7 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 			"type":        "string",
 			"description": "Variant call sample ID.", // TODO: More detailed?
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 				"queryable":  "internal",
 				"canNegate":  true,
 				"required":   false,
@@ -185,7 +187,7 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 				"type":        []string{"string", "null"},
 				"description": "Variant call bases on a chromosome.",
 				"search": map[string]interface{}{
-					"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+					"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 					"queryable":  "all",
 					"canNegate":  true,
 					"required":   false,
@@ -203,21 +205,21 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 		"genotype_type": map[string]interface{}{
 			"type":        "string",
 			"description": "Variant call genotype type.",
-			"enum": []c.Genotype{
+			"enum": []c.GenotypeQuery{
 				// No call
-				c.GT_UNCALLED,
+				gq.UNCALLED,
 
 				// Haploid
-				c.GT_REFERENCE,
-				c.GT_ALTERNATE,
+				gq.REFERENCE,
+				gq.ALTERNATE,
 
 				// Diploid or higher
-				c.GT_HOMOZYGOUS_REFERENCE,
-				c.GT_HETEROZYGOUS,
-				c.GT_HOMOZYGOUS_ALTERNATE,
+				gq.HOMOZYGOUS_REFERENCE,
+				gq.HETEROZYGOUS,
+				gq.HOMOZYGOUS_ALTERNATE,
 			},
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 				"queryable":  "all",
 				"canNegate":  true,
 				"required":   true, // TODO: Shouldn't be "required" here; but should show up by default anyway
@@ -229,7 +231,7 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 			"type":        "boolean",
 			"description": "Whether the called genotype is phased.",
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 				"queryable":  "all",
 				"canNegate":  true,
 				"required":   false,
@@ -241,7 +243,7 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 			"type":        []string{"number", "null"},
 			"description": "Genotype phase set, if any.",
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
 				"queryable":  "internal",
 				"canNegate":  true,
 				"required":   false,
@@ -253,7 +255,7 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 			"type":        []string{"integer", "null"},
 			"description": "Read depth at this position for this sample.",
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{c.SEARCH_OP_EQ, c.SEARCH_OP_GT, c.SEARCH_OP_GE, c.SEARCH_OP_LT, c.SEARCH_OP_LE},
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ, so.SEARCH_OP_GT, so.SEARCH_OP_GE, so.SEARCH_OP_LT, so.SEARCH_OP_LE},
 				"queryable":  "all",
 				"canNegate":  true,
 				"required":   false,
