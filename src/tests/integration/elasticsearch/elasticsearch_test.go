@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestElasticsearchSecurityWithoutBasicAuth(t *testing.T) {
+func TestSecurityWithoutBasicAuth(t *testing.T) {
 	cfg := common.InitConfig()
 
 	request, requestErr := http.NewRequest("GET", cfg.Elasticsearch.Url, nil)
@@ -27,7 +27,7 @@ func TestElasticsearchSecurityWithoutBasicAuth(t *testing.T) {
 	assert.Equal(t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Elasticsearch GET / Status: %s ; Should be %d", response.Status, shouldBe))
 }
 
-func TestElasticsearchSecurityWithBasicAuth(t *testing.T) {
+func TestSecurityWithBasicAuth(t *testing.T) {
 	cfg := common.InitConfig()
 
 	request, requestErr := http.NewRequest("GET", cfg.Elasticsearch.Url, nil)

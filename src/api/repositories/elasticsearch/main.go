@@ -10,6 +10,10 @@ import (
 	"net/http"
 	"time"
 
+	c "api/models/constants"
+	gq "api/models/constants/genotype-query"
+	z "api/models/constants/zygosity"
+
 	"github.com/elastic/go-elasticsearch"
 )
 
@@ -18,7 +22,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	variantId string, sampleId string,
 	reference string, alternative string,
 	size int, sortByPosition string,
-	includeSamplesInResultSet bool) map[string]interface{} {
+	includeSamplesInResultSet bool, genotype c.GenotypeQuery) map[string]interface{} {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -38,7 +42,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	}
 
 	if sampleId != "" {
-		matchMap["samples.sampleId"] = map[string]interface{}{
+		matchMap["samples.id"] = map[string]interface{}{
 			"query": sampleId,
 		}
 	}
@@ -75,6 +79,47 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 					"gte": lowerBound,
 				},
 			},
+		})
+	}
+
+	if genotype != gq.UNCALLED {
+		zygosityMatchMap := make(map[string]interface{})
+
+		switch genotype {
+		case gq.HETEROZYGOUS:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Heterozygous,
+			}
+
+		case gq.HOMOZYGOUS_REFERENCE:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Homozygous,
+			}
+
+			mustMap = append(mustMap, map[string]interface{}{
+				"match": map[string]interface{}{
+					"samples.variation.genotype.alleleLeft": map[string]interface{}{
+						"query": 0,
+					},
+				},
+			})
+
+		case gq.HOMOZYGOUS_ALTERNATE:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Homozygous,
+			}
+
+			rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
+				"range": map[string]interface{}{
+					"samples.variation.genotype.alleleLeft": map[string]interface{}{
+						"gte": 0,
+					},
+				},
+			})
+		}
+
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": zygosityMatchMap,
 		})
 	}
 
@@ -149,8 +194,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// DEBUG--
 	// Unmarshal or Decode the JSON to the interface.
-	myString := string(buf.Bytes()[:])
-	fmt.Println(myString)
+	// myString := string(buf.Bytes()[:])
+	// fmt.Println(myString)
 	// --
 
 	fmt.Printf("Query Start: %s\n", time.Now())
@@ -174,7 +219,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// Temp
 	resultString := res.String()
-	// fmt.Println(resultString)
+	//fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface
@@ -195,7 +240,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
-	reference string, alternative string) map[string]interface{} {
+	reference string, alternative string, genotype c.GenotypeQuery) map[string]interface{} {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -215,7 +260,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 	}
 
 	if sampleId != "" {
-		matchMap["samples.sampleId"] = map[string]interface{}{
+		matchMap["samples.id"] = map[string]interface{}{
 			"query": sampleId,
 		}
 	}
@@ -252,6 +297,47 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 					"gte": lowerBound,
 				},
 			},
+		})
+	}
+
+	if genotype != gq.UNCALLED {
+		zygosityMatchMap := make(map[string]interface{})
+
+		switch genotype {
+		case gq.HETEROZYGOUS:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Heterozygous,
+			}
+
+		case gq.HOMOZYGOUS_REFERENCE:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Homozygous,
+			}
+
+			mustMap = append(mustMap, map[string]interface{}{
+				"match": map[string]interface{}{
+					"samples.variation.genotype.alleleLeft": map[string]interface{}{
+						"query": 0,
+					},
+				},
+			})
+
+		case gq.HOMOZYGOUS_ALTERNATE:
+			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.Homozygous,
+			}
+
+			rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
+				"range": map[string]interface{}{
+					"samples.variation.genotype.alleleLeft": map[string]interface{}{
+						"gte": 0,
+					},
+				},
+			})
+		}
+
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": zygosityMatchMap,
 		})
 	}
 
@@ -292,8 +378,8 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 
 	// DEBUG--
 	// Unmarshal or Decode the JSON to the interface.
-	myString := string(buf.Bytes()[:])
-	fmt.Println(myString)
+	// myString := string(buf.Bytes()[:])
+	// fmt.Println(myString)
 	// --
 
 	fmt.Printf("Query Start: %s\n", time.Now())
@@ -344,6 +430,7 @@ func GetBucketsByKeyword(es *elasticsearch.Client, keyword string) map[string]in
 			"items": map[string]interface{}{
 				"terms": map[string]interface{}{
 					"field": keyword,
+					"size":  "10000", // increases the number of buckets returned (default is 10)
 				},
 			},
 		},
@@ -373,7 +460,7 @@ func GetBucketsByKeyword(es *elasticsearch.Client, keyword string) map[string]in
 
 	// Temp
 	resultString := res.String()
-	//fmt.Println(resultString)
+	fmt.Println(resultString)
 	// --
 
 	// Declared an empty interface

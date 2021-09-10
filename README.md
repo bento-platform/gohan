@@ -210,12 +210,13 @@ Requests
 >   - chromosome : **number**
 >   - lowerBound : **number**
 >   - upperBound : **number**
->   - reference : **string** `an allele ( "A" | "C" | "G" | "T"  or some combination thereof)`
+>   - reference : **string** `an allele ( "A" | "C" | "G" | "T"  or some combination thereof )`
 >   - alternative : **string** `an allele`
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 >   - includeSamplesInResultSet : **boolean** `(true | false)`
+>   - genotype : **string** `( "HOMOZYGOUS" | "HETEROZYGOUS_REFERENCE" | "HETEROZYGOUS_ALTERNATE" )`
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
@@ -225,6 +226,7 @@ Requests
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
+>   - genotype : **string** `( "HOMOZYGOUS" | "HETEROZYGOUS_REFERENCE" | "HETEROZYGOUS_ALTERNATE" )`
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
@@ -237,6 +239,7 @@ Requests
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 >   - includeSamplesInResultSet : **boolean** `(true | false)`
+>   - genotype : **string** `( "HOMOZYGOUS" | "HETEROZYGOUS_REFERENCE" | "HETEROZYGOUS_ALTERNATE" )`
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
@@ -246,6 +249,7 @@ Requests
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
+>   - genotype : **string** `( "HOMOZYGOUS" | "HETEROZYGOUS_REFERENCE" | "HETEROZYGOUS_ALTERNATE" )`
 >
 
 <br />
@@ -265,12 +269,8 @@ Generalized Response Body Structure
 >                 {
 >                    "filter": `string`,
 >                    "pos": `number`,
->                    "ref": [
->                        `string`,  // an allele
->                    ],
->                    "alt": [
->                         `string`,  // an allele
->                    ],
+>                    "ref": `[]string`,  // list of alleles
+>                    "alt": `[]string`,  // list of alleles
 >                    "info": [
 >                        {
 >                            "id": `string`,
@@ -283,8 +283,17 @@ Generalized Response Body Structure
 >                    "id": `string`,
 >                    "samples": [
 >                        {
->                            "sampleId": `string`,
->                            "variation": `string`,
+>                            "id": `string`,
+>                            "variation": {
+>                                "genotype": {
+>                                    "phased": `boolean`,
+>                                    "alleleLeft": `number`,
+>                                    "alleleRight": `number`,
+>                                    "zygosity": `number` (0 : "Unknown" | 1 : "Homozygous" | 2 : "Heterozygous")
+>                                },
+>                                "genotypeProbability": `[]float` | null,
+>                                "phredScaleLikelyhood": `[]float` | null,
+>                            }
 >                        },
 >                        ...
 >                    ]

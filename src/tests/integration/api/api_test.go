@@ -2,10 +2,14 @@ package api
 
 import (
 	"api/models"
+	c "api/models/constants"
+	gq "api/models/constants/genotype-query"
+	z "api/models/constants/zygosity"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"testing"
 	common "tests/common"
 
@@ -20,7 +24,7 @@ const (
 	IngestionRequestsPath                     string = "%s/variants/ingestion/requests"
 )
 
-func TestApiWithInvalidAuthenticationToken(t *testing.T) {
+func TestWithInvalidAuthenticationToken(t *testing.T) {
 	cfg := common.InitConfig()
 
 	request, _ := http.NewRequest("GET", cfg.Api.Url, nil)
@@ -44,14 +48,14 @@ func TestApiWithInvalidAuthenticationToken(t *testing.T) {
 	assert.Equal(t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET / Status: %s ; Should be %d", response.Status, shouldBe))
 }
 
-func TestApiVariantsOverview(t *testing.T) {
+func TestVariantsOverview(t *testing.T) {
 	cfg := common.InitConfig()
 
 	overviewJson := getVariantsOverview(t, cfg)
 	assert.NotNil(t, overviewJson)
 }
 
-func TestApiGetIngestionRequests(t *testing.T) {
+func TestGetIngestionRequests(t *testing.T) {
 	cfg := common.InitConfig()
 
 	request, _ := http.NewRequest("GET", fmt.Sprintf(IngestionRequestsPath, cfg.Api.Url), nil)
@@ -84,7 +88,7 @@ func TestApiGetIngestionRequests(t *testing.T) {
 
 func TestCanGetVariantsWithoutSamplesInResultset(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "")
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "", string(gq.UNCALLED))
 
 	// assert that all responses from all combinations have no results
 	for _, dtoResponse := range allDtoResponses {
@@ -95,7 +99,7 @@ func TestCanGetVariantsWithoutSamplesInResultset(t *testing.T) {
 
 func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "")
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "", string(gq.UNCALLED))
 
 	// assert that all of the responses include valid sample sets
 	// - * accumulate all samples into a single list using the set of
@@ -111,14 +115,14 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 	}).SelectT(func(sample models.Sample) models.Sample {
 		return sample
 	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(t, sample.SampleId)
+		assert.NotEmpty(t, sample.Id)
 		assert.NotEmpty(t, sample.Variation)
 	})
 }
 
 func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
 	// retrieve responses in ascending order
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "asc")
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "asc", string(gq.UNCALLED))
 
 	// assert the dto response slice is plentiful
 	assert.NotNil(t, allDtoResponses)
@@ -147,7 +151,7 @@ func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
 
 func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 	// retrieve responses in descending order
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "desc")
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "desc", string(gq.UNCALLED))
 
 	// assert the dto response slice is plentiful
 	assert.NotNil(t, allDtoResponses)
@@ -173,14 +177,75 @@ func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 	})
 }
 
+func TestCanGetHeterozygousSamples(t *testing.T) {
+
+	specificValidation := func(__t *testing.T, sample models.Sample) {
+		assert.True(t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
+		assert.True(t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
+	}
+
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
+}
+
+func TestCanGetHomozygousReferenceSamples(t *testing.T) {
+
+	specificValidation := func(__t *testing.T, sample models.Sample) {
+		assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
+		assert.True(__t,
+			sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
+				sample.Variation.Genotype.AlleleLeft == 0)
+	}
+
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
+}
+
+func TestCanGetHomozygousAlternateSamples(t *testing.T) {
+
+	specificValidation := func(__t *testing.T, sample models.Sample) {
+		assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
+		assert.True(__t,
+			sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
+				sample.Variation.Genotype.AlleleLeft > 0)
+	}
+
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_ALTERNATE, specificValidation)
+}
+
 // -- Common utility functions for api tests
-func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
+func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, specificValidation func(__t *testing.T, sample models.Sample)) {
+
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, "", string(genotypeQuery))
+
+	// assert that all of the responses include heterozygous sample sets
+	// - * accumulate all samples into a single list using the set of
+	//   SelectManyT's and the SelectT
+	// - ** iterate over each sample in the ForEachT
+
+	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
+		return From(resp.Data)
+	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
+		return From(data.Results)
+	}).SelectManyT(func(variant models.Variant) Query {
+		return From(variant.Samples)
+	}).SelectT(func(sample models.Sample) models.Sample {
+		return sample
+	}).ForEachT(func(sample models.Sample) { // **
+		assert.NotEmpty(_t, sample.Id)
+		assert.NotEmpty(_t, sample.Variation)
+		assert.NotEmpty(_t, sample.Variation.Genotype)
+		assert.NotEmpty(_t, sample.Variation.Genotype.Zygosity)
+
+		specificValidation(_t, sample)
+	})
+}
+
+func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition string, genotype string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
 
 	if sortByPosition != "asc" && sortByPosition != "desc" {
 		sortByPosition = "" // default to empty (will trigger ascending)
 	}
 
-	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t&sortByPosition=%s", chromosome, sampleId, includeSamples, sortByPosition)
+	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t&sortByPosition=%s&genotype=%s", chromosome, sampleId, includeSamples, sortByPosition, genotype)
 	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
 
 	return makeGetVariantsCall(url, _t)
@@ -239,7 +304,7 @@ func getChromsAndSampleIDs(chromosomeStruct interface{}, sampleIdsStruct interfa
 	return allCombinations
 }
 
-func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool, sortByPosition string) []models.VariantsResponseDTO {
+func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool, sortByPosition string, genotype string) []models.VariantsResponseDTO {
 	cfg := common.InitConfig()
 
 	// todo: deduplicate
@@ -249,14 +314,27 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 	chromSampleIdCombinations := getChromsAndSampleIDs(overviewJson["chromosomes"], overviewJson["sampleIDs"])
 
 	allDtoResponses := []models.VariantsResponseDTO{}
-	for _, combination := range chromSampleIdCombinations {
-		chrom := combination[0]
-		sampleId := combination[1]
+	allDtoResponsesMux := sync.RWMutex{}
 
-		dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, _t, cfg)
-		assert.Equal(_t, 1, len(dto.Data))
-		allDtoResponses = append(allDtoResponses, dto)
+	var combWg sync.WaitGroup
+	for _, combination := range chromSampleIdCombinations {
+		combWg.Add(1)
+		go func(_wg *sync.WaitGroup, _combination []string) {
+			defer _wg.Done()
+
+			chrom := _combination[0]
+			sampleId := _combination[1]
+
+			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, genotype, _t, cfg)
+			assert.Equal(_t, 1, len(dto.Data))
+
+			allDtoResponsesMux.Lock()
+			allDtoResponses = append(allDtoResponses, dto)
+			allDtoResponsesMux.Unlock()
+		}(&combWg, combination)
 	}
+
+	combWg.Wait()
 
 	return allDtoResponses
 }
