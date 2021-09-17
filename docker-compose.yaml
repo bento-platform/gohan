@@ -17,15 +17,15 @@ services:
       - "80:80"
       - "443:443"  
 
-  api-go-alpine:
+  api:
     build:
       context: $PWD/src/api
       args:
-        BASE_IMAGE: ${GOHAN_API_ALPINE_BASE_IMAGE}
+        BASE_IMAGE: ${GOHAN_API_BASE_IMAGE}
         API_EXECUTABLE_FILENAME: api_linux_amd64
         # also passed in as an ENV from within Dockerfile :
         GOHAN_API_INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT} 
-    image: ${GOHAN_API_GO_IMAGE}:${GOHAN_API_GO_VERSION}
+    image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
     container_name: ${GOHAN_API_CONTAINER_NAME}
     networks:
       - bridge-net
