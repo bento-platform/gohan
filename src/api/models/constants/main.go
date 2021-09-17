@@ -8,5 +8,6 @@ package constants
 */
 type GenotypeQuery string
 type SearchOperation string
+type SortDirection string
 
 type Zygosity int

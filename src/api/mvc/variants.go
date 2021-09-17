@@ -17,6 +17,7 @@ import (
 	"api/models"
 	"api/models/constants"
 	gq "api/models/constants/genotype-query"
+	s "api/models/constants/sort"
 	"api/models/ingest"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
@@ -322,7 +323,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		}
 	}
 
-	sortByPosition := c.QueryParam("sortByPosition")
+	sortByPosition := s.CastToSortDirection(c.QueryParam("sortByPosition"))
 
 	includeSamplesInResultSetQP := c.QueryParam("includeSamplesInResultSet")
 	var (
