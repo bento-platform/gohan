@@ -44,7 +44,7 @@ build-gateway: stop-gateway clean-gateway
 	echo "-- Building Gateway Container --"
 	docker-compose -f docker-compose.yaml build gateway
 
-build-api-go-alpine-binaries:
+build-api-binaries:
 	@echo "-- Building Golang-Api-Alpine Binaries --"
 	
 	cd src/api && \
@@ -55,10 +55,10 @@ build-api-go-alpine-binaries:
 	cd ../.. && \
 	upx --brute bin/api_${GOOS}_${GOARCH}
 
-build-api-go-alpine-container: stop-api-go-alpine clean-api-go-alpine build-api-go-alpine-binaries
+build-api-container: stop-api clean-api build-api-binaries
 	@echo "-- Building Golang-Api-Alpine Container --"
 	cp bin/api_${GOOS}_${GOARCH} src/api
-	docker-compose -f docker-compose.yaml build api-go-alpine
+	docker-compose -f docker-compose.yaml build api
 	rm src/api/api_${GOOS}_${GOARCH}
 
 build-drs: stop-drs clean-drs
@@ -86,15 +86,7 @@ clean-gateway:
 	docker rm ${GOHAN_GATEWAY_CONTAINER_NAME} --force; \
 	docker rmi ${GOHAN_GATEWAY_IMAGE}:${GOHAN_GATEWAY_VERSION} --force;
 
-# clean-api:
-# 	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
-# 	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
-
-# clean-api-alpine:
-# 	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
-# 	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
-
-clean-api-go-alpine:
+clean-api:
 	rm -f bin/api_${GOOS}_${GOARCH}
 	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
 	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
@@ -106,6 +98,7 @@ clean-drs:
 clean-authz:
 	docker rm ${GOHAN_AUTHZ_OPA_CONTAINER_NAME} --force; \
 	docker rmi ${GOHAN_AUTHZ_OPA_IMAGE}:${GOHAN_AUTHZ_OPA_IMAGE_VERSION} --force;
+
 
 
 ## -- WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
