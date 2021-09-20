@@ -18,7 +18,9 @@ type Variant struct {
 	Info   []Info   `json:"info"`
 
 	Samples []Sample `json:"samples"`
-	FileId  string   `json:"fileId"`
+
+	FileId     string       `json:"fileId"`
+	AssemblyId c.AssemblyId `json:"assemblyId"`
 }
 
 type Info struct {

@@ -16,6 +16,7 @@ import (
 	"api/contexts"
 	"api/models"
 	"api/models/constants"
+	a "api/models/constants/assembly-id"
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	"api/models/ingest"
@@ -92,6 +93,8 @@ func VariantsIngest(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
 		}
 	}
+
+	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
 
 	startTime := time.Now()
 
@@ -214,7 +217,7 @@ func VariantsIngest(c echo.Context) error {
 			}
 
 			// ---	 load back into memory and process
-			ingestionService.ProcessVcf(vcfFilePath, drsFileId)
+			ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId)
 
 			// ---   delete the temporary vcf file
 			os.Remove(vcfFilePath)
@@ -287,6 +290,10 @@ func GetVariantsOverview(c echo.Context) error {
 	wg.Add(1)
 	go callGetBucketsByKeyword("sampleIDs", "samples.id.keyword", &wg)
 
+	// get distribution of assembly IDs
+	wg.Add(1)
+	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
+
 	wg.Wait()
 
 	return c.JSON(http.StatusOK, resultsMap)
@@ -305,7 +312,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
 	sizeQP := c.QueryParam("size")
@@ -363,7 +370,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
 					size, sortByPosition,
-					includeSamplesInResultSet, genotype)
+					includeSamplesInResultSet, genotype, assemblyId)
 			} else {
 				// implied sampleId query
 				variantRespDataModel.SampleId = _id
@@ -375,7 +382,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					"", _id, // note : "" is for variantId
 					reference, alternative,
 					size, sortByPosition,
-					includeSamplesInResultSet, genotype)
+					includeSamplesInResultSet, genotype, assemblyId)
 			}
 
 			// query for each id
@@ -420,7 +427,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
 	respDTO := models.VariantsResponseDTO{}
 	respDTOMux := sync.RWMutex{}
@@ -444,7 +451,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
-					reference, alternative, genotype)
+					reference, alternative, genotype, assemblyId)
 			} else {
 				// implied sampleId query
 				variantRespDataModel.SampleId = _id
@@ -454,7 +461,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
-					reference, alternative, genotype)
+					reference, alternative, genotype, assemblyId)
 			}
 
 			variantRespDataModel.Count = int(docs["count"].(float64))
@@ -474,7 +481,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 	return c.JSON(http.StatusOK, respDTO)
 }
 
-func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, constants.GenotypeQuery) {
+func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, constants.GenotypeQuery, constants.AssemblyId) {
 	es := c.(*contexts.GohanContext).Es7Client
 
 	chromosome := c.QueryParam("chromosome")
@@ -519,5 +526,11 @@ func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 		}
 	}
 
-	return es, chromosome, lowerBound, upperBound, reference, alternative, genotype
+	assemblyId := a.Unknown
+	assemblyIdQP := c.QueryParam("assemblyId")
+	if len(assemblyIdQP) > 0 && a.IsKnownAssemblyId(assemblyIdQP) {
+		assemblyId = a.CastToAssemblyId(assemblyIdQP)
+	}
+
+	return es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId
 }
