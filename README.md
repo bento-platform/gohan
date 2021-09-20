@@ -388,7 +388,7 @@ Local Release:
 &nbsp;From the project root, run 
 
 ```
-make build-api-go-alpine-binaries
+make build-api-binaries
 ```
 
 
@@ -427,8 +427,8 @@ Containerized Alpine Release:
 &nbsp;When ready, build the `docker image` and spawn the `container` by running
 
 ```
-make build-api-go-alpine-container
-make run-api-go-alpine
+make build-api-container
+make run-api
 ```
 
 &nbsp;and the `docker-compose.yaml` file will handle the configuration.
@@ -445,7 +445,7 @@ All in all, run
 make run-elasticsearch 
 make run-drs
 make build-gateway && make run-gateway 
-make build-api-go-alpine && make run-api-go-alpine
+make build-api && make run-api
 
 # and optionally
 make run-kibana

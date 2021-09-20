@@ -17,8 +17,10 @@ func MandateCalibratedBounds(next echo.HandlerFunc) echo.HandlerFunc {
 			upperBoundPointer *int
 		)
 
+		// check for a 'lowerBound' query paramter
 		lowerBoundQP := c.QueryParam("lowerBound")
 		if len(lowerBoundQP) > 0 {
+			// try to convert to an integer
 			lb, conversionErr := strconv.Atoi(lowerBoundQP)
 			if conversionErr == nil {
 				lowerBound = lb
@@ -26,8 +28,10 @@ func MandateCalibratedBounds(next echo.HandlerFunc) echo.HandlerFunc {
 			}
 		}
 
+		// check for an 'upperBoundQP' query paramter
 		upperBoundQP := c.QueryParam("upperBound")
 		if len(upperBoundQP) > 0 {
+			// try to convert to an integer
 			ub, conversionErr := strconv.Atoi(upperBoundQP)
 			if conversionErr == nil {
 				upperBound = ub

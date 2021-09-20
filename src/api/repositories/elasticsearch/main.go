@@ -12,6 +12,7 @@ import (
 
 	c "api/models/constants"
 	gq "api/models/constants/genotype-query"
+	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
 
 	"github.com/elastic/go-elasticsearch"
@@ -21,7 +22,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string,
-	size int, sortByPosition string,
+	size int, sortByPosition c.SortDirection,
 	includeSamplesInResultSet bool, genotype c.GenotypeQuery) map[string]interface{} {
 
 	// begin building the request body.
@@ -163,28 +164,14 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	}
 
 	// set up sorting
-	sortDirection := "asc"
-	if sortByPosition != "" {
-		switch sortByPosition {
-		case "asc":
-			fmt.Println("Already set 'sortByPosition' keyword 'asc' to query")
-			break
-		case "desc":
-			fmt.Println("Setting 'sortByPosition' keyword 'desc' to query")
-			sortDirection = "desc"
-			break
-		default:
-			fmt.Printf("Found unknown 'sortByPosition' keyword : %s -- ignoring\n", sortByPosition)
-			break
-		}
-
-	} else {
-		fmt.Println("Found empty 'sortByPosition' keyword -- defaulting to 'asc'")
+	if sortByPosition == s.Undefined {
+		// default to ascending order
+		sortByPosition = s.Ascending
 	}
 
 	// append sorting components
 	query["sort"] = map[string]string{
-		"pos": sortDirection,
+		"pos": string(sortByPosition),
 	}
 
 	// encode the query
