@@ -290,6 +290,10 @@ func GetVariantsOverview(c echo.Context) error {
 	wg.Add(1)
 	go callGetBucketsByKeyword("sampleIDs", "samples.id.keyword", &wg)
 
+	// get distribution of assembly IDs
+	wg.Add(1)
+	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
+
 	wg.Wait()
 
 	return c.JSON(http.StatusOK, resultsMap)
