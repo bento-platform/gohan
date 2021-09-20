@@ -1,6 +1,7 @@
 package models
 
 import (
+	"api/models/constants"
 	c "api/models/constants"
 )
 
@@ -18,7 +19,9 @@ type Variant struct {
 	Info   []Info   `json:"info"`
 
 	Samples []Sample `json:"samples"`
-	FileId  string   `json:"fileId"`
+
+	FileId     string               `json:"fileId"`
+	AssemblyId constants.AssemblyId `json:"assemblyId"`
 }
 
 type Info struct {
