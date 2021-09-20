@@ -3,6 +3,7 @@ package api
 import (
 	"api/models"
 	c "api/models/constants"
+	a "api/models/constants/assembly-id"
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
@@ -95,7 +96,6 @@ func TestCanGetVariantsWithoutSamplesInResultset(t *testing.T) {
 	for _, dtoResponse := range allDtoResponses {
 		firstDataPointResults := dtoResponse.Data[0].Results
 		assert.Nil(t, firstDataPointResults[0].Samples)
-
 	}
 }
 
@@ -241,9 +241,9 @@ func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQ
 	})
 }
 
-func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition c.SortDirection, genotype string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
+func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition c.SortDirection, genotype string, assemblyId c.AssemblyId, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
 
-	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t&sortByPosition=%s&genotype=%s", chromosome, sampleId, includeSamples, sortByPosition, genotype)
+	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t&sortByPosition=%s&genotype=%s&assemblyId=%s", chromosome, sampleId, includeSamples, sortByPosition, genotype, assemblyId)
 	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
 
 	return makeGetVariantsCall(url, _t)
@@ -290,12 +290,14 @@ func getVariantsOverview(_t *testing.T, _cfg *models.Config) map[string]interfac
 	return overviewRespJson
 }
 
-func getChromsAndSampleIDs(chromosomeStruct interface{}, sampleIdsStruct interface{}) [][]string {
+func getOverviewResultCombinations(chromosomeStruct interface{}, sampleIdsStruct interface{}, assemblyIdsStruct interface{}) [][]string {
 	var allCombinations = [][]string{}
 
 	for i, _ := range chromosomeStruct.(map[string]interface{}) {
 		for j, _ := range sampleIdsStruct.(map[string]interface{}) {
-			allCombinations = append(allCombinations, []string{i, j})
+			for k, _ := range assemblyIdsStruct.(map[string]interface{}) {
+				allCombinations = append(allCombinations, []string{i, j, k})
+			}
 		}
 	}
 
@@ -309,21 +311,22 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 	overviewJson := getVariantsOverview(_t, cfg)
 	assert.NotNil(_t, overviewJson)
 
-	chromSampleIdCombinations := getChromsAndSampleIDs(overviewJson["chromosomes"], overviewJson["sampleIDs"])
+	overviewCombinations := getOverviewResultCombinations(overviewJson["chromosomes"], overviewJson["sampleIDs"], overviewJson["assemblyIDs"])
 
 	allDtoResponses := []models.VariantsResponseDTO{}
 	allDtoResponsesMux := sync.RWMutex{}
 
 	var combWg sync.WaitGroup
-	for _, combination := range chromSampleIdCombinations {
+	for _, combination := range overviewCombinations {
 		combWg.Add(1)
 		go func(_wg *sync.WaitGroup, _combination []string) {
 			defer _wg.Done()
 
 			chrom := _combination[0]
 			sampleId := _combination[1]
+			assemblyId := a.CastToAssemblyId(_combination[2])
 
-			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, genotype, _t, cfg)
+			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, genotype, assemblyId, _t, cfg)
 			assert.Equal(_t, 1, len(dto.Data))
 
 			allDtoResponsesMux.Lock()
