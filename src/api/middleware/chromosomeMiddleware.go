@@ -7,6 +7,9 @@ import (
 	"github.com/labstack/echo"
 )
 
+/*
+	Echo middleware to ensure a valid `chromosome` HTTP query parameter was provided
+*/
 func MandateChromosomeAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// check for chromosome query parameter
@@ -16,6 +19,7 @@ func MandateChromosomeAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, "Missing 'chromosome' query parameter for querying!")
 		}
 
+		// verify:
 		i, conversionErr := strconv.Atoi(chromQP)
 		if conversionErr != nil {
 			// if invalid chromosome

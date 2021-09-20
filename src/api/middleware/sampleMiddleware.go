@@ -7,6 +7,9 @@ import (
 	"github.com/labstack/echo"
 )
 
+/*
+	Echo middleware to ensure a singular `id` HTTP query parameter was provided
+*/
 func MandateSampleIdsSingularAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// check for id query parameter
@@ -20,6 +23,9 @@ func MandateSampleIdsSingularAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+/*
+	Echo middleware to ensure a pluralized `id` (spelled `ids`) HTTP query parameter was provided
+*/
 func MandateSampleIdsPluralAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// check for id's query parameter

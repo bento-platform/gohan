@@ -1,9 +1,13 @@
 package constants
 
-type enumString string
-type enumInt int
+/*
+	Defines a set of base level
+	constants and enums to be used
+	throughout Gohan and it's
+	associated services.
+*/
+type GenotypeQuery string
+type SearchOperation string
+type SortDirection string
 
-type GenotypeQuery enumString
-type SearchOperation enumString
-
-type Zygosity enumInt
+type Zygosity int

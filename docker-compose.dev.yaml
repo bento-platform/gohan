@@ -1,12 +1,12 @@
 version: '2.4'
 
 services:
-    api-go-alpine:
+    api:
         ports:
             - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
         extends:
             file: docker-compose.yaml
-            service: api-go-alpine
+            service: api
 
 
     elasticsearch:

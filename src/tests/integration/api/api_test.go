@@ -4,6 +4,7 @@ import (
 	"api/models"
 	c "api/models/constants"
 	gq "api/models/constants/genotype-query"
+	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
 	"encoding/json"
 	"fmt"
@@ -88,18 +89,19 @@ func TestGetIngestionRequests(t *testing.T) {
 
 func TestCanGetVariantsWithoutSamplesInResultset(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "", string(gq.UNCALLED))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Undefined, string(gq.UNCALLED))
 
 	// assert that all responses from all combinations have no results
 	for _, dtoResponse := range allDtoResponses {
 		firstDataPointResults := dtoResponse.Data[0].Results
 		assert.Nil(t, firstDataPointResults[0].Samples)
+
 	}
 }
 
 func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, "", string(gq.UNCALLED))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, s.Undefined, string(gq.UNCALLED))
 
 	// assert that all of the responses include valid sample sets
 	// - * accumulate all samples into a single list using the set of
@@ -122,7 +124,7 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 
 func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
 	// retrieve responses in ascending order
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "asc", string(gq.UNCALLED))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Ascending, string(gq.UNCALLED))
 
 	// assert the dto response slice is plentiful
 	assert.NotNil(t, allDtoResponses)
@@ -151,7 +153,7 @@ func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
 
 func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 	// retrieve responses in descending order
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, "desc", string(gq.UNCALLED))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Descending, string(gq.UNCALLED))
 
 	// assert the dto response slice is plentiful
 	assert.NotNil(t, allDtoResponses)
@@ -214,7 +216,7 @@ func TestCanGetHomozygousAlternateSamples(t *testing.T) {
 // -- Common utility functions for api tests
 func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, specificValidation func(__t *testing.T, sample models.Sample)) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, "", string(genotypeQuery))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, string(genotypeQuery))
 
 	// assert that all of the responses include heterozygous sample sets
 	// - * accumulate all samples into a single list using the set of
@@ -239,11 +241,7 @@ func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQ
 	})
 }
 
-func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition string, genotype string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
-
-	if sortByPosition != "asc" && sortByPosition != "desc" {
-		sortByPosition = "" // default to empty (will trigger ascending)
-	}
+func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition c.SortDirection, genotype string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
 
 	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t&sortByPosition=%s&genotype=%s", chromosome, sampleId, includeSamples, sortByPosition, genotype)
 	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
@@ -304,7 +302,7 @@ func getChromsAndSampleIDs(chromosomeStruct interface{}, sampleIdsStruct interfa
 	return allCombinations
 }
 
-func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool, sortByPosition string, genotype string) []models.VariantsResponseDTO {
+func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool, sortByPosition c.SortDirection, genotype string) []models.VariantsResponseDTO {
 	cfg := common.InitConfig()
 
 	// todo: deduplicate
