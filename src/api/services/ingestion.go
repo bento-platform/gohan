@@ -229,7 +229,7 @@ func (i *IngestionService) UploadVcfGzToDrs(gzippedFilePath string, gzipStream *
 	return id
 }
 
-func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string) {
+func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, assemblyId constants.AssemblyId) {
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
@@ -277,6 +277,7 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string) {
 			tmpVariantMapMutex := sync.RWMutex{}
 
 			tmpVariant["fileId"] = drsFileId
+			tmpVariant["assemblyId"] = assemblyId
 
 			var rowWg sync.WaitGroup
 			rowWg.Add(len(rowComponents))

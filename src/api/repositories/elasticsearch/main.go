@@ -23,7 +23,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	variantId string, sampleId string,
 	reference string, alternative string,
 	size int, sortByPosition c.SortDirection,
-	includeSamplesInResultSet bool, genotype c.GenotypeQuery) map[string]interface{} {
+	includeSamplesInResultSet bool,
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) map[string]interface{} {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -58,6 +59,16 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 		matchMap["ref"] = map[string]interface{}{
 			"query": reference,
 		}
+	}
+
+	if assemblyId != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"assemblyId": map[string]interface{}{
+					"query": assemblyId,
+				},
+			},
+		})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}
@@ -227,7 +238,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
-	reference string, alternative string, genotype c.GenotypeQuery) map[string]interface{} {
+	reference string, alternative string,
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) map[string]interface{} {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -264,6 +276,15 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 		}
 	}
 
+	if assemblyId != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"assemblyId": map[string]interface{}{
+					"query": assemblyId,
+				},
+			},
+		})
+	}
 	rangeMapSlice := []map[string]interface{}{}
 
 	// TODO: make upperbound and lowerbound nilable, somehow?

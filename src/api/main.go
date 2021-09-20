@@ -122,11 +122,13 @@ func main() {
 		// middleware
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/get/by/sampleId", mvc.VariantsGetBySampleId,
 		// middleware
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsPluralAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 
@@ -134,15 +136,19 @@ func main() {
 		// middleware
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/count/by/sampleId", mvc.VariantsCountBySampleId,
 		// middleware
 		gam.MandateChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsSingularAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 
-	e.GET("/variants/ingestion/run", mvc.VariantsIngest)
+	e.GET("/variants/ingestion/run", mvc.VariantsIngest,
+		// middleware
+		gam.MandateAssemblyIdAttribute)
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
 
 	// Run
