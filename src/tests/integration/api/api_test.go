@@ -226,16 +226,7 @@ func TestCanGetHomozygousAlternateVariantsWithVariousReferences(t *testing.T) {
 		}
 	}
 
-	patterns := []string{"A", "C", "T", "G"}
-	var patWg sync.WaitGroup
-	for _, pat := range patterns {
-		patWg.Add(1)
-		go func(_pat string, _patWg *sync.WaitGroup) {
-			defer _patWg.Done()
-			runAndValidateReferenceQueryResults(t, gq.HOMOZYGOUS_ALTERNATE, _pat, specificValidation)
-		}(pat, &patWg)
-	}
-	patWg.Wait()
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_ALTERNATE, specificValidation)
 }
 
 func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
@@ -251,16 +242,7 @@ func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
 		}
 	}
 
-	patterns := []string{"A", "C", "T", "G"}
-	var patWg sync.WaitGroup
-	for _, pat := range patterns {
-		patWg.Add(1)
-		go func(_pat string, _patWg *sync.WaitGroup) {
-			defer _patWg.Done()
-			runAndValidateReferenceQueryResults(t, gq.HOMOZYGOUS_REFERENCE, _pat, specificValidation)
-		}(pat, &patWg)
-	}
-	patWg.Wait()
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
 }
 
 func TestCanGetHeterozygousVariantsWithVariousReferences(t *testing.T) {
@@ -274,20 +256,26 @@ func TestCanGetHeterozygousVariantsWithVariousReferences(t *testing.T) {
 		}
 	}
 
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, specificValidation)
+}
+
+// -- Common utility functions for api tests
+func executeReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T, genotypeQuery c.GenotypeQuery, specificValidation func(__t *testing.T, variant models.Variant, allelePattern string)) {
+
+	// TODO: use some kind of Allele Enum
 	patterns := []string{"A", "C", "T", "G"}
 	var patWg sync.WaitGroup
 	for _, pat := range patterns {
 		patWg.Add(1)
 		go func(_pat string, _patWg *sync.WaitGroup) {
 			defer _patWg.Done()
-			runAndValidateReferenceQueryResults(t, gq.HETEROZYGOUS, _pat, specificValidation)
+			runAndValidateReferenceOrAlternativeQueryResults(_t, genotypeQuery, _pat, specificValidation)
 		}(pat, &patWg)
 	}
 	patWg.Wait()
 }
 
-// -- Common utility functions for api tests
-func runAndValidateReferenceQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, allelePattern string, specificValidation func(__t *testing.T, variant models.Variant, allelePattern string)) {
+func runAndValidateReferenceOrAlternativeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, allelePattern string, specificValidation func(__t *testing.T, variant models.Variant, allelePattern string)) {
 
 	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, string(genotypeQuery), allelePattern)
 
