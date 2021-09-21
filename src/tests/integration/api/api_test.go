@@ -109,6 +109,7 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 	// - * accumulate all samples into a single list using the set of
 	//   SelectManyT's and the SelectT
 	// - ** iterate over each sample in the ForEachT
+	var accumulatedSamples []*models.Sample
 
 	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
 		return From(resp.Data)
@@ -119,9 +120,17 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 	}).SelectT(func(sample models.Sample) models.Sample {
 		return sample
 	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(t, sample.Id)
-		assert.NotEmpty(t, sample.Variation)
+		accumulatedSamples = append(accumulatedSamples, &sample)
 	})
+
+	if len(accumulatedSamples) == 0 {
+		t.Skip("No samples returned! Skipping --")
+	}
+
+	for _, s := range accumulatedSamples {
+		assert.NotEmpty(t, s.Id)
+		assert.NotEmpty(t, s.Variation)
+	}
 }
 
 func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
@@ -198,7 +207,7 @@ func TestCanGetHomozygousAlternateSamples(t *testing.T) {
 
 func TestCanGetHomozygousAlternateVariantsWithVariousReferences(t *testing.T) {
 	// setup
-	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, alternativeAllelePattern == "")
 
@@ -206,7 +215,7 @@ func TestCanGetHomozygousAlternateVariantsWithVariousReferences(t *testing.T) {
 		assert.Contains(__t, variant.Ref, referenceAllelePattern)
 
 		for _, sample := range variant.Samples {
-			validateHomozygousAlternateSample(__t, sample)
+			validateHomozygousAlternateSample(__t, &sample)
 		}
 	}
 
@@ -215,7 +224,7 @@ func TestCanGetHomozygousAlternateVariantsWithVariousReferences(t *testing.T) {
 
 func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
 	// setup
-	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, alternativeAllelePattern == "")
 
@@ -223,7 +232,7 @@ func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
 		assert.Contains(__t, variant.Ref, referenceAllelePattern)
 
 		for _, sample := range variant.Samples {
-			validateHomozygousReferenceSample(__t, sample)
+			validateHomozygousReferenceSample(__t, &sample)
 		}
 	}
 
@@ -232,7 +241,7 @@ func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
 
 func TestCanGetHeterozygousVariantsWithVariousReferences(t *testing.T) {
 	// setup
-	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, alternativeAllelePattern == "")
 
@@ -240,7 +249,7 @@ func TestCanGetHeterozygousVariantsWithVariousReferences(t *testing.T) {
 		assert.Contains(__t, variant.Ref, referenceAllelePattern)
 
 		for _, sample := range variant.Samples {
-			validateHeterozygousSample(__t, sample)
+			validateHeterozygousSample(__t, &sample)
 		}
 	}
 
@@ -250,7 +259,7 @@ func TestCanGetHeterozygousVariantsWithVariousReferences(t *testing.T) {
 
 func TestCanGetHomozygousAlternateVariantsWithVariousAlternatives(t *testing.T) {
 	// setup
-	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, referenceAllelePattern == "")
 
@@ -258,7 +267,7 @@ func TestCanGetHomozygousAlternateVariantsWithVariousAlternatives(t *testing.T) 
 		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
 
 		for _, sample := range variant.Samples {
-			validateHomozygousAlternateSample(__t, sample)
+			validateHomozygousAlternateSample(__t, &sample)
 		}
 	}
 
@@ -268,7 +277,7 @@ func TestCanGetHomozygousAlternateVariantsWithVariousAlternatives(t *testing.T) 
 
 func TestCanGetHomozygousReferenceVariantsWithVariousAlternatives(t *testing.T) {
 	// setup
-	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, referenceAllelePattern == "")
 
@@ -276,7 +285,7 @@ func TestCanGetHomozygousReferenceVariantsWithVariousAlternatives(t *testing.T) 
 		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
 
 		for _, sample := range variant.Samples {
-			validateHomozygousReferenceSample(__t, sample)
+			validateHomozygousReferenceSample(__t, &sample)
 		}
 	}
 
@@ -286,7 +295,7 @@ func TestCanGetHomozygousReferenceVariantsWithVariousAlternatives(t *testing.T) 
 
 func TestCanGetHeterozygousVariantsWithVariousAlternatives(t *testing.T) {
 	// setup
-	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, referenceAllelePattern == "")
 
@@ -294,7 +303,7 @@ func TestCanGetHeterozygousVariantsWithVariousAlternatives(t *testing.T) {
 		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
 
 		for _, sample := range variant.Samples {
-			validateHeterozygousSample(__t, sample)
+			validateHeterozygousSample(__t, &sample)
 		}
 	}
 
@@ -305,7 +314,7 @@ func TestCanGetHeterozygousVariantsWithVariousAlternatives(t *testing.T) {
 // -- Common utility functions for api tests
 func executeReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
 	genotypeQuery c.GenotypeQuery, refAltTestType testConsts.ReferenceAlternativeTestType,
-	specificValidation func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string)) {
+	specificValidation func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string)) {
 
 	// TODO: use some kind of Allele Enum
 	patterns := []string{"A", "C", "T", "G"}
@@ -332,13 +341,15 @@ func executeReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
 func runAndValidateReferenceOrAlternativeQueryResults(_t *testing.T,
 	genotypeQuery c.GenotypeQuery,
 	referenceAllelePattern string, alternativeAllelePattern string,
-	specificValidation func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string)) {
+	specificValidation func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string)) {
 
 	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, string(genotypeQuery), referenceAllelePattern, alternativeAllelePattern)
 
 	// assert that all of the responses include sample sets with the appropriate zygosity
 	// - * accumulate all variants into a single list using the set of SelectManyT's and the SelectT
 	// - ** iterate over each variant in the ForEachT
+	var accumulatedVariants []*models.Variant
+
 	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
 		return From(resp.Data)
 	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
@@ -346,18 +357,29 @@ func runAndValidateReferenceOrAlternativeQueryResults(_t *testing.T,
 	}).SelectT(func(variant models.Variant) models.Variant {
 		return variant
 	}).ForEachT(func(variant models.Variant) { // **
-		assert.NotNil(_t, variant.Id)
-		specificValidation(_t, variant, referenceAllelePattern, alternativeAllelePattern)
+		accumulatedVariants = append(accumulatedVariants, &variant)
 	})
+
+	if len(accumulatedVariants) == 0 {
+		_t.Skip(fmt.Sprintf("No variants returned for patterns ref: '%s', alt: '%s'! Skipping --", referenceAllelePattern, alternativeAllelePattern))
+	}
+
+	for _, v := range accumulatedVariants {
+		assert.NotNil(_t, v.Id)
+		specificValidation(_t, v, referenceAllelePattern, alternativeAllelePattern)
+	}
+
 }
 
-func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, specificValidation func(__t *testing.T, sample models.Sample)) {
+func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, specificValidation func(__t *testing.T, sample *models.Sample)) {
 
 	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, string(genotypeQuery), "", "")
 
 	// assert that all of the responses include heterozygous sample sets
 	// - * accumulate all samples into a single list using the set of SelectManyT's and the SelectT
 	// - ** iterate over each sample in the ForEachT
+	var accumulatedSamples []*models.Sample
+
 	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
 		return From(resp.Data)
 	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
@@ -367,13 +389,21 @@ func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQ
 	}).SelectT(func(sample models.Sample) models.Sample {
 		return sample
 	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(_t, sample.Id)
-		assert.NotEmpty(_t, sample.Variation)
-		assert.NotEmpty(_t, sample.Variation.Genotype)
-		assert.NotEmpty(_t, sample.Variation.Genotype.Zygosity)
-
-		specificValidation(_t, sample)
+		accumulatedSamples = append(accumulatedSamples, &sample)
 	})
+
+	if len(accumulatedSamples) == 0 {
+		_t.Skip("No samples returned! Skipping --")
+	}
+
+	for _, s := range accumulatedSamples {
+		assert.NotEmpty(_t, s.Id)
+		assert.NotEmpty(_t, s.Variation)
+		assert.NotEmpty(_t, s.Variation.Genotype)
+		assert.NotEmpty(_t, s.Variation.Genotype.Zygosity)
+
+		specificValidation(_t, s)
+	}
 }
 
 func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition c.SortDirection, genotype string, assemblyId c.AssemblyId, referenceAllelePattern string, alternativeAllelePattern string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
@@ -524,19 +554,19 @@ func makeGetVariantsCall(url string, _t *testing.T) models.VariantsResponseDTO {
 }
 
 // --- sample validation
-func validateHeterozygousSample(__t *testing.T, sample models.Sample) {
+func validateHeterozygousSample(__t *testing.T, sample *models.Sample) {
 	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
 	assert.True(__t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
 }
 
-func validateHomozygousReferenceSample(__t *testing.T, sample models.Sample) {
+func validateHomozygousReferenceSample(__t *testing.T, sample *models.Sample) {
 	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
 	assert.True(__t,
 		sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
 			sample.Variation.Genotype.AlleleLeft == 0)
 }
 
-func validateHomozygousAlternateSample(__t *testing.T, sample models.Sample) {
+func validateHomozygousAlternateSample(__t *testing.T, sample *models.Sample) {
 	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
 	assert.True(__t,
 		sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&

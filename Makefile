@@ -116,7 +116,7 @@ clean-drs-data:
 ## Tests
 test-api-dev: prepare-test-config
 	@# Run the tests
-	go test tests/integration/...
+	go test tests/integration/... -v
 
 prepare-test-config:
 	@# Prepare environment variables dynamically via a JSON file 
