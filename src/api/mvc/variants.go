@@ -244,11 +244,12 @@ func GetVariantsOverview(c echo.Context) error {
 
 	var wg sync.WaitGroup
 	es := c.(*contexts.GohanContext).Es7Client
+	cfg := c.(*contexts.GohanContext).Config
 
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
-		results := esRepo.GetBucketsByKeyword(es, keyword)
+		results := esRepo.GetBucketsByKeyword(cfg, es, keyword)
 
 		// retrieve aggregations.items.buckets
 		bucketsMapped := []interface{}{}
@@ -311,6 +312,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 }
 
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
+	cfg := c.(*contexts.GohanContext).Config
 
 	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
@@ -365,7 +367,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
 
-				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
+				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
@@ -377,7 +379,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
 
-				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(es,
+				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
 					reference, alternative,
@@ -426,6 +428,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 }
 
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
+	cfg := c.(*contexts.GohanContext).Config
 
 	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
@@ -448,7 +451,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 				fmt.Printf("Executing Count-Variants for VariantId %s\n", _id)
 
-				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(es,
+				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
 					reference, alternative, genotype, assemblyId)
@@ -458,7 +461,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
 
-				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(es,
+				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
 					reference, alternative, genotype, assemblyId)

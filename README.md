@@ -296,7 +296,9 @@ Generalized Response Body Structure
 >                            }
 >                        },
 >                        ...
->                    ]
+>                    ],
+>                    "fileId": `string` (UUID),
+>                    "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),
 >                 },
 >                 ...
 >             ]

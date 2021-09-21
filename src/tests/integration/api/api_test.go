@@ -14,6 +14,8 @@ import (
 	"sync"
 	"testing"
 	common "tests/common"
+	testConsts "tests/common/constants"
+	ratt "tests/common/constants/referenceAlternativeTestType"
 
 	. "github.com/ahmetb/go-linq"
 
@@ -90,7 +92,7 @@ func TestGetIngestionRequests(t *testing.T) {
 
 func TestCanGetVariantsWithoutSamplesInResultset(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Undefined, string(gq.UNCALLED))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Undefined, gq.UNCALLED, "", "")
 
 	// assert that all responses from all combinations have no results
 	for _, dtoResponse := range allDtoResponses {
@@ -101,12 +103,13 @@ func TestCanGetVariantsWithoutSamplesInResultset(t *testing.T) {
 
 func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, s.Undefined, string(gq.UNCALLED))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, s.Undefined, gq.UNCALLED, "", "")
 
 	// assert that all of the responses include valid sample sets
 	// - * accumulate all samples into a single list using the set of
 	//   SelectManyT's and the SelectT
 	// - ** iterate over each sample in the ForEachT
+	var accumulatedSamples []*models.Sample
 
 	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
 		return From(resp.Data)
@@ -117,14 +120,22 @@ func TestCanGetVariantsWithSamplesInResultset(t *testing.T) {
 	}).SelectT(func(sample models.Sample) models.Sample {
 		return sample
 	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(t, sample.Id)
-		assert.NotEmpty(t, sample.Variation)
+		accumulatedSamples = append(accumulatedSamples, &sample)
 	})
+
+	if len(accumulatedSamples) == 0 {
+		t.Skip("No samples returned! Skipping --")
+	}
+
+	for _, s := range accumulatedSamples {
+		assert.NotEmpty(t, s.Id)
+		assert.NotEmpty(t, s.Variation)
+	}
 }
 
 func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
 	// retrieve responses in ascending order
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Ascending, string(gq.UNCALLED))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Ascending, gq.UNCALLED, "", "")
 
 	// assert the dto response slice is plentiful
 	assert.NotNil(t, allDtoResponses)
@@ -153,7 +164,7 @@ func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
 
 func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 	// retrieve responses in descending order
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Descending, string(gq.UNCALLED))
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Descending, gq.UNCALLED, "", "")
 
 	// assert the dto response slice is plentiful
 	assert.NotNil(t, allDtoResponses)
@@ -180,48 +191,194 @@ func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 }
 
 func TestCanGetHeterozygousSamples(t *testing.T) {
-
-	specificValidation := func(__t *testing.T, sample models.Sample) {
-		assert.True(t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
-		assert.True(t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
-	}
-
-	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
+	// trigger
+	runAndValidateGenotypeQueryResults(t, gq.HETEROZYGOUS, validateHeterozygousSample)
 }
 
 func TestCanGetHomozygousReferenceSamples(t *testing.T) {
-
-	specificValidation := func(__t *testing.T, sample models.Sample) {
-		assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-		assert.True(__t,
-			sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
-				sample.Variation.Genotype.AlleleLeft == 0)
-	}
-
-	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
+	// trigger
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, validateHomozygousReferenceSample)
 }
 
 func TestCanGetHomozygousAlternateSamples(t *testing.T) {
+	// trigger
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_ALTERNATE, validateHomozygousAlternateSample)
+}
 
-	specificValidation := func(__t *testing.T, sample models.Sample) {
-		assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-		assert.True(__t,
-			sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
-				sample.Variation.Genotype.AlleleLeft > 0)
+func TestCanGetHomozygousAlternateVariantsWithVariousReferences(t *testing.T) {
+	// setup
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+		// ensure test is formatted correctly
+		assert.True(__t, alternativeAllelePattern == "")
+
+		// validate variant
+		assert.Contains(__t, variant.Ref, referenceAllelePattern)
+
+		for _, sample := range variant.Samples {
+			validateHomozygousAlternateSample(__t, &sample)
+		}
 	}
 
-	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_ALTERNATE, specificValidation)
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_ALTERNATE, ratt.Reference, specificValidation)
+}
+
+func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
+	// setup
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+		// ensure test is formatted correctly
+		assert.True(__t, alternativeAllelePattern == "")
+
+		// validate variant
+		assert.Contains(__t, variant.Ref, referenceAllelePattern)
+
+		for _, sample := range variant.Samples {
+			validateHomozygousReferenceSample(__t, &sample)
+		}
+	}
+
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_REFERENCE, ratt.Reference, specificValidation)
+}
+
+func TestCanGetHeterozygousVariantsWithVariousReferences(t *testing.T) {
+	// setup
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+		// ensure test is formatted correctly
+		assert.True(__t, alternativeAllelePattern == "")
+
+		// validate variant
+		assert.Contains(__t, variant.Ref, referenceAllelePattern)
+
+		for _, sample := range variant.Samples {
+			validateHeterozygousSample(__t, &sample)
+		}
+	}
+
+	// trigger
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, ratt.Reference, specificValidation)
+}
+
+func TestCanGetHomozygousAlternateVariantsWithVariousAlternatives(t *testing.T) {
+	// setup
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+		// ensure test is formatted correctly
+		assert.True(__t, referenceAllelePattern == "")
+
+		// validate variant
+		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
+
+		for _, sample := range variant.Samples {
+			validateHomozygousAlternateSample(__t, &sample)
+		}
+	}
+
+	// trigger
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_ALTERNATE, ratt.Alternative, specificValidation)
+}
+
+func TestCanGetHomozygousReferenceVariantsWithVariousAlternatives(t *testing.T) {
+	// setup
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+		// ensure test is formatted correctly
+		assert.True(__t, referenceAllelePattern == "")
+
+		// validate variant
+		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
+
+		for _, sample := range variant.Samples {
+			validateHomozygousReferenceSample(__t, &sample)
+		}
+	}
+
+	// trigger
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_REFERENCE, ratt.Alternative, specificValidation)
+}
+
+func TestCanGetHeterozygousVariantsWithVariousAlternatives(t *testing.T) {
+	// setup
+	specificValidation := func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
+		// ensure test is formatted correctly
+		assert.True(__t, referenceAllelePattern == "")
+
+		// validate variant
+		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
+
+		for _, sample := range variant.Samples {
+			validateHeterozygousSample(__t, &sample)
+		}
+	}
+
+	// trigger
+	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, ratt.Alternative, specificValidation)
 }
 
 // -- Common utility functions for api tests
-func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, specificValidation func(__t *testing.T, sample models.Sample)) {
+func executeReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
+	genotypeQuery c.GenotypeQuery, refAltTestType testConsts.ReferenceAlternativeTestType,
+	specificValidation func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string)) {
 
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, string(genotypeQuery))
+	// TODO: use some kind of Allele Enum
+	patterns := []string{"A", "C", "T", "G"}
+	var patWg sync.WaitGroup
+	for _, pat := range patterns {
+		patWg.Add(1)
+		go func(_pat string, _patWg *sync.WaitGroup) {
+			defer _patWg.Done()
+
+			switch refAltTestType {
+			case ratt.Reference:
+				runAndValidateReferenceOrAlternativeQueryResults(_t, genotypeQuery, _pat, "", specificValidation)
+			case ratt.Alternative:
+				runAndValidateReferenceOrAlternativeQueryResults(_t, genotypeQuery, "", _pat, specificValidation)
+			default:
+				println("Skipping Test -- no Ref/Alt Test Type provided")
+			}
+
+		}(pat, &patWg)
+	}
+	patWg.Wait()
+}
+
+func runAndValidateReferenceOrAlternativeQueryResults(_t *testing.T,
+	genotypeQuery c.GenotypeQuery,
+	referenceAllelePattern string, alternativeAllelePattern string,
+	specificValidation func(__t *testing.T, variant *models.Variant, referenceAllelePattern string, alternativeAllelePattern string)) {
+
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, genotypeQuery, referenceAllelePattern, alternativeAllelePattern)
+
+	// assert that all of the responses include sample sets with the appropriate zygosity
+	// - * accumulate all variants into a single list using the set of SelectManyT's and the SelectT
+	// - ** iterate over each variant in the ForEachT
+	var accumulatedVariants []*models.Variant
+
+	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
+		return From(resp.Data)
+	}).SelectManyT(func(data models.VariantResponseDataModel) Query {
+		return From(data.Results)
+	}).SelectT(func(variant models.Variant) models.Variant {
+		return variant
+	}).ForEachT(func(variant models.Variant) { // **
+		accumulatedVariants = append(accumulatedVariants, &variant)
+	})
+
+	if len(accumulatedVariants) == 0 {
+		_t.Skip(fmt.Sprintf("No variants returned for patterns ref: '%s', alt: '%s'! Skipping --", referenceAllelePattern, alternativeAllelePattern))
+	}
+
+	for _, v := range accumulatedVariants {
+		assert.NotNil(_t, v.Id)
+		specificValidation(_t, v, referenceAllelePattern, alternativeAllelePattern)
+	}
+
+}
+
+func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQuery, specificValidation func(__t *testing.T, sample *models.Sample)) {
+
+	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, genotypeQuery, "", "")
 
 	// assert that all of the responses include heterozygous sample sets
-	// - * accumulate all samples into a single list using the set of
-	//   SelectManyT's and the SelectT
+	// - * accumulate all samples into a single list using the set of SelectManyT's and the SelectT
 	// - ** iterate over each sample in the ForEachT
+	var accumulatedSamples []*models.Sample
 
 	From(allDtoResponses).SelectManyT(func(resp models.VariantsResponseDTO) Query { // *
 		return From(resp.Data)
@@ -232,18 +389,38 @@ func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQ
 	}).SelectT(func(sample models.Sample) models.Sample {
 		return sample
 	}).ForEachT(func(sample models.Sample) { // **
-		assert.NotEmpty(_t, sample.Id)
-		assert.NotEmpty(_t, sample.Variation)
-		assert.NotEmpty(_t, sample.Variation.Genotype)
-		assert.NotEmpty(_t, sample.Variation.Genotype.Zygosity)
-
-		specificValidation(_t, sample)
+		accumulatedSamples = append(accumulatedSamples, &sample)
 	})
+
+	if len(accumulatedSamples) == 0 {
+		_t.Skip("No samples returned! Skipping --")
+	}
+
+	for _, s := range accumulatedSamples {
+		assert.NotEmpty(_t, s.Id)
+		assert.NotEmpty(_t, s.Variation)
+		assert.NotEmpty(_t, s.Variation.Genotype)
+		assert.NotEmpty(_t, s.Variation.Genotype.Zygosity)
+
+		specificValidation(_t, s)
+	}
 }
 
-func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition c.SortDirection, genotype string, assemblyId c.AssemblyId, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
+func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, assemblyId c.AssemblyId, referenceAllelePattern string, alternativeAllelePattern string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
 
-	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t&sortByPosition=%s&genotype=%s&assemblyId=%s", chromosome, sampleId, includeSamples, sortByPosition, genotype, assemblyId)
+	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeSamplesInResultSet=%t&sortByPosition=%s&assemblyId=%s", chromosome, sampleId, includeSamples, sortByPosition, assemblyId)
+
+	if genotype != gq.UNCALLED {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&genotype=%s", string(genotype)))
+	}
+
+	if referenceAllelePattern != "" {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&reference=%s", referenceAllelePattern))
+	}
+	if alternativeAllelePattern != "" {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&alternative=%s", alternativeAllelePattern))
+	}
+
 	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
 
 	return makeGetVariantsCall(url, _t)
@@ -304,15 +481,22 @@ func getOverviewResultCombinations(chromosomeStruct interface{}, sampleIdsStruct
 	return allCombinations
 }
 
-func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool, sortByPosition c.SortDirection, genotype string) []models.VariantsResponseDTO {
+func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, referenceAllelePattern string, alternativeAllelePattern string) []models.VariantsResponseDTO {
 	cfg := common.InitConfig()
 
-	// todo: deduplicate
+	// retrieve the overview
 	overviewJson := getVariantsOverview(_t, cfg)
+
+	// ensure the response is valid
+	// TODO: error check instead of nil check
 	assert.NotNil(_t, overviewJson)
 
+	// generate all possible combinations of
+	// available samples, assemblys, and chromosomes
 	overviewCombinations := getOverviewResultCombinations(overviewJson["chromosomes"], overviewJson["sampleIDs"], overviewJson["assemblyIDs"])
 
+	// initialize a common slice in which to
+	// accumulate al responses asynchronously
 	allDtoResponses := []models.VariantsResponseDTO{}
 	allDtoResponsesMux := sync.RWMutex{}
 
@@ -326,9 +510,14 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 			sampleId := _combination[1]
 			assemblyId := a.CastToAssemblyId(_combination[2])
 
-			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, genotype, assemblyId, _t, cfg)
+			// make the call
+			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, _t, cfg)
+
 			assert.Equal(_t, 1, len(dto.Data))
 
+			// accumulate all response objects
+			// to a common slice in an
+			// asynchronous-safe manner
 			allDtoResponsesMux.Lock()
 			allDtoResponses = append(allDtoResponses, dto)
 			allDtoResponsesMux.Unlock()
@@ -341,6 +530,7 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 }
 
 func makeGetVariantsCall(url string, _t *testing.T) models.VariantsResponseDTO {
+	fmt.Printf("Calling %s\n", url)
 	request, _ := http.NewRequest("GET", url, nil)
 
 	client := &http.Client{}
@@ -366,6 +556,26 @@ func makeGetVariantsCall(url string, _t *testing.T) models.VariantsResponseDTO {
 	assert.Nil(_t, jsonUnmarshallingError)
 
 	return respDto
+}
+
+// --- sample validation
+func validateHeterozygousSample(__t *testing.T, sample *models.Sample) {
+	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
+	assert.True(__t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
+}
+
+func validateHomozygousReferenceSample(__t *testing.T, sample *models.Sample) {
+	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
+	assert.True(__t,
+		sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
+			sample.Variation.Genotype.AlleleLeft == 0)
+}
+
+func validateHomozygousAlternateSample(__t *testing.T, sample *models.Sample) {
+	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
+	assert.True(__t,
+		sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
+			sample.Variation.Genotype.AlleleLeft > 0)
 }
 
 // --

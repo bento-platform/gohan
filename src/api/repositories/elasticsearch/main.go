@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"api/models"
 	c "api/models/constants"
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
@@ -18,7 +19,7 @@ import (
 	"github.com/elastic/go-elasticsearch"
 )
 
-func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Client,
+func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string,
@@ -35,30 +36,45 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// 'complexifying' the query
 	// TODO: refactor common code between 'Get' and 'Count'-DocumentsContainerVariantOrSampleIdInPositionRange
-	matchMap := make(map[string]interface{})
-
 	if variantId != "" {
-		matchMap["id"] = map[string]interface{}{
-			"query": variantId,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"id": map[string]interface{}{
+					"query": variantId,
+				},
+			},
+		})
+
 	}
 
 	if sampleId != "" {
-		matchMap["samples.id"] = map[string]interface{}{
-			"query": sampleId,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"samples.id": map[string]interface{}{
+					"query": sampleId,
+				},
+			},
+		})
 	}
 
 	if alternative != "" {
-		matchMap["alt"] = map[string]interface{}{
-			"query": alternative,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"alt": map[string]interface{}{
+					"query": alternative,
+				},
+			},
+		})
 	}
 
 	if reference != "" {
-		matchMap["ref"] = map[string]interface{}{
-			"query": reference,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"ref": map[string]interface{}{
+					"query": reference,
+				},
+			},
+		})
 	}
 
 	if assemblyId != "" {
@@ -135,13 +151,6 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 		})
 	}
 
-	// append the match components to the must map
-	if len(matchMap) > 0 {
-		mustMap = append(mustMap, map[string]interface{}{
-			"match": matchMap,
-		})
-	}
-
 	// individually append each range components to the must map
 	if len(rangeMapSlice) > 0 {
 		for _, rms := range rangeMapSlice {
@@ -151,7 +160,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// exclude samples from result?
 	var excludesSlice []string = make([]string, 0)
-	if includeSamplesInResultSet == false {
+	if !includeSamplesInResultSet {
 		excludesSlice = append(excludesSlice, "samples")
 	}
 
@@ -190,11 +199,11 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 		log.Fatalf("Error encoding query: %s\n", err)
 	}
 
-	// DEBUG--
-	// Unmarshal or Decode the JSON to the interface.
-	// myString := string(buf.Bytes()[:])
-	// fmt.Println(myString)
-	// --
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
@@ -215,16 +224,16 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	defer res.Body.Close()
 
-	// Temp
 	resultString := res.String()
-	//fmt.Println(resultString)
-	// --
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
 
 	// Declared an empty interface
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceing '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
@@ -235,7 +244,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 	return result
 }
 
-func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Client,
+func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string,
@@ -253,27 +262,44 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 	matchMap := make(map[string]interface{})
 
 	if variantId != "" {
-		matchMap["id"] = map[string]interface{}{
-			"query": variantId,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"id": map[string]interface{}{
+					"query": variantId,
+				},
+			},
+		})
+
 	}
 
 	if sampleId != "" {
-		matchMap["samples.id"] = map[string]interface{}{
-			"query": sampleId,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"samples.id": map[string]interface{}{
+					"query": sampleId,
+				},
+			},
+		})
 	}
 
 	if alternative != "" {
-		matchMap["alt"] = map[string]interface{}{
-			"query": alternative,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"alt": map[string]interface{}{
+					"query": alternative,
+				},
+			},
+		})
 	}
 
 	if reference != "" {
-		matchMap["ref"] = map[string]interface{}{
-			"query": reference,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"ref": map[string]interface{}{
+					"query": reference,
+				},
+			},
+		})
 	}
 
 	if assemblyId != "" {
@@ -285,6 +311,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 			},
 		})
 	}
+
 	rangeMapSlice := []map[string]interface{}{}
 
 	// TODO: make upperbound and lowerbound nilable, somehow?
@@ -363,8 +390,6 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 		}
 	}
 
-	// exclude samples from result?
-
 	// overall query structure
 	var buf bytes.Buffer
 	query := map[string]interface{}{
@@ -384,11 +409,11 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 		log.Fatalf("Error encoding query: %s\n", err)
 	}
 
-	// DEBUG--
-	// Unmarshal or Decode the JSON to the interface.
-	// myString := string(buf.Bytes()[:])
-	// fmt.Println(myString)
-	// --
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
@@ -408,16 +433,16 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 
 	defer res.Body.Close()
 
-	// Temp
 	resultString := res.String()
-	// fmt.Println(resultString)
-	// --
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
 
 	// Declared an empty interface
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceing '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
@@ -428,7 +453,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 	return result
 }
 
-func GetBucketsByKeyword(es *elasticsearch.Client, keyword string) map[string]interface{} {
+func GetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) map[string]interface{} {
 
 	// begin building the request body.
 	var buf bytes.Buffer
@@ -449,6 +474,12 @@ func GetBucketsByKeyword(es *elasticsearch.Client, keyword string) map[string]in
 		log.Fatalf("Error encoding aggMap: %s\n", err)
 	}
 
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
 	// TEMP: SECURITY RISK
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	//
@@ -466,16 +497,16 @@ func GetBucketsByKeyword(es *elasticsearch.Client, keyword string) map[string]in
 
 	defer res.Body.Close()
 
-	// Temp
 	resultString := res.String()
-	fmt.Println(resultString)
-	// --
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
 
 	// Declared an empty interface
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceing '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)

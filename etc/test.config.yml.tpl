@@ -1,3 +1,4 @@
+debug: ${GOHAN_DEBUG}
 api:
   url: "${GOHAN_PUBLIC_URL}"
   port: "${GOHAN_API_INTERNAL_PORT}"
