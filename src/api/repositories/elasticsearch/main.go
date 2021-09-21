@@ -35,30 +35,45 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 	// 'complexifying' the query
 	// TODO: refactor common code between 'Get' and 'Count'-DocumentsContainerVariantOrSampleIdInPositionRange
-	matchMap := make(map[string]interface{})
-
 	if variantId != "" {
-		matchMap["id"] = map[string]interface{}{
-			"query": variantId,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"id": map[string]interface{}{
+					"query": variantId,
+				},
+			},
+		})
+
 	}
 
 	if sampleId != "" {
-		matchMap["samples.id"] = map[string]interface{}{
-			"query": sampleId,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"samples.id": map[string]interface{}{
+					"query": sampleId,
+				},
+			},
+		})
 	}
 
 	if alternative != "" {
-		matchMap["alt"] = map[string]interface{}{
-			"query": alternative,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"alt": map[string]interface{}{
+					"query": alternative,
+				},
+			},
+		})
 	}
 
 	if reference != "" {
-		matchMap["ref"] = map[string]interface{}{
-			"query": reference,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"ref": map[string]interface{}{
+					"query": reference,
+				},
+			},
+		})
 	}
 
 	if assemblyId != "" {
@@ -132,13 +147,6 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.Cli
 
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": zygosityMatchMap,
-		})
-	}
-
-	// append the match components to the must map
-	if len(matchMap) > 0 {
-		mustMap = append(mustMap, map[string]interface{}{
-			"match": matchMap,
 		})
 	}
 
@@ -253,27 +261,44 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 	matchMap := make(map[string]interface{})
 
 	if variantId != "" {
-		matchMap["id"] = map[string]interface{}{
-			"query": variantId,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"id": map[string]interface{}{
+					"query": variantId,
+				},
+			},
+		})
+
 	}
 
 	if sampleId != "" {
-		matchMap["samples.id"] = map[string]interface{}{
-			"query": sampleId,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"samples.id": map[string]interface{}{
+					"query": sampleId,
+				},
+			},
+		})
 	}
 
 	if alternative != "" {
-		matchMap["alt"] = map[string]interface{}{
-			"query": alternative,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"alt": map[string]interface{}{
+					"query": alternative,
+				},
+			},
+		})
 	}
 
 	if reference != "" {
-		matchMap["ref"] = map[string]interface{}{
-			"query": reference,
-		}
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"ref": map[string]interface{}{
+					"query": reference,
+				},
+			},
+		})
 	}
 
 	if assemblyId != "" {
@@ -285,6 +310,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(es *elasticsearch.C
 			},
 		})
 	}
+
 	rangeMapSlice := []map[string]interface{}{}
 
 	// TODO: make upperbound and lowerbound nilable, somehow?
