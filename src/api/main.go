@@ -29,6 +29,9 @@ func main() {
 	}
 
 	fmt.Printf("Using : \n"+
+
+		"\tDebug : %t \n\n"+
+
 		"\tVCF Directory Path : %s \n"+
 		"\tElasticsearch Url : %s \n"+
 		"\tElasticsearch Username : %s\n\n"+
@@ -43,6 +46,7 @@ func main() {
 
 		"Running on Port : %s\n",
 
+		cfg.Debug,
 		cfg.Api.VcfPath,
 		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,
 		cfg.Drs.Url, cfg.Drs.Username,
