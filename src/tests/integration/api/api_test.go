@@ -182,41 +182,22 @@ func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 }
 
 func TestCanGetHeterozygousSamples(t *testing.T) {
-
-	specificValidation := func(__t *testing.T, sample models.Sample) {
-		assert.True(t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
-		assert.True(t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
-	}
-
-	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
+	// trigger
+	runAndValidateGenotypeQueryResults(t, gq.HETEROZYGOUS, validateHeterozygousSample)
 }
 
 func TestCanGetHomozygousReferenceSamples(t *testing.T) {
-
-	specificValidation := func(__t *testing.T, sample models.Sample) {
-		assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-		assert.True(__t,
-			sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
-				sample.Variation.Genotype.AlleleLeft == 0)
-	}
-
-	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, specificValidation)
+	// trigger
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_REFERENCE, validateHomozygousReferenceSample)
 }
 
 func TestCanGetHomozygousAlternateSamples(t *testing.T) {
-
-	specificValidation := func(__t *testing.T, sample models.Sample) {
-		assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-		assert.True(__t,
-			sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
-				sample.Variation.Genotype.AlleleLeft > 0)
-	}
-
-	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_ALTERNATE, specificValidation)
+	// trigger
+	runAndValidateGenotypeQueryResults(t, gq.HOMOZYGOUS_ALTERNATE, validateHomozygousAlternateSample)
 }
 
 func TestCanGetHomozygousAlternateVariantsWithVariousReferences(t *testing.T) {
-
+	// setup
 	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, alternativeAllelePattern == "")
@@ -225,10 +206,7 @@ func TestCanGetHomozygousAlternateVariantsWithVariousReferences(t *testing.T) {
 		assert.Contains(__t, variant.Ref, referenceAllelePattern)
 
 		for _, sample := range variant.Samples {
-			assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-			assert.True(__t,
-				sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
-					sample.Variation.Genotype.AlleleLeft > 0)
+			validateHomozygousAlternateSample(__t, sample)
 		}
 	}
 
@@ -236,7 +214,7 @@ func TestCanGetHomozygousAlternateVariantsWithVariousReferences(t *testing.T) {
 }
 
 func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
-
+	// setup
 	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, alternativeAllelePattern == "")
@@ -245,10 +223,7 @@ func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
 		assert.Contains(__t, variant.Ref, referenceAllelePattern)
 
 		for _, sample := range variant.Samples {
-			assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-			assert.True(__t,
-				sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
-					sample.Variation.Genotype.AlleleLeft == 0)
+			validateHomozygousReferenceSample(__t, sample)
 		}
 	}
 
@@ -256,7 +231,7 @@ func TestCanGetHomozygousReferenceVariantsWithVariousReferences(t *testing.T) {
 }
 
 func TestCanGetHeterozygousVariantsWithVariousReferences(t *testing.T) {
-
+	// setup
 	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, alternativeAllelePattern == "")
@@ -265,16 +240,16 @@ func TestCanGetHeterozygousVariantsWithVariousReferences(t *testing.T) {
 		assert.Contains(__t, variant.Ref, referenceAllelePattern)
 
 		for _, sample := range variant.Samples {
-			assert.True(t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
-			assert.True(t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
+			validateHeterozygousSample(__t, sample)
 		}
 	}
 
+	// trigger
 	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, ratt.Reference, specificValidation)
 }
 
 func TestCanGetHomozygousAlternateVariantsWithVariousAlternatives(t *testing.T) {
-
+	// setup
 	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, referenceAllelePattern == "")
@@ -283,18 +258,16 @@ func TestCanGetHomozygousAlternateVariantsWithVariousAlternatives(t *testing.T) 
 		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
 
 		for _, sample := range variant.Samples {
-			assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-			assert.True(__t,
-				sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
-					sample.Variation.Genotype.AlleleLeft > 0)
+			validateHomozygousAlternateSample(__t, sample)
 		}
 	}
 
+	// trigger
 	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_ALTERNATE, ratt.Alternative, specificValidation)
 }
 
 func TestCanGetHomozygousReferenceVariantsWithVariousAlternatives(t *testing.T) {
-
+	// setup
 	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, referenceAllelePattern == "")
@@ -303,18 +276,16 @@ func TestCanGetHomozygousReferenceVariantsWithVariousAlternatives(t *testing.T) 
 		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
 
 		for _, sample := range variant.Samples {
-			assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-			assert.True(__t,
-				sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
-					sample.Variation.Genotype.AlleleLeft == 0)
+			validateHomozygousReferenceSample(__t, sample)
 		}
 	}
 
+	// trigger
 	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_REFERENCE, ratt.Alternative, specificValidation)
 }
 
 func TestCanGetHeterozygousVariantsWithVariousAlternatives(t *testing.T) {
-
+	// setup
 	specificValidation := func(__t *testing.T, variant models.Variant, referenceAllelePattern string, alternativeAllelePattern string) {
 		// ensure test is formatted correctly
 		assert.True(__t, referenceAllelePattern == "")
@@ -323,11 +294,11 @@ func TestCanGetHeterozygousVariantsWithVariousAlternatives(t *testing.T) {
 		assert.Contains(__t, variant.Alt, alternativeAllelePattern)
 
 		for _, sample := range variant.Samples {
-			assert.True(t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
-			assert.True(t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
+			validateHeterozygousSample(__t, sample)
 		}
 	}
 
+	// trigger
 	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, ratt.Alternative, specificValidation)
 }
 
@@ -550,6 +521,26 @@ func makeGetVariantsCall(url string, _t *testing.T) models.VariantsResponseDTO {
 	assert.Nil(_t, jsonUnmarshallingError)
 
 	return respDto
+}
+
+// --- sample validation
+func validateHeterozygousSample(__t *testing.T, sample models.Sample) {
+	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
+	assert.True(__t, sample.Variation.Genotype.AlleleLeft != sample.Variation.Genotype.AlleleRight)
+}
+
+func validateHomozygousReferenceSample(__t *testing.T, sample models.Sample) {
+	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
+	assert.True(__t,
+		sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
+			sample.Variation.Genotype.AlleleLeft == 0)
+}
+
+func validateHomozygousAlternateSample(__t *testing.T, sample models.Sample) {
+	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
+	assert.True(__t,
+		sample.Variation.Genotype.AlleleLeft == sample.Variation.Genotype.AlleleRight &&
+			sample.Variation.Genotype.AlleleLeft > 0)
 }
 
 // --
