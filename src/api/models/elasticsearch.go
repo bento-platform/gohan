@@ -45,3 +45,13 @@ type Genotype struct {
 	AlleleRight int        `json:"alleleRight"` // -1 = no call (equivalent to a '.')
 	Zygosity    c.Zygosity `json:"zygosity"`
 }
+
+type Gene struct {
+	Name         string       `json:"name"`
+	Nomenclature []string     `json:"nomenclature"`
+	Chrom        int          `json:"chrom"`
+	Start        int          `json:"start"`
+	End          int          `json:"end"`
+	AssemblyId   c.AssemblyId `json:"assemblyId"`
+	SourceUrl    string       `json:"sourceUrl"`
+}
