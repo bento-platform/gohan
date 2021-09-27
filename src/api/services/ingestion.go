@@ -5,6 +5,7 @@ import (
 	"api/models/constants"
 	z "api/models/constants/zygosity"
 	"api/models/ingest"
+	"api/models/ingest/structs"
 	"api/utils"
 	"bufio"
 	"bytes"
@@ -34,18 +35,15 @@ import (
 
 type (
 	IngestionService struct {
-		Initialized                   bool
-		IngestRequestChan             chan *ingest.IngestRequest
-		IngestRequestMap              map[string]*ingest.IngestRequest
-		IngestionBulkIndexingCapacity int
-		IngestionBulkIndexingQueue    chan *IngestionQueueStructure
-		ElasticsearchClient           *elasticsearch.Client
-		IngestionBulkIndexer          esutil.BulkIndexer
-	}
-
-	IngestionQueueStructure struct {
-		Variant   *models.Variant
-		WaitGroup *sync.WaitGroup
+		Initialized                    bool
+		IngestRequestChan              chan *ingest.IngestRequest
+		IngestRequestMap               map[string]*ingest.IngestRequest
+		IngestionBulkIndexingCapacity  int
+		ElasticsearchClient            *elasticsearch.Client
+		IngestionBulkIndexingQueue     chan *structs.IngestionQueueStructure
+		IngestionBulkIndexer           esutil.BulkIndexer
+		GeneIngestionBulkIndexingQueue chan *structs.GeneIngestionQueueStructure
+		GeneIngestionBulkIndexer       esutil.BulkIndexer
 	}
 )
 
@@ -54,28 +52,37 @@ const defaultBulkIndexingCap int = 10000
 func NewIngestionService(es *elasticsearch.Client) *IngestionService {
 
 	iz := &IngestionService{
-		Initialized:                   false,
-		IngestRequestChan:             make(chan *ingest.IngestRequest),
-		IngestRequestMap:              map[string]*ingest.IngestRequest{},
-		IngestionBulkIndexingCapacity: defaultBulkIndexingCap,
-		IngestionBulkIndexingQueue:    make(chan *IngestionQueueStructure, defaultBulkIndexingCap),
-		ElasticsearchClient:           es,
+		Initialized:                    false,
+		IngestRequestChan:              make(chan *ingest.IngestRequest),
+		IngestRequestMap:               map[string]*ingest.IngestRequest{},
+		IngestionBulkIndexingCapacity:  defaultBulkIndexingCap,
+		IngestionBulkIndexingQueue:     make(chan *structs.IngestionQueueStructure, defaultBulkIndexingCap),
+		GeneIngestionBulkIndexingQueue: make(chan *structs.GeneIngestionQueueStructure, 10),
+		ElasticsearchClient:            es,
 	}
 
-	// see: https://www.elastic.co/blog/why-am-i-seeing-bulk-rejections-in-my-elasticsearch-cluster
+	//see: https://www.elastic.co/blog/why-am-i-seeing-bulk-rejections-in-my-elasticsearch-cluster
 	var numWorkers = defaultBulkIndexingCap / 100
-	// the lower the denominator (the number of documents per bulk upload). the higher
-	// the chances of 100% successful upload, though the longer it may take (negligible)
+	//the lower the denominator (the number of documents per bulk upload). the higher
+	//the chances of 100% successful upload, though the longer it may take (negligible)
 
 	bi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
 		Index:      "variants",
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
-		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 50MB ?)
-		FlushInterval: 30 * time.Second, // The periodic flush interval
+		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 5MB ?)
+		FlushInterval: time.Second, // The periodic flush interval
 	})
-
 	iz.IngestionBulkIndexer = bi
+
+	gbi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+		Index:      "genes",
+		Client:     iz.ElasticsearchClient,
+		NumWorkers: 5,
+		FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
+		//FlushInterval: 30 * time.Second, // The periodic flush interval
+	})
+	iz.GeneIngestionBulkIndexer = gbi
 
 	iz.Init()
 
@@ -100,7 +107,7 @@ func (i *IngestionService) Init() {
 			}
 		}()
 
-		// spin up a listener for bulk indexing
+		// spin up a listener for each bulk indexing
 		go func() {
 			for {
 				select {
@@ -128,12 +135,64 @@ func (i *IngestionService) Init() {
 							// OnSuccess is called for each successful operation
 							OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
 								defer wg.Done()
+								//fmt.Printf("Successfully indexed: %s", item)
 								//atomic.AddUint64(&countSuccessful, 1)
 							},
 
 							// OnFailure is called for each failed operation
 							OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
 								defer wg.Done()
+								//atomic.AddUint64(&countFailed, 1)
+								if err != nil {
+									fmt.Printf("ERROR: %s", err)
+								} else {
+									fmt.Printf("ERROR: %s: %s", res.Error.Type, res.Error.Reason)
+								}
+							},
+						},
+					)
+					if err != nil {
+						defer wg.Done()
+						fmt.Printf("Unexpected error: %s", err)
+					}
+				}
+			}
+		}()
+
+		go func() {
+			for {
+				select {
+				case queuedItem := <-i.GeneIngestionBulkIndexingQueue:
+
+					g := queuedItem.Gene
+					wg := queuedItem.WaitGroup
+
+					// Prepare the data payload: encode article to JSON
+					data, err := json.Marshal(g)
+					if err != nil {
+						log.Fatalf("Cannot encode gene %s: %s\n", g, err)
+					}
+
+					// Add an item to the BulkIndexer
+					err = i.GeneIngestionBulkIndexer.Add(
+						context.Background(),
+						esutil.BulkIndexerItem{
+							// Action field configures the operation to perform (index, create, delete, update)
+							Action: "index",
+
+							// Body is an `io.Reader` with the payload
+							Body: bytes.NewReader(data),
+
+							// OnSuccess is called for each successful operation
+							OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
+								defer wg.Done()
+								//atomic.AddUint64(&countSuccessful, 1)
+							},
+
+							// OnFailure is called for each failed operation
+							OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
+								defer wg.Done()
+								fmt.Printf("Failure Repsonse: %s", res.Error)
 								//atomic.AddUint64(&countFailed, 1)
 								if err != nil {
 									fmt.Printf("ERROR: %s", err)
@@ -489,7 +548,7 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 			mapstructure.Decode(tmpVariant, &resultingVariant)
 
 			// pass variant (along with a waitgroup) to the channel
-			i.IngestionBulkIndexingQueue <- &IngestionQueueStructure{
+			i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
 				Variant:   &resultingVariant,
 				WaitGroup: fileWg,
 			}
