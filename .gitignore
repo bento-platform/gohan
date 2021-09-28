@@ -47,3 +47,5 @@ bin/*
 
 *.vcf
 *.vcf.gz
+
+*/*/*.csv

@@ -297,28 +297,7 @@ func processChromDoc(iz *services.IngestionService, chromTitle string, chromDoc 
 					Gene:      discoveredGene,
 					WaitGroup: _gwg,
 				}
-				// var file *os.File
-				// thisGenePath := fmt.Sprintf("%s/%s.txt", localDataDir, geneTitle)
-				// if _, err := os.Stat(thisGenePath); os.IsNotExist(err) {
-				// 	file, err = os.Create(thisGenePath)
-				// 	if err != nil {
-				// 		fmt.Println(err)
-				// 		return
-				// 	}
-				// } else {
-				// 	file, err = os.OpenFile(thisGenePath, os.O_RDWR, 0755)
-				// 	if err != nil {
-				// 		log.Fatal(err)
-				// 	}
-				// }
-				// defer file.Close()
 
-				// writeText := fmt.Sprintf("Aliases: %s\nChromosome: %s\nStart: %s\nEnd: %s\nAssemblyId: %s\nPath: %s", aliasesValue, chromosome, startValue, endValue, assemblyIdValue, geneLink)
-				// _, err = file.WriteString(writeText)
-				// if err != nil {
-				// 	fmt.Println(err)
-				// 	return
-				// }
 			})
 		}(&geneWg)
 	})
