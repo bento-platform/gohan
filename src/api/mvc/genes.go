@@ -15,8 +15,6 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	cfg := c.(*contexts.GohanContext).Config
 	es := c.(*contexts.GohanContext).Es7Client
 
-	geneResponseDTO := models.GenesResponseDTO{}
-
 	term := c.QueryParam("term")
 
 	fmt.Printf("Executing wildcard genes search for term %s\n", term)
@@ -43,11 +41,13 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 
 	fmt.Printf("Found %d docs!\n", len(allSources))
 
-	geneResponseDTO.Count = len(allSources)
-	geneResponseDTO.Results = allSources
-
-	geneResponseDTO.Status = 200
-	geneResponseDTO.Message = "Success"
+	geneResponseDTO := models.GenesResponseDTO{
+		Term:    term,
+		Count:   len(allSources),
+		Results: allSources,
+		Status:  200,
+		Message: "Success",
+	}
 
 	return c.JSON(http.StatusOK, geneResponseDTO)
 }
