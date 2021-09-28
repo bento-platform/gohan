@@ -516,3 +516,67 @@ func GetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword s
 
 	return result
 }
+
+func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client, term string) map[string]interface{} {
+
+	// TEMP: SECURITY RISK
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//
+
+	// overall query structure
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"wildcard": map[string]interface{}{
+				"nomenclature": map[string]interface{}{
+					"value":   fmt.Sprintf("*%s*", term),
+					"boost":   1.0,
+					"rewrite": "constant_score",
+				},
+			},
+		},
+		"size": 25, // default
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", err)
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	// Perform the search request.
+	searchRes, searchErr := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex("genes"),
+		es.Search.WithBody(&buf),
+		es.Search.WithTrackTotalHits(true),
+		es.Search.WithPretty(),
+	)
+	if searchErr != nil {
+		fmt.Printf("Error getting response: %s\n", searchErr)
+	}
+
+	defer searchRes.Body.Close()
+
+	resultString := searchRes.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Prepare an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the empty interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
+	}
+
+	return result
+}

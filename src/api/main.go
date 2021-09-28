@@ -155,6 +155,9 @@ func main() {
 		gam.MandateAssemblyIdAttribute)
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
 
+	// -- Genes
+	e.GET("/genes/search", mvc.GenesGetByNomenclatureWildcard)
+
 	// Run
 	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))
 }
