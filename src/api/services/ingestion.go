@@ -78,9 +78,9 @@ func NewIngestionService(es *elasticsearch.Client) *IngestionService {
 	gbi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
 		Index:      "genes",
 		Client:     iz.ElasticsearchClient,
-		NumWorkers: 5,
-		FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
-		//FlushInterval: 30 * time.Second, // The periodic flush interval
+		NumWorkers: numWorkers,
+		//FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
+		FlushInterval: 3 * time.Second, // The periodic flush interval
 	})
 	iz.GeneIngestionBulkIndexer = gbi
 

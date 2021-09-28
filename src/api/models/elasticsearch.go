@@ -47,11 +47,14 @@ type Genotype struct {
 }
 
 type Gene struct {
-	Name         string       `json:"name"`
-	Nomenclature []string     `json:"nomenclature"`
+	Nomenclature Nomenclature `json:"nomenclature"`
 	Chrom        int          `json:"chrom"`
 	Start        int          `json:"start"`
 	End          int          `json:"end"`
 	AssemblyId   c.AssemblyId `json:"assemblyId"`
-	SourceUrl    string       `json:"sourceUrl"`
+}
+
+type Nomenclature struct {
+	Names     []string `json:"names"`
+	GeneNames []string `json:"geneNames"`
 }

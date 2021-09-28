@@ -527,12 +527,9 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 	var buf bytes.Buffer
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
-			"wildcard": map[string]interface{}{
-				"nomenclature": map[string]interface{}{
-					"value":   fmt.Sprintf("*%s*", term),
-					"boost":   1.0,
-					"rewrite": "constant_score",
-				},
+			"query_string": map[string]interface{}{
+				"fields": []string{"nomenclature.names", "nomenclature.genes"},
+				"query":  fmt.Sprintf("*%s*", term),
 			},
 		},
 		"size": 25, // default
