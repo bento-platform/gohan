@@ -180,31 +180,33 @@ func main() {
 			dataframe.WithDelimiter('\t'),
 			dataframe.HasHeader(true))
 		fmt.Printf("%s :\n", dbPath)
-		fmt.Println(df)
 
-		var chromHeaderKey int
-		var startKey int
-		var endKey int
-		var nameHeaderKeys []int
-		var geneNameHeaderKeys []int
+		var (
+			chromHeaderKey     = 0
+			startKey           = 1
+			endKey             = 2
+			nameHeaderKeys     = []int{3}
+			geneNameHeaderKeys []int
+		)
+
+		var columnsToPrint []string
+		if assId == assemblyId.GRCh38 {
+			// GRCh38 dataset has multiple name fields (name, name2) and
+			// also includes gene name fields (geneName, geneName2)
+			columnsToPrint = append(columnsToPrint, "#chrom", "chromStart", "chromEnd", "name", "name2", "geneName", "geneName2")
+			nameHeaderKeys = append(nameHeaderKeys, 4)
+			geneNameHeaderKeys = append(geneNameHeaderKeys, 5, 6)
+		} else {
+			columnsToPrint = append(columnsToPrint, "chrom", "txStart", "txEnd", "#name")
+		}
+
+		df = df.Select(columnsToPrint)
+		fmt.Println(df)
 
 		// discover name indexes
 
 		for n, record := range df.Records() {
 			if n == 0 {
-				for m, r := range record {
-					if strings.Contains(r, "name") {
-						nameHeaderKeys = append(nameHeaderKeys, m)
-					} else if strings.Contains(r, "geneName") {
-						geneNameHeaderKeys = append(geneNameHeaderKeys, m)
-					} else if strings.Contains(r, "chromStart") || strings.Contains(r, "cdsStart") {
-						startKey = m
-					} else if strings.Contains(r, "chromEnd") || strings.Contains(r, "cdsEnd") {
-						endKey = m
-					} else if r == "chrom" || r == "#chrom" {
-						chromHeaderKey = m
-					}
-				}
 				continue
 			}
 
@@ -278,7 +280,7 @@ func main() {
 				}
 			}(record, chromHeaderKey, startKey, endKey, nameHeaderKeys, geneNameHeaderKeys, assId, &geneWg)
 
-			fmt.Printf("Stats : %d\n", iz.GeneIngestionBulkIndexer.Stats())
+			// fmt.Printf("Stats : %d\n", iz.GeneIngestionBulkIndexer.Stats())
 		}
 		geneWg.Wait()
 
