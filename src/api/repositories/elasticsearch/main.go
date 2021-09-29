@@ -544,7 +544,7 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 						"must": []map[string]interface{}{
 							{
 								"query_string": map[string]interface{}{
-									"fields": []string{"nomenclature.names", "nomenclature.genes"},
+									"fields": []string{"name"},
 									"query":  nomenclatureStringTerm,
 								},
 							},

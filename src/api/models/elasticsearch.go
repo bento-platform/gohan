@@ -47,14 +47,9 @@ type Genotype struct {
 }
 
 type Gene struct {
-	Nomenclature Nomenclature `json:"nomenclature"`
-	Chrom        int          `json:"chrom"`
-	Start        int          `json:"start"`
-	End          int          `json:"end"`
-	AssemblyId   c.AssemblyId `json:"assemblyId"`
-}
-
-type Nomenclature struct {
-	Names     []string `json:"names"`
-	GeneNames []string `json:"geneNames"`
+	Name       string       `json:"name"`
+	Chrom      int          `json:"chrom"`
+	Start      int          `json:"start"`
+	End        int          `json:"end"`
+	AssemblyId c.AssemblyId `json:"assemblyId"`
 }
