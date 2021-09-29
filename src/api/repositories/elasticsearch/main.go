@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"api/models"
+	"api/models/constants"
 	c "api/models/constants"
+	assemblyId "api/models/constants/assembly-id"
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
@@ -517,22 +519,58 @@ func GetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword s
 	return result
 }
 
-func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client, term string) map[string]interface{} {
+func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client, term string, assId constants.AssemblyId) map[string]interface{} {
 
 	// TEMP: SECURITY RISK
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	//
 
-	// overall query structure
+	// Nomenclature Search Term
+	nomenclatureStringTerm := fmt.Sprintf("*%s*", term)
+
+	// Assembly Id Search Term (wildcard by default)
+	assemblyIdStringTerm := "*"
+	if assId != assemblyId.Unknown {
+		assemblyIdStringTerm = string(assId)
+	}
+
 	var buf bytes.Buffer
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
-			"query_string": map[string]interface{}{
-				"fields": []string{"nomenclature.names", "nomenclature.genes"},
-				"query":  fmt.Sprintf("*%s*", term),
+			"bool": map[string]interface{}{
+				"filter": []map[string]interface{}{{
+					"bool": map[string]interface{}{
+						"must": []map[string]interface{}{
+							{
+								"query_string": map[string]interface{}{
+									"fields": []string{"nomenclature.names", "nomenclature.genes"},
+									"query":  nomenclatureStringTerm,
+								},
+							},
+							{
+								"query_string": map[string]interface{}{
+									"fields": []string{"assemblyId"},
+									"query":  assemblyIdStringTerm,
+								},
+							},
+						},
+					},
+				}},
 			},
 		},
 		"size": 25, // default
+		"sort": []map[string]interface{}{
+			{
+				"chrom": map[string]interface{}{
+					"order": "asc",
+				},
+			},
+			{
+				"start": map[string]interface{}{
+					"order": "asc",
+				},
+			},
+		},
 	}
 
 	// encode the query

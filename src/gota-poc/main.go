@@ -79,9 +79,10 @@ func main() {
 	assemblyIdMap := map[constants.AssemblyId]string{
 		assemblyId.GRCh38: "hg38",
 		assemblyId.GRCh37: "hg19",
-		assemblyId.NCBI36: "hg18",
-		assemblyId.NCBI35: "hg17",
-		assemblyId.NCBI34: "hg16",
+		// SKIP
+		// assemblyId.NCBI36: "hg18",
+		// assemblyId.NCBI35: "hg17",
+		// assemblyId.NCBI34: "hg16",
 	}
 
 	var dbWg sync.WaitGroup
@@ -241,15 +242,15 @@ func main() {
 
 				// TODO: fomarmalize
 				// if chromosome MT, set to 0
-				// if chromosome X, set to -1
-				// if chromosome Y, set to -2
+				// if chromosome X, set to 101
+				// if chromosome Y, set to 102
 				var chromosome int
 				if strings.Contains(strings.ToUpper(chromosomeClean), "MT") {
 					chromosome = 0
 				} else if strings.ToUpper(chromosomeClean) == "X" {
-					chromosome = -1
+					chromosome = 101
 				} else if strings.ToUpper(chromosomeClean) == "Y" {
-					chromosome = -2
+					chromosome = 102
 				} else {
 					chromosome, _ = strconv.Atoi(chromosomeClean)
 				}

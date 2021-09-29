@@ -3,6 +3,7 @@ package mvc
 import (
 	"api/contexts"
 	"api/models"
+	assemblyId "api/models/constants/assembly-id"
 	esRepo "api/repositories/elasticsearch"
 	"fmt"
 	"net/http"
@@ -17,9 +18,18 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 
 	term := c.QueryParam("term")
 
-	fmt.Printf("Executing wildcard genes search for term %s\n", term)
+	// perform wildcard search if empty/random parameter is passed
+	// - set to Unknown to trigger it
+	assId := assemblyId.Unknown
+	assIdQP := c.QueryParam("assemblyId")
+	if assemblyId.CastToAssemblyId(assIdQP) != assemblyId.Unknown {
+		// retrieve passed parameter if is valid
+		assId = assemblyId.CastToAssemblyId(assIdQP)
+	}
 
-	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, term)
+	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s\n", term, assId)
+
+	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, term, assId)
 
 	docsHits := docs["hits"].(map[string]interface{})["hits"]
 	allDocHits := []map[string]interface{}{}
