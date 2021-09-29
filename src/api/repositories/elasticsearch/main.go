@@ -519,7 +519,8 @@ func GetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword s
 	return result
 }
 
-func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client, term string, assId constants.AssemblyId) map[string]interface{} {
+func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client,
+	term string, assId constants.AssemblyId, size int) map[string]interface{} {
 
 	// TEMP: SECURITY RISK
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -558,7 +559,7 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 				}},
 			},
 		},
-		"size": 25, // default
+		"size": size,
 		"sort": []map[string]interface{}{
 			{
 				"chrom": map[string]interface{}{

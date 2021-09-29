@@ -7,6 +7,7 @@ import (
 	esRepo "api/repositories/elasticsearch"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
@@ -16,20 +17,35 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	cfg := c.(*contexts.GohanContext).Config
 	es := c.(*contexts.GohanContext).Es7Client
 
+	// Name search term
 	term := c.QueryParam("term")
 
+	// Assembly ID
 	// perform wildcard search if empty/random parameter is passed
 	// - set to Unknown to trigger it
 	assId := assemblyId.Unknown
-	assIdQP := c.QueryParam("assemblyId")
-	if assemblyId.CastToAssemblyId(assIdQP) != assemblyId.Unknown {
+	if assemblyId.CastToAssemblyId(c.QueryParam("assemblyId")) != assemblyId.Unknown {
 		// retrieve passed parameter if is valid
-		assId = assemblyId.CastToAssemblyId(assIdQP)
+		assId = assemblyId.CastToAssemblyId(c.QueryParam("assemblyId"))
 	}
 
-	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s\n", term, assId)
+	// Size
+	var (
+		size        int = 25
+		sizeCastErr error
+	)
+	if len(c.QueryParam("size")) > 0 {
+		sizeQP := c.QueryParam("size")
+		size, sizeCastErr = strconv.Atoi(sizeQP)
+		if sizeCastErr != nil {
+			size = 25
+		}
+	}
 
-	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, term, assId)
+	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s (max size: %d)\n", term, assId, size)
+
+	// Execute
+	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, term, assId, size)
 
 	docsHits := docs["hits"].(map[string]interface{})["hits"]
 	allDocHits := []map[string]interface{}{}
