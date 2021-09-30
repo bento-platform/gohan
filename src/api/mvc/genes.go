@@ -87,52 +87,62 @@ func GetGenesOverview(c echo.Context) error {
 	resultsMap := map[string]interface{}{}
 	resultsMux := sync.RWMutex{}
 
-	var wg sync.WaitGroup
 	es := c.(*contexts.GohanContext).Es7Client
 	cfg := c.(*contexts.GohanContext).Config
 
-	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
-		defer _wg.Done()
+	// retrieve aggregation of genes/chromosomes by assembly id
+	results := esRepo.GetGeneBucketsByKeyword(cfg, es)
 
-		results := esRepo.GetGeneBucketsByKeyword(cfg, es, keyword)
+	// begin mapping results
+	geneChromosomeGroupBucketsMapped := []map[string]interface{}{}
 
-		// retrieve aggregations.items.buckets
-		bucketsMapped := []interface{}{}
-		if aggs, ok := results["aggregations"]; ok {
-			aggsMapped := aggs.(map[string]interface{})
+	// loop over top level aggregation and
+	// accumulated nested aggregations
+	if aggs, ok := results["aggregations"]; ok {
+		aggsMapped := aggs.(map[string]interface{})
 
-			if items, ok := aggsMapped["items"]; ok {
-				itemsMapped := items.(map[string]interface{})
+		if items, ok := aggsMapped["genes_assembly_id_group"]; ok {
+			itemsMapped := items.(map[string]interface{})
 
-				if buckets := itemsMapped["buckets"]; ok {
-					bucketsMapped = buckets.([]interface{})
+			if buckets := itemsMapped["buckets"]; ok {
+				arrayMappedBuckets := buckets.([]interface{})
+
+				for _, mappedBucket := range arrayMappedBuckets {
+					geneChromosomeGroupBucketsMapped = append(geneChromosomeGroupBucketsMapped, mappedBucket.(map[string]interface{}))
 				}
 			}
 		}
-
-		individualKeyMap := map[string]interface{}{}
-		// push results bucket to slice
-		for _, bucket := range bucketsMapped {
-			doc_key := fmt.Sprint(bucket.(map[string]interface{})["key"]) // ensure strings and numbers are expressed as strings
-			doc_count := bucket.(map[string]interface{})["doc_count"]
-
-			individualKeyMap[doc_key] = doc_count
-		}
-
-		resultsMux.Lock()
-		resultsMap[key] = individualKeyMap
-		resultsMux.Unlock()
 	}
 
-	// get distribution of chromosomes
-	wg.Add(1)
-	go callGetBucketsByKeyword("chromosomes", "chrom.keyword", &wg)
+	individualAssemblyIdKeyMap := map[string]interface{}{}
 
-	// get distribution of variant IDs
-	wg.Add(1)
-	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
+	// iterated over each assemblyId bucket
+	for _, chromGroupBucketMap := range geneChromosomeGroupBucketsMapped {
 
-	wg.Wait()
+		assemblyIdKey := fmt.Sprint(chromGroupBucketMap["key"])
+
+		numGenesPerChromMap := map[string]interface{}{}
+		bucketsMapped := map[string]interface{}{}
+
+		if chromGroupItem, ok := chromGroupBucketMap["genes_chromosome_group"]; ok {
+			chromGroupItemMapped := chromGroupItem.(map[string]interface{})
+
+			for _, chromBucket := range chromGroupItemMapped["buckets"].([]interface{}) {
+				doc_key := fmt.Sprint(chromBucket.(map[string]interface{})["key"]) // ensure strings and numbers are expressed as strings
+				doc_count := chromBucket.(map[string]interface{})["doc_count"]
+
+				// add to list of buckets by chromosome
+				bucketsMapped[doc_key] = doc_count
+			}
+		}
+
+		numGenesPerChromMap["numberOfGenesPerChromosome"] = bucketsMapped
+		individualAssemblyIdKeyMap[assemblyIdKey] = numGenesPerChromMap
+	}
+
+	resultsMux.Lock()
+	resultsMap["assemblyIDs"] = individualAssemblyIdKeyMap
+	resultsMux.Unlock()
 
 	return c.JSON(http.StatusOK, resultsMap)
 }
