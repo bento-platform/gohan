@@ -101,10 +101,9 @@ func main() {
 				// fmt.Printf("row : %s\n", row)
 
 				var (
-					chromosome int
-					start      int
-					end        int
-					geneName   string
+					start    int
+					end      int
+					geneName string
 				)
 
 				rowSplits := strings.Split(rowText, "\t")
@@ -122,15 +121,15 @@ func main() {
 				// if chromosome MT, set to 0
 				// if chromosome X, set to 101
 				// if chromosome Y, set to 102
-				if strings.Contains(strings.ToUpper(chromosomeClean), "MT") {
-					chromosome = 0
-				} else if strings.ToUpper(chromosomeClean) == "X" {
-					chromosome = 101
-				} else if strings.ToUpper(chromosomeClean) == "Y" {
-					chromosome = 102
-				} else {
-					chromosome, _ = strconv.Atoi(chromosomeClean)
-				}
+				// if strings.Contains(strings.ToUpper(chromosomeClean), "MT") {
+				// 	chromosome = 0
+				// } else if strings.ToUpper(chromosomeClean) == "X" {
+				// 	chromosome = 101
+				// } else if strings.ToUpper(chromosomeClean) == "Y" {
+				// 	chromosome = 102
+				// } else {
+				// 	chromosome, _ = strconv.Atoi(chromosomeClean)
+				// }
 
 				// clean start/end
 				chromStartClean := strings.ReplaceAll(strings.ReplaceAll(rowSplits[_startKey], ",", ""), " ", "")
@@ -156,7 +155,7 @@ func main() {
 
 				discoveredGene := &models.Gene{
 					Name:       geneName,
-					Chrom:      chromosome,
+					Chrom:      chromosomeClean,
 					Start:      start,
 					End:        end,
 					AssemblyId: _assId,

@@ -7,7 +7,7 @@ import (
 var VcfHeaders = []string{"chrom", "pos", "id", "ref", "alt", "qual", "filter", "info", "format"}
 
 type Variant struct {
-	Chrom  int      `json:"chrom"`
+	Chrom  string   `json:"chrom"`
 	Pos    int      `json:"pos"`
 	Id     string   `json:"id"`
 	Ref    []string `json:"ref"`
@@ -48,7 +48,7 @@ type Genotype struct {
 
 type Gene struct {
 	Name       string       `json:"name"`
-	Chrom      int          `json:"chrom"`
+	Chrom      string       `json:"chrom"`
 	Start      int          `json:"start"`
 	End        int          `json:"end"`
 	AssemblyId c.AssemblyId `json:"assemblyId"`

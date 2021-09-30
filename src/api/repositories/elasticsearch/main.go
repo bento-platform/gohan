@@ -498,7 +498,7 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 		"size": size,
 		"sort": []map[string]interface{}{
 			{
-				"chrom": map[string]interface{}{
+				"chrom.keyword": map[string]interface{}{
 					"order": "asc",
 				},
 			},
@@ -571,6 +571,9 @@ func executeGetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, ke
 				"terms": map[string]interface{}{
 					"field": keyword,
 					"size":  "10000", // increases the number of buckets returned (default is 10)
+					"order": map[string]string{
+						"_key": "asc",
+					},
 				},
 			},
 		},
