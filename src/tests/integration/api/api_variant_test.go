@@ -26,8 +26,6 @@ const (
 	VariantsOverviewPath                      string = "%s/variants/overview"
 	VariantsGetBySampleIdsPathWithQueryString string = "%s/variants/get/by/sampleId%s"
 	IngestionRequestsPath                     string = "%s/variants/ingestion/requests"
-
-	GenesOverviewPath string = "%s/genes/overview"
 )
 
 func TestWithInvalidAuthenticationToken(t *testing.T) {
@@ -58,12 +56,6 @@ func TestVariantsOverview(t *testing.T) {
 	cfg := common.InitConfig()
 
 	overviewJson := getVariantsOverview(t, cfg)
-	assert.NotNil(t, overviewJson)
-}
-func TestGenesOverview(t *testing.T) {
-	cfg := common.InitConfig()
-
-	overviewJson := getGenesOverview(t, cfg)
 	assert.NotNil(t, overviewJson)
 }
 
