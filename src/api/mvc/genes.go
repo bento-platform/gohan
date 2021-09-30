@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
@@ -76,4 +77,59 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, geneResponseDTO)
+}
+
+func GetGenesOverview(c echo.Context) error {
+
+	resultsMap := map[string]interface{}{}
+	resultsMux := sync.RWMutex{}
+
+	var wg sync.WaitGroup
+	es := c.(*contexts.GohanContext).Es7Client
+	cfg := c.(*contexts.GohanContext).Config
+
+	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
+		defer _wg.Done()
+
+		results := esRepo.GetGeneBucketsByKeyword(cfg, es, keyword)
+
+		// retrieve aggregations.items.buckets
+		bucketsMapped := []interface{}{}
+		if aggs, ok := results["aggregations"]; ok {
+			aggsMapped := aggs.(map[string]interface{})
+
+			if items, ok := aggsMapped["items"]; ok {
+				itemsMapped := items.(map[string]interface{})
+
+				if buckets := itemsMapped["buckets"]; ok {
+					bucketsMapped = buckets.([]interface{})
+				}
+			}
+		}
+
+		individualKeyMap := map[string]interface{}{}
+		// push results bucket to slice
+		for _, bucket := range bucketsMapped {
+			doc_key := fmt.Sprint(bucket.(map[string]interface{})["key"]) // ensure strings and numbers are expressed as strings
+			doc_count := bucket.(map[string]interface{})["doc_count"]
+
+			individualKeyMap[doc_key] = doc_count
+		}
+
+		resultsMux.Lock()
+		resultsMap[key] = individualKeyMap
+		resultsMux.Unlock()
+	}
+
+	// get distribution of chromosomes
+	wg.Add(1)
+	go callGetBucketsByKeyword("chromosomes", "chrom", &wg)
+
+	// get distribution of variant IDs
+	wg.Add(1)
+	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
+
+	wg.Wait()
+
+	return c.JSON(http.StatusOK, resultsMap)
 }

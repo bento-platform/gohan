@@ -455,70 +455,6 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	return result
 }
 
-func GetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) map[string]interface{} {
-
-	// begin building the request body.
-	var buf bytes.Buffer
-	aggMap := map[string]interface{}{
-		"size": "0",
-		"aggs": map[string]interface{}{
-			"items": map[string]interface{}{
-				"terms": map[string]interface{}{
-					"field": keyword,
-					"size":  "10000", // increases the number of buckets returned (default is 10)
-				},
-			},
-		},
-	}
-
-	// encode the query
-	if err := json.NewEncoder(&buf).Encode(aggMap); err != nil {
-		log.Fatalf("Error encoding aggMap: %s\n", err)
-	}
-
-	if cfg.Debug {
-		// view the outbound elasticsearch query
-		myString := string(buf.Bytes()[:])
-		fmt.Println(myString)
-	}
-
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
-	// Perform the search request.
-	res, searchErr := es.Search(
-		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex("variants"),
-		es.Search.WithBody(&buf),
-		es.Search.WithTrackTotalHits(true),
-		es.Search.WithPretty(),
-	)
-	if searchErr != nil {
-		fmt.Printf("Error getting response: %s\n", searchErr)
-	}
-
-	defer res.Body.Close()
-
-	resultString := res.String()
-	if cfg.Debug {
-		fmt.Println(resultString)
-	}
-
-	// Declared an empty interface
-	result := make(map[string]interface{})
-
-	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
-	if umErr != nil {
-		fmt.Printf("Error unmarshalling response: %s\n", umErr)
-	}
-
-	fmt.Printf("Query End: %s\n", time.Now())
-
-	return result
-}
-
 func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client,
 	term string, assId constants.AssemblyId, size int) map[string]interface{} {
 
@@ -613,6 +549,77 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
 	}
+
+	return result
+}
+
+func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) map[string]interface{} {
+	return executeGetBucketsByKeyword(cfg, es, keyword, "variants")
+}
+
+func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) map[string]interface{} {
+	return executeGetBucketsByKeyword(cfg, es, keyword, "genes")
+}
+
+func executeGetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string, index string) map[string]interface{} {
+	// begin building the request body.
+	var buf bytes.Buffer
+	aggMap := map[string]interface{}{
+		"size": "0",
+		"aggs": map[string]interface{}{
+			"items": map[string]interface{}{
+				"terms": map[string]interface{}{
+					"field": keyword,
+					"size":  "10000", // increases the number of buckets returned (default is 10)
+				},
+			},
+		},
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(aggMap); err != nil {
+		log.Fatalf("Error encoding aggMap: %s\n", err)
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	// TEMP: SECURITY RISK
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//
+	// Perform the search request.
+	res, searchErr := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex(index),
+		es.Search.WithBody(&buf),
+		es.Search.WithTrackTotalHits(true),
+		es.Search.WithPretty(),
+	)
+	if searchErr != nil {
+		fmt.Printf("Error getting response: %s\n", searchErr)
+	}
+
+	defer res.Body.Close()
+
+	resultString := res.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Declared an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+	}
+
+	fmt.Printf("Query End: %s\n", time.Now())
 
 	return result
 }

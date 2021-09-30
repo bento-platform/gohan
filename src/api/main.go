@@ -156,6 +156,7 @@ func main() {
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
 
 	// -- Genes
+	e.GET("/genes/overview", mvc.GetGenesOverview)
 	e.GET("/genes/search", mvc.GenesGetByNomenclatureWildcard)
 
 	// Run

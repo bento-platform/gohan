@@ -249,7 +249,7 @@ func GetVariantsOverview(c echo.Context) error {
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
-		results := esRepo.GetBucketsByKeyword(cfg, es, keyword)
+		results := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
 
 		// retrieve aggregations.items.buckets
 		bucketsMapped := []interface{}{}
