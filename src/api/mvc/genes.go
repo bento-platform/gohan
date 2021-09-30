@@ -19,7 +19,11 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	es := c.(*contexts.GohanContext).Es7Client
 
 	// Chromosome search term
-	chromosome := c.QueryParam("chromosome")
+	chromosomeSearchTerm := c.QueryParam("chromosome")
+	if len(chromosomeSearchTerm) == 0 {
+		// if no chromosome is provided, assume "wildcard" search
+		chromosomeSearchTerm = "*"
+	}
 
 	// Name search term
 	term := c.QueryParam("term")
@@ -49,7 +53,7 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s (max size: %d)\n", term, assId, size)
 
 	// Execute
-	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosome, term, assId, size)
+	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, assId, size)
 
 	docsHits := docs["hits"].(map[string]interface{})["hits"]
 	allDocHits := []map[string]interface{}{}

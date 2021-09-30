@@ -10,20 +10,16 @@ import (
 /*
 	Echo middleware to ensure a valid `chromosome` HTTP query parameter was provided
 */
-func MandateChromosomeAttribute(next echo.HandlerFunc) echo.HandlerFunc {
+func ValidateOptionalChromosomeAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// check for chromosome query parameter
 		chromQP := c.QueryParam("chromosome")
-		if len(chromQP) == 0 {
-			// if no id was provided return an error
-			return echo.NewHTTPError(http.StatusBadRequest, "Missing 'chromosome' query parameter for querying!")
-		}
 
 		// verify:
-		if !chromosome.IsValidHumanChromosome(chromQP) {
+		if len(chromQP) > 0 && !chromosome.IsValidHumanChromosome(chromQP) {
 			// if chromosome less than 1 or greater than 23
 			// and not 'x', 'y' or 'm'
-			return echo.NewHTTPError(http.StatusBadRequest, "Please provide a 'chromosome' greater than 0!")
+			return echo.NewHTTPError(http.StatusBadRequest, "Please provide a valid 'chromosome' (either 1-23, X, Y, or M)")
 		}
 
 		return next(c)
