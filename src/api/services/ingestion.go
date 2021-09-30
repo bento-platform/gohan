@@ -3,6 +3,7 @@ package services
 import (
 	"api/models"
 	"api/models/constants"
+	"api/models/constants/chromosome"
 	z "api/models/constants/zygosity"
 	"api/models/ingest"
 	"api/models/ingest/structs"
@@ -21,7 +22,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -300,8 +300,6 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 	var discoveredHeaders bool = false
 	var headers []string
 
-	nonNumericRegexp := regexp.MustCompile("[^.0-9]")
-
 	var _fileWG sync.WaitGroup
 
 	for scanner.Scan() {
@@ -351,11 +349,21 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 					if utils.StringInSlice(key, models.VcfHeaders) {
 
 						// filter field type by column name
-						if key == "chrom" || key == "pos" || key == "qual" {
-							if key == "chrom" {
-								// Strip out all non-numeric characters
-								value = nonNumericRegexp.ReplaceAllString(value, "")
+						if key == "chrom" {
+							// Strip out all non-numeric characters
+							value = strings.ReplaceAll(value, "chr", "")
+
+							// ems if value is valid chromosome
+							if chromosome.IsValidHumanChromosome(value) {
+								tmpVariantMapMutex.Lock()
+								tmpVariant[key] = value
+								tmpVariantMapMutex.Unlock()
+							} else {
+								tmpVariantMapMutex.Lock()
+								tmpVariant[key] = "err"
+								tmpVariantMapMutex.Unlock()
 							}
+						} else if key == "pos" || key == "qual" {
 
 							// // Convert string's to int's, if possible
 							value, err := strconv.ParseInt(value, 10, 0)

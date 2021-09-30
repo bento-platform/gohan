@@ -1,8 +1,8 @@
 package middleware
 
 import (
+	"api/models/constants/chromosome"
 	"net/http"
-	"strconv"
 
 	"github.com/labstack/echo"
 )
@@ -20,14 +20,9 @@ func MandateChromosomeAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// verify:
-		i, conversionErr := strconv.Atoi(chromQP)
-		if conversionErr != nil {
-			// if invalid chromosome
-			return echo.NewHTTPError(http.StatusBadRequest, "Error converting 'chromosome' query parameter! Check your input")
-		}
-
-		if i <= 0 {
-			// if chromosome less than 0
+		if !chromosome.IsValidHumanChromosome(chromQP) {
+			// if chromosome less than 1 or greater than 23
+			// and not 'x', 'y' or 'm'
 			return echo.NewHTTPError(http.StatusBadRequest, "Please provide a 'chromosome' greater than 0!")
 		}
 

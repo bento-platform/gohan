@@ -281,7 +281,7 @@ func GetVariantsOverview(c echo.Context) error {
 
 	// get distribution of chromosomes
 	wg.Add(1)
-	go callGetBucketsByKeyword("chromosomes", "chrom", &wg)
+	go callGetBucketsByKeyword("chromosomes", "chrom.keyword", &wg)
 
 	// get distribution of variant IDs
 	wg.Add(1)
