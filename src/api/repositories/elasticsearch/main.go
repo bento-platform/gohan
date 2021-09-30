@@ -456,12 +456,18 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 }
 
 func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client,
-	term string, assId constants.AssemblyId, size int) map[string]interface{} {
+	chromosome string, term string, assId constants.AssemblyId, size int) map[string]interface{} {
 
 	// TEMP: SECURITY RISK
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	//
 
+	// Chromosome Search Term
+	// (wildcard by default)
+	chromosomeStringTerm := "*"
+	if chromosome != "" {
+		chromosomeStringTerm = chromosome
+	}
 	// Nomenclature Search Term
 	nomenclatureStringTerm := fmt.Sprintf("*%s*", term)
 
@@ -478,6 +484,12 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 				"filter": []map[string]interface{}{{
 					"bool": map[string]interface{}{
 						"must": []map[string]interface{}{
+							{
+								"query_string": map[string]interface{}{
+									"fields": []string{"chrom"},
+									"query":  chromosomeStringTerm,
+								},
+							},
 							{
 								"query_string": map[string]interface{}{
 									"fields": []string{"name"},
