@@ -136,10 +136,6 @@ func getGenesOverview(_t *testing.T, _cfg *models.Config) map[string]interface{}
 	assert.Nil(_t, overviewJsonUnmarshallingError)
 
 	// -- insure it's an empty array
-	// chromosomesKey, ckOk := overviewRespJson["chromosomes"]
-	// assert.True(_t, ckOk)
-	// assert.NotNil(_t, chromosomesKey)
-
 	assemblyIDsKey, assidkOk := overviewRespJson["assemblyIDs"]
 	assert.True(_t, assidkOk)
 	assert.NotNil(_t, assemblyIDsKey)

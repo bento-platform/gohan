@@ -4,14 +4,18 @@ import (
 	"api/models"
 	"api/models/constants"
 	assemblyId "api/models/constants/assembly-id"
+	"api/models/constants/chromosome"
 	"api/models/ingest/structs"
 	"api/services"
 	"api/utils"
 	"bufio"
+	"compress/gzip"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -42,11 +46,19 @@ func main() {
 
 	assemblyIdMap := map[constants.AssemblyId]string{
 		assemblyId.GRCh38: "gencode.v38.annotation.gtf",
-		assemblyId.GRCh37: "gencode.v19.annotation.gtf_withproteinids",
+		assemblyId.GRCh37: "gencode.v19.annotation.gtf",
 		// SKIP
 		// assemblyId.NCBI36: "hg18",
 		// assemblyId.NCBI35: "hg17",
 		// assemblyId.NCBI34: "hg16",
+	}
+	assemblyIdGTFUrlMap := map[constants.AssemblyId]string{
+		assemblyId.GRCh38: "http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.annotation.gtf.gz",
+		assemblyId.GRCh37: "http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz",
+		// SKIP
+		// assemblyId.NCBI36: "",
+		// assemblyId.NCBI35: "",
+		// assemblyId.NCBI34: "",
 	}
 
 	var geneWg sync.WaitGroup
@@ -56,7 +68,85 @@ func main() {
 
 		gtfFile, err := os.Open(fileName)
 		if err != nil {
-			log.Fatalf("failed to open file: %s", err)
+			// log.Fatalf("failed to open file: %s", err)
+			// Download the file
+			fullURLFile := assemblyIdGTFUrlMap[assId]
+
+			// Build fileName from fullPath
+			fileURL, err := url.Parse(fullURLFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			path := fileURL.Path
+			segments := strings.Split(path, "/")
+			fileName = segments[len(segments)-1]
+
+			// Create blank file
+			file, err := os.Create(fileName)
+			if err != nil {
+				log.Fatal(err)
+			}
+			client := http.Client{
+				CheckRedirect: func(r *http.Request, via []*http.Request) error {
+					r.URL.Opaque = r.URL.Path
+					return nil
+				},
+			}
+			fmt.Printf("Downloading file %s ...\n", fileName)
+
+			// Put content on file
+			resp, err := client.Get(fullURLFile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer resp.Body.Close()
+
+			size, err := io.Copy(file, resp.Body)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer file.Close()
+
+			fmt.Printf("Downloaded a file %s with size %d\n", fileName, size)
+
+			fmt.Printf("Unzipping %s...\n", fileName)
+			gzipfile, err := os.Open(fileName)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			reader, err := gzip.NewReader(gzipfile)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			defer reader.Close()
+
+			newfilename := strings.TrimSuffix(fileName, ".gz")
+
+			writer, err := os.Create(newfilename)
+
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			defer writer.Close()
+
+			if _, err = io.Copy(writer, reader); err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("Opening %s\n", newfilename)
+			gtfFile, _ = os.Open(newfilename)
+
+			fmt.Printf("Deleting %s\n", fileName)
+			err = os.Remove(fileName)
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 
 		defer gtfFile.Close()
@@ -64,7 +154,7 @@ func main() {
 		fileScanner := bufio.NewScanner(gtfFile)
 		fileScanner.Split(bufio.ScanLines)
 
-		fmt.Printf("%s :\n", fileName)
+		fmt.Printf("Ingesting %s\n", string(assId))
 
 		var (
 			chromHeaderKey     = 0
@@ -117,19 +207,12 @@ func main() {
 
 				//clean chromosome
 				chromosomeClean := strings.ReplaceAll(rowSplits[_chromHeaderKey], "chr", "")
-				// TODO: fomarmalize
-				// if chromosome MT, set to 0
-				// if chromosome X, set to 101
-				// if chromosome Y, set to 102
-				// if strings.Contains(strings.ToUpper(chromosomeClean), "MT") {
-				// 	chromosome = 0
-				// } else if strings.ToUpper(chromosomeClean) == "X" {
-				// 	chromosome = 101
-				// } else if strings.ToUpper(chromosomeClean) == "Y" {
-				// 	chromosome = 102
-				// } else {
-				// 	chromosome, _ = strconv.Atoi(chromosomeClean)
-				// }
+
+				if !chromosome.IsValidHumanChromosome(chromosomeClean) {
+					defer _gwg.Done()
+					return
+				}
+				// http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.annotation.gtf.gz
 
 				// clean start/end
 				chromStartClean := strings.ReplaceAll(strings.ReplaceAll(rowSplits[_startKey], ",", ""), " ", "")
