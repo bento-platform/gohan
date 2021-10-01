@@ -12,3 +12,11 @@ type VariantResponseDataModel struct {
 	Count     int       `json:"count"`
 	Results   []Variant `json:"results"` // []Variant
 }
+
+type GenesResponseDTO struct {
+	Status  int    `json:"status"`
+	Message string `json:"message"`
+	Term    string `json:"term"`
+	Count   int    `json:"count"`
+	Results []Gene `json:"results"` // []Gene
+}
