@@ -39,7 +39,7 @@ func CreateEsConnection(cfg *models.Config) *es7.Client {
 
 	es7Client, _ := es7.NewClient(esCfg)
 
-	fmt.Printf("Using ES7 Client Version %s", es7.Version)
+	fmt.Printf("Using ES7 Client Version %s\n", es7.Version)
 
 	return es7Client
 }

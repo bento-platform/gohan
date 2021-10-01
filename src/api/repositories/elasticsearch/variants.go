@@ -19,6 +19,8 @@ import (
 	"github.com/elastic/go-elasticsearch"
 )
 
+const variantsIndex = "variants"
+
 func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
@@ -213,7 +215,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex("variants"),
+		es.Search.WithIndex(variantsIndex),
 		es.Search.WithBody(&buf),
 		es.Search.WithTrackTotalHits(true),
 		es.Search.WithPretty(),
@@ -423,7 +425,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	// Perform the search request.
 	res, searchErr := es.Count(
 		es.Count.WithContext(context.Background()),
-		es.Count.WithIndex("variants"),
+		es.Count.WithIndex(variantsIndex),
 		es.Count.WithBody(&buf),
 		es.Count.WithPretty(),
 	)
@@ -453,8 +455,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	return result
 }
 
-func GetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) map[string]interface{} {
-
+func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) map[string]interface{} {
 	// begin building the request body.
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
@@ -464,6 +465,9 @@ func GetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword s
 				"terms": map[string]interface{}{
 					"field": keyword,
 					"size":  "10000", // increases the number of buckets returned (default is 10)
+					"order": map[string]string{
+						"_key": "asc",
+					},
 				},
 			},
 		},
@@ -486,7 +490,7 @@ func GetBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword s
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex("variants"),
+		es.Search.WithIndex(variantsIndex),
 		es.Search.WithBody(&buf),
 		es.Search.WithTrackTotalHits(true),
 		es.Search.WithPretty(),

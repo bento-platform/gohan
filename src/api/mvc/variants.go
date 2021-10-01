@@ -249,7 +249,7 @@ func GetVariantsOverview(c echo.Context) error {
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
-		results := esRepo.GetBucketsByKeyword(cfg, es, keyword)
+		results := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
 
 		// retrieve aggregations.items.buckets
 		bucketsMapped := []interface{}{}
@@ -281,7 +281,7 @@ func GetVariantsOverview(c echo.Context) error {
 
 	// get distribution of chromosomes
 	wg.Add(1)
-	go callGetBucketsByKeyword("chromosomes", "chrom", &wg)
+	go callGetBucketsByKeyword("chromosomes", "chrom.keyword", &wg)
 
 	// get distribution of variant IDs
 	wg.Add(1)

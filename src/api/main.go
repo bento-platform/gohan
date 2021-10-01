@@ -124,13 +124,13 @@ func main() {
 
 	e.GET("/variants/get/by/variantId", mvc.VariantsGetByVariantId,
 		// middleware
-		gam.MandateChromosomeAttribute,
+		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/get/by/sampleId", mvc.VariantsGetBySampleId,
 		// middleware
-		gam.MandateChromosomeAttribute,
+		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsPluralAttribute,
@@ -138,13 +138,13 @@ func main() {
 
 	e.GET("/variants/count/by/variantId", mvc.VariantsCountByVariantId,
 		// middleware
-		gam.MandateChromosomeAttribute,
+		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/count/by/sampleId", mvc.VariantsCountBySampleId,
 		// middleware
-		gam.MandateChromosomeAttribute,
+		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsSingularAttribute,
@@ -154,6 +154,12 @@ func main() {
 		// middleware
 		gam.MandateAssemblyIdAttribute)
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
+
+	// -- Genes
+	e.GET("/genes/overview", mvc.GetGenesOverview)
+	e.GET("/genes/search", mvc.GenesGetByNomenclatureWildcard,
+		// middleware
+		gam.ValidateOptionalChromosomeAttribute)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))
