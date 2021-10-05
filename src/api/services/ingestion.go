@@ -36,8 +36,10 @@ import (
 type (
 	IngestionService struct {
 		Initialized                    bool
-		IngestRequestChan              chan *ingest.IngestRequest
-		IngestRequestMap               map[string]*ingest.IngestRequest
+		IngestRequestChan              chan *ingest.VariantIngestRequest
+		IngestRequestMap               map[string]*ingest.VariantIngestRequest
+		GeneIngestRequestChan          chan *ingest.GeneIngestRequest
+		GeneIngestRequestMap           map[string]*ingest.GeneIngestRequest
 		IngestionBulkIndexingCapacity  int
 		ElasticsearchClient            *elasticsearch.Client
 		IngestionBulkIndexingQueue     chan *structs.IngestionQueueStructure
@@ -53,8 +55,10 @@ func NewIngestionService(es *elasticsearch.Client) *IngestionService {
 
 	iz := &IngestionService{
 		Initialized:                    false,
-		IngestRequestChan:              make(chan *ingest.IngestRequest),
-		IngestRequestMap:               map[string]*ingest.IngestRequest{},
+		IngestRequestChan:              make(chan *ingest.VariantIngestRequest),
+		IngestRequestMap:               map[string]*ingest.VariantIngestRequest{},
+		GeneIngestRequestChan:          make(chan *ingest.GeneIngestRequest),
+		GeneIngestRequestMap:           map[string]*ingest.GeneIngestRequest{},
 		IngestionBulkIndexingCapacity:  defaultBulkIndexingCap,
 		IngestionBulkIndexingQueue:     make(chan *structs.IngestionQueueStructure, defaultBulkIndexingCap),
 		GeneIngestionBulkIndexingQueue: make(chan *structs.GeneIngestionQueueStructure, 10),
@@ -103,6 +107,20 @@ func (i *IngestionService) Init() {
 
 					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
 					i.IngestRequestMap[newRequest.Id.String()] = newRequest
+				}
+			}
+		}()
+
+		go func() {
+			for {
+				select {
+				case newRequest := <-i.GeneIngestRequestChan:
+					if newRequest.State == ingest.Queued {
+						fmt.Printf("Received new request for %s", newRequest.Filename)
+					}
+
+					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
+					i.GeneIngestRequestMap[newRequest.Filename] = newRequest
 				}
 			}
 		}()

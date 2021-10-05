@@ -6,6 +6,7 @@ import (
 	"api/models/constants"
 	assemblyId "api/models/constants/assembly-id"
 	"api/models/constants/chromosome"
+	"api/models/ingest"
 	"api/models/ingest/structs"
 	esRepo "api/repositories/elasticsearch"
 	"bufio"
@@ -20,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
@@ -58,10 +60,20 @@ func GenesIngest(c echo.Context) error {
 
 		for assId, fileName := range assemblyIdMap {
 			assemblyWg.Add(1)
-			go func(_assId constants.AssemblyId, _fileName string, _assemblyWg *sync.WaitGroup) {
+
+			newRequestState := ingest.GeneIngestRequest{
+				Filename:  fileName,
+				State:     ingest.Queued,
+				CreatedAt: fmt.Sprintf("%s", time.Now()),
+			}
+
+			go func(_assId constants.AssemblyId, _fileName string, _assemblyWg *sync.WaitGroup, reqStat *ingest.GeneIngestRequest) {
 				defer _assemblyWg.Done()
 
-				var geneWg sync.WaitGroup
+				var (
+					unzippedFileName string
+					geneWg           sync.WaitGroup
+				)
 				gtfFile, err := os.Open(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 				if err != nil {
 					// log.Fatalf("failed to open file: %s", err)
@@ -80,7 +92,12 @@ func GenesIngest(c echo.Context) error {
 					// Create blank file
 					file, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 					if err != nil {
-						log.Fatal(err)
+						msg := "Something went wrong:  " + err.Error()
+						fmt.Println(msg)
+
+						reqStat.State = ingest.Error
+						reqStat.Message = msg
+						iz.GeneIngestRequestChan <- reqStat
 					}
 					client := http.Client{
 						CheckRedirect: func(r *http.Request, via []*http.Request) error {
@@ -88,69 +105,99 @@ func GenesIngest(c echo.Context) error {
 							return nil
 						},
 					}
+
 					fmt.Printf("Downloading file %s ...\n", _fileName)
+					reqStat.State = ingest.Downloading
+					iz.GeneIngestRequestChan <- reqStat
 
 					// Put content on file
 					resp, err := client.Get(fullURLFile)
 					if err != nil {
-						log.Fatal(err)
+						msg := "Something went wrong:  " + err.Error()
+						fmt.Println(msg)
+
+						reqStat.State = ingest.Error
+						reqStat.Message = msg
+						iz.GeneIngestRequestChan <- reqStat
 					}
 					defer resp.Body.Close()
 
 					size, err := io.Copy(file, resp.Body)
 					if err != nil {
-						log.Fatal(err)
+						msg := "Something went wrong:  " + err.Error()
+						fmt.Println(msg)
+
+						reqStat.State = ingest.Error
+						reqStat.Message = msg
+						iz.GeneIngestRequestChan <- reqStat
 					}
 					defer file.Close()
 
 					fmt.Printf("Downloaded a file %s with size %d\n", _fileName, size)
 
 					fmt.Printf("Unzipping %s...\n", _fileName)
-					gzipfile, err := os.Open(fmt.Sprintf("%s/%s", gtfPath, _fileName))
+					unzippedFile, err := os.Open(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 					if err != nil {
 						fmt.Println(err)
 						os.Exit(1)
 					}
 
-					reader, err := gzip.NewReader(gzipfile)
+					reader, err := gzip.NewReader(unzippedFile)
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						msg := "Something went wrong:  " + err.Error()
+						fmt.Println(msg)
+
+						reqStat.State = ingest.Error
+						reqStat.Message = msg
+						iz.GeneIngestRequestChan <- reqStat
 					}
 					defer reader.Close()
 
-					newfilename := strings.TrimSuffix(_fileName, ".gz")
+					unzippedFileName = strings.TrimSuffix(_fileName, ".gz")
 
-					writer, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, newfilename))
+					writer, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, unzippedFileName))
 
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						msg := "Something went wrong:  " + err.Error()
+						fmt.Println(msg)
+
+						reqStat.State = ingest.Error
+						reqStat.Message = msg
+						iz.GeneIngestRequestChan <- reqStat
 					}
 
 					defer writer.Close()
 
 					if _, err = io.Copy(writer, reader); err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						msg := "Something went wrong:  " + err.Error()
+						fmt.Println(msg)
+
+						reqStat.State = ingest.Error
+						reqStat.Message = msg
+						iz.GeneIngestRequestChan <- reqStat
 					}
 
-					fmt.Printf("Opening %s\n", newfilename)
-					gtfFile, _ = os.Open(fmt.Sprintf("%s/%s", gtfPath, newfilename))
+					fmt.Printf("Opening %s\n", unzippedFileName)
+					gtfFile, _ = os.Open(fmt.Sprintf("%s/%s", gtfPath, unzippedFileName))
 
 					fmt.Printf("Deleting %s\n", _fileName)
 					err = os.Remove(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 					if err != nil {
 						fmt.Println(err)
 					}
+				} else {
+					// for the rare occurences where the file wasn't deleted
+					// after ingestion (i.e. some kind of interruption), this ensures it does
+					unzippedFileName = _fileName
 				}
 
 				defer gtfFile.Close()
-
 				fileScanner := bufio.NewScanner(gtfFile)
 				fileScanner.Split(bufio.ScanLines)
 
 				fmt.Printf("Ingesting %s\n", string(_assId))
+				reqStat.State = ingest.Running
+				iz.GeneIngestRequestChan <- reqStat
 
 				var (
 					chromHeaderKey     = 0
@@ -249,13 +296,33 @@ func GenesIngest(c echo.Context) error {
 				geneWg.Wait()
 
 				fmt.Printf("%s ingestion done!\n", _assId)
-			}(assId, fileName, &assemblyWg)
+				fmt.Printf("Deleting %s\n", unzippedFileName)
+				err = os.Remove(fmt.Sprintf("%s/%s", gtfPath, unzippedFileName))
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				reqStat.State = ingest.Done
+				iz.GeneIngestRequestChan <- reqStat
+
+			}(assId, fileName, &assemblyWg, &newRequestState)
 		}
 
 		assemblyWg.Wait()
 	}()
 
 	return c.JSON(http.StatusOK, "{\"message\":\"please check in with /genes/overview !\"}")
+}
+
+func GetAllGeneIngestionRequests(c echo.Context) error {
+	izMap := c.(*contexts.GohanContext).IngestionService.GeneIngestRequestMap
+
+	// transform map of it-to-ingestRequests to an array
+	m := make([]*ingest.GeneIngestRequest, 0, len(izMap))
+	for _, val := range izMap {
+		m = append(m, val)
+	}
+	return c.JSON(http.StatusOK, m)
 }
 
 func GenesGetByNomenclatureWildcard(c echo.Context) error {

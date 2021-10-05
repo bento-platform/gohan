@@ -157,7 +157,7 @@ func VariantsIngest(c echo.Context) error {
 		}
 
 		// if not, execute
-		newRequestState := &ingest.IngestRequest{
+		newRequestState := &ingest.VariantIngestRequest{
 			Id:        uuid.New(),
 			Filename:  fileName,
 			State:     ingest.Queued,
@@ -171,7 +171,7 @@ func VariantsIngest(c echo.Context) error {
 			Message:  "Successfully queued..",
 		})
 
-		go func(file string, reqStat *ingest.IngestRequest) {
+		go func(file string, reqStat *ingest.VariantIngestRequest) {
 
 			reqStat.State = ingest.Running
 			ingestionService.IngestRequestChan <- reqStat
@@ -304,7 +304,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 	izMap := c.(*contexts.GohanContext).IngestionService.IngestRequestMap
 
 	// transform map of it-to-ingestRequests to an array
-	m := make([]*ingest.IngestRequest, 0, len(izMap))
+	m := make([]*ingest.VariantIngestRequest, 0, len(izMap))
 	for _, val := range izMap {
 		m = append(m, val)
 	}

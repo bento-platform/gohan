@@ -159,10 +159,11 @@ func main() {
 
 	// -- Genes
 	e.GET("/genes/overview", mvc.GetGenesOverview)
-	e.GET("/genes/ingest", mvc.GenesIngest)
 	e.GET("/genes/search", mvc.GenesGetByNomenclatureWildcard,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute)
+	e.GET("/genes/ingestion/requests", mvc.GetAllGeneIngestionRequests)
+	e.GET("/genes/ingestion/run", mvc.GenesIngest)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))
