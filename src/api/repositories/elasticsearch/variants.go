@@ -16,7 +16,7 @@ import (
 	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
 
-	"github.com/elastic/go-elasticsearch"
+	"github.com/elastic/go-elasticsearch/v7"
 )
 
 const variantsIndex = "variants"

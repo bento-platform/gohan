@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	es7 "github.com/elastic/go-elasticsearch"
+	es7 "github.com/elastic/go-elasticsearch/v7"
 )
 
 func CreateEsConnection(cfg *models.Config) *es7.Client {

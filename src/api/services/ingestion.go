@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs"
-	"github.com/elastic/go-elasticsearch"
-	"github.com/elastic/go-elasticsearch/esutil"
+	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/elastic/go-elasticsearch/v7/esutil"
 	"github.com/mitchellh/mapstructure"
 )
 

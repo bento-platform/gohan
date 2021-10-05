@@ -23,7 +23,7 @@ import (
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
 
-	"github.com/elastic/go-elasticsearch"
+	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/google/uuid"
 
 	"github.com/labstack/echo"

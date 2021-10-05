@@ -14,7 +14,7 @@ import (
 	"api/models/constants"
 	assemblyId "api/models/constants/assembly-id"
 
-	"github.com/elastic/go-elasticsearch"
+	"github.com/elastic/go-elasticsearch/v7"
 )
 
 const genesIndex = "genes"
