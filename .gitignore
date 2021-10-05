@@ -49,4 +49,7 @@ bin/*
 *.vcf.gz
 
 */*/*.csv
+
+# ignore .gtf files
+*/*.gtf*
 */*/*.gtf*

@@ -33,6 +33,7 @@ func main() {
 		"\tDebug : %t \n\n"+
 
 		"\tVCF Directory Path : %s \n"+
+		"\tGTF Directory Path : %s \n"+
 		"\tElasticsearch Url : %s \n"+
 		"\tElasticsearch Username : %s\n\n"+
 
@@ -48,6 +49,7 @@ func main() {
 
 		cfg.Debug,
 		cfg.Api.VcfPath,
+		cfg.Api.GtfPath,
 		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,
 		cfg.Drs.Url, cfg.Drs.Username,
 		cfg.AuthX.IsAuthorizationEnabled,
@@ -160,6 +162,8 @@ func main() {
 	e.GET("/genes/search", mvc.GenesGetByNomenclatureWildcard,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute)
+	e.GET("/genes/ingestion/requests", mvc.GetAllGeneIngestionRequests)
+	e.GET("/genes/ingestion/run", mvc.GenesIngest)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))
