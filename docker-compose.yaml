@@ -21,8 +21,8 @@ services:
     build:
       context: $PWD/src/api
       args:
+        BUILDER_BASE_IMAGE: ${GOHAN_API_BUILDER_BASE_IMAGE}
         BASE_IMAGE: ${GOHAN_API_BASE_IMAGE}
-        API_EXECUTABLE_FILENAME: api_linux_amd64
         # also passed in as an ENV from within Dockerfile :
         GOHAN_API_INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT} 
     image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
