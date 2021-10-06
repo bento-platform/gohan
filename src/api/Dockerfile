@@ -1,22 +1,38 @@
+ARG BUILDER_BASE_IMAGE
 ARG BASE_IMAGE
-FROM $BASE_IMAGE
+
+# Stage 1 - builder
+FROM $BUILDER_BASE_IMAGE as builder
 
 # Maintainer
 LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics.ca>"
 
+WORKDIR /build
+
+COPY . /build/
+
 # Alpine updates and executable dependencies
-RUN apk update \
-    && apk upgrade
+RUN apk update && \
+    apk upgrade && \
+    apk add git upx
+    
+RUN CGO_ENABLED=0 && \
+    go build -ldflags="-s -w" -o gohan_api && \
+    upx --brute gohan_api
+
+
+# Stage two - executioner
+FROM $BASE_IMAGE
+
+# # Alpine updates
+RUN apk update && \
+    apk upgrade
 
 # Copy pre-built executeables
-ARG API_EXECUTABLE_FILENAME
-ENV api_executable_filename=$API_EXECUTABLE_FILENAME
-COPY $API_EXECUTABLE_FILENAME /app/
+COPY --from=builder /build/gohan_api /app/
 
+# Run
 ARG GOHAN_API_INTERNAL_PORT
 ENV GOHAN_API_INTERNAL_PORT=$GOHAN_API_INTERNAL_PORT
 EXPOSE $GOHAN_API_INTERNAL_PORT
-
-# Run
-WORKDIR /app
-ENTRYPOINT ./$api_executable_filename
+ENTRYPOINT [ "/app/gohan_api" ]

@@ -44,7 +44,7 @@ build-gateway: stop-gateway clean-gateway
 	echo "-- Building Gateway Container --"
 	docker-compose -f docker-compose.yaml build gateway
 
-build-api-binaries:
+build-api-local-binaries:
 	@echo "-- Building Golang-Api-Alpine Binaries --"
 	
 	cd src/api && \
@@ -55,11 +55,9 @@ build-api-binaries:
 	cd ../.. && \
 	upx --brute bin/api_${GOOS}_${GOARCH}
 
-build-api-container: stop-api clean-api build-api-binaries
+build-api: stop-api clean-api
 	@echo "-- Building Golang-Api-Alpine Container --"
-	cp bin/api_${GOOS}_${GOARCH} src/api
 	docker-compose -f docker-compose.yaml build api
-	rm src/api/api_${GOOS}_${GOARCH}
 
 build-drs: stop-drs clean-drs
 	@echo "-- Building DRS Container --"

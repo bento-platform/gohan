@@ -390,12 +390,12 @@ Local Release:
 &nbsp;From the project root, run 
 
 ```
-make build-api-binaries
+make build-api-local-binaries
 ```
 
 
 
-&nbsp;The binary can then be found at *bin/api_${GOOS}_${GOARCH}* and executed with
+&nbsp;The binary can then be found at *bin/api_${GOOS}_${GOARCH}* and executed locally with
 
 ```
 export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
@@ -426,10 +426,10 @@ cd bin/
 
 Containerized Alpine Release: 
 
-&nbsp;When ready, build the `docker image` and spawn the `container` by running
+&nbsp;When ready, build the `docker image` and spawn the `container` with an independent binary build by running
 
 ```
-make build-api-container
+make build-api
 make run-api
 ```
 

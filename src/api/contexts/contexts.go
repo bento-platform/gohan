@@ -4,7 +4,7 @@ import (
 	"api/models"
 	"api/services"
 
-	es7 "github.com/elastic/go-elasticsearch"
+	es7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/labstack/echo"
 )
 
