@@ -2,6 +2,7 @@ package mvc
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -85,15 +86,27 @@ func VariantsIngest(c echo.Context) error {
 
 	ingestionService := c.(*contexts.GohanContext).IngestionService
 
-	// retrieve query parameters (comman separated)
-	fileNames := strings.Split(c.QueryParam("fileNames"), ",")
-	for _, fileName := range fileNames {
-		if fileName == "" {
-			// TODO: create a standard response object
-			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
-		}
+	// --- TEMP
+
+	// // retrieve query parameters (comman separated)
+	// fileNames := strings.Split(c.QueryParam("fileNames"), ",")
+	// for _, fileName := range fileNames {
+	// 	if fileName == "" {
+	// 		// TODO: create a standard response object
+	// 		return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
+	// 	}
+	// }
+
+	// retrieve a single fileName from query parameters
+	fileName := c.QueryParam("fileName")
+	if fileName == "" {
+		// TODO: create a standard response object
+		return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileName' query parameter!\"}")
 	}
 
+	// ---
+
+	drsFileId := c.QueryParam("drsFileId")
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
 
 	startTime := time.Now()
@@ -103,6 +116,9 @@ func VariantsIngest(c echo.Context) error {
 	// get vcf files
 	var vcfGzfiles []string
 
+	// TODO: simply load files by filename provided
+	// rather than load all available files and looping over them
+	// -----
 	// Read all files
 	fileInfo, err := ioutil.ReadDir(vcfPath)
 	if err != nil {
@@ -119,14 +135,13 @@ func VariantsIngest(c echo.Context) error {
 		}
 	}
 
-	//fmt.Printf("Found .vcf.gz files: %s\n", vcfGzfiles)
-
 	// Locate fileName from request inside found files
-	for _, fileName := range fileNames {
-		if utils.StringInSlice(fileName, vcfGzfiles) == false {
-			return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
-		}
+	//for _, fileName := range fileNames {
+	if utils.StringInSlice(fileName, vcfGzfiles) == false {
+		return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
 	}
+	//}
+	// -----
 
 	// create temporary directory for unzipped vcfs
 	vcfTmpPath := vcfPath + "/tmp"
@@ -144,44 +159,65 @@ func VariantsIngest(c echo.Context) error {
 
 	// ingest vcf
 	responseDtos := []ingest.IngestResponseDTO{}
-	for _, fileName := range fileNames {
+	//for _, fileName := range fileNames {
 
-		// check if there is an already exisiting ingestion request state
-		if ingestionService.FilenameAlreadyRunning(fileName) {
-			responseDtos = append(responseDtos, ingest.IngestResponseDTO{
-				Filename: fileName,
-				State:    ingest.Error,
-				Message:  "File already being ingested..",
-			})
-			continue
-		}
-
-		// if not, execute
-		newRequestState := &ingest.VariantIngestRequest{
-			Id:        uuid.New(),
-			Filename:  fileName,
-			State:     ingest.Queued,
-			CreatedAt: fmt.Sprintf("%s", startTime),
-		}
-
+	// check if there is an already exisiting ingestion request state
+	if ingestionService.FilenameAlreadyRunning(fileName) {
 		responseDtos = append(responseDtos, ingest.IngestResponseDTO{
-			Id:       newRequestState.Id,
-			Filename: newRequestState.Filename,
-			State:    newRequestState.State,
-			Message:  "Successfully queued..",
+			Filename: fileName,
+			State:    ingest.Error,
+			Message:  "File already being ingested..",
 		})
+		// continue
+		return c.JSON(http.StatusOK, responseDtos)
+	}
 
-		go func(file string, reqStat *ingest.VariantIngestRequest) {
+	// if not, execute
+	newRequestState := &ingest.VariantIngestRequest{
+		Id:        uuid.New(),
+		Filename:  fileName,
+		State:     ingest.Queued,
+		CreatedAt: fmt.Sprintf("%s", startTime),
+	}
 
-			reqStat.State = ingest.Running
+	responseDtos = append(responseDtos, ingest.IngestResponseDTO{
+		Id:       newRequestState.Id,
+		Filename: newRequestState.Filename,
+		State:    newRequestState.State,
+		Message:  "Successfully queued..",
+	})
+
+	go func(gzippedFileName string, reqStat *ingest.VariantIngestRequest) {
+
+		reqStat.State = ingest.Running
+		ingestionService.IngestRequestChan <- reqStat
+
+		// ---	 decompress vcf.gz
+		gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", gzippedFileName)
+		r, err := os.Open(gzippedFilePath)
+		if err != nil {
+			msg := fmt.Sprintf("error opening %s: %s\n", gzippedFileName, err)
+			fmt.Printf(msg)
+
+			reqStat.State = ingest.Error
+			reqStat.Message = msg
 			ingestionService.IngestRequestChan <- reqStat
 
-			// ---	 decompress vcf.gz
-			gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", file)
-			r, err := os.Open(gzippedFilePath)
+			return
+		}
+
+		// a drs file id can be passed in as a parameter. if it is
+		// present, it means this file was already ingested into drs,
+		// so skip doing that here..
+		if drsFileId == "" {
+			// TODO: "copy" gzipped file over to a temp folder that is common to DRS and gohan
+			// such that DRS can load the file into memory to process rather than receiving
+			// the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind
+			tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Drs.BridgeDirectory, "/", gzippedFileName)
+			destination, err := os.Create(tmpDestinationFileName)
 			if err != nil {
-				msg := fmt.Sprintf("error opening %s: %s\n", file, err)
-				fmt.Printf(msg)
+				msg := fmt.Sprintf("error creating temporary bridge file for %s: %s\n", gzippedFileName, err)
+				fmt.Println(msg)
 
 				reqStat.State = ingest.Error
 				reqStat.Message = msg
@@ -189,11 +225,11 @@ func VariantsIngest(c echo.Context) error {
 
 				return
 			}
-			defer r.Close()
+			defer destination.Close()
 
-			vcfFilePath := ingestionService.ExtractVcfGz(gzippedFilePath, r, vcfTmpPath)
-			if vcfFilePath == "" {
-				msg := "Something went wrong: filepath is empty for " + file
+			_, err = io.Copy(destination, r)
+			if err != nil {
+				msg := fmt.Sprintf("error copying to temporary bridge file from %s to %s: %s\n", gzippedFileName, tmpDestinationFileName, err)
 				fmt.Println(msg)
 
 				reqStat.State = ingest.Error
@@ -204,9 +240,9 @@ func VariantsIngest(c echo.Context) error {
 			}
 
 			// ---   push compressed to DRS
-			drsFileId := ingestionService.UploadVcfGzToDrs(gzippedFilePath, r, drsUrl, drsUsername, drsPassword)
-			if drsFileId == "" {
-				msg := "Something went wrong: DRS File Id is empty for " + file
+			newDrsFileId := ingestionService.UploadVcfGzToDrs(gzippedFileName, drsUrl, drsUsername, drsPassword)
+			if newDrsFileId == "" {
+				msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
 				fmt.Println(msg)
 
 				reqStat.State = ingest.Error
@@ -214,25 +250,53 @@ func VariantsIngest(c echo.Context) error {
 				ingestionService.IngestRequestChan <- reqStat
 
 				return
+			} else {
+				drsFileId = newDrsFileId
+				// TODO: Remove temporary file now that it has been ingested successfully into DRS
 			}
+		}
 
-			// ---	 load back into memory and process
-			ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId)
+		r, err = os.Open(gzippedFilePath)
+		if err != nil {
+			msg := fmt.Sprintf("error reopening %s: %s\n", gzippedFileName, err)
+			fmt.Println(msg)
 
-			// ---   delete the temporary vcf file
-			os.Remove(vcfFilePath)
-
-			// ---   delete full tmp path and all contents
-			// 		 (WARNING : Only do this when running over a single file)
-			//os.RemoveAll(vcfTmpPath)
-
-			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(startTime))
-
-			reqStat.State = ingest.Done
+			reqStat.State = ingest.Error
+			reqStat.Message = msg
 			ingestionService.IngestRequestChan <- reqStat
 
-		}(fileName, newRequestState)
-	}
+			return
+		}
+		vcfFilePath := ingestionService.ExtractVcfGz(gzippedFilePath, r, vcfTmpPath)
+		if vcfFilePath == "" {
+			msg := "Something went wrong: filepath is empty for " + gzippedFileName
+			fmt.Println(msg)
+
+			reqStat.State = ingest.Error
+			reqStat.Message = msg
+			ingestionService.IngestRequestChan <- reqStat
+
+			return
+		}
+		defer r.Close()
+
+		// ---	 load back into memory and process
+		ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId)
+
+		// ---   delete the temporary vcf file
+		os.Remove(vcfFilePath)
+
+		// ---   delete full tmp path and all contents
+		// 		 (WARNING : Only do this when running over a single file)
+		//os.RemoveAll(vcfTmpPath)
+
+		fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(startTime))
+
+		reqStat.State = ingest.Done
+		ingestionService.IngestRequestChan <- reqStat
+
+	}(fileName, newRequestState)
+	//}
 
 	return c.JSON(http.StatusOK, responseDtos)
 }

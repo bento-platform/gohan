@@ -5,17 +5,43 @@ FROM "${BASE_IMAGE}:${BASE_IMAGE_VERSION}"
 
 # TODO: change USER
 USER root
-
-RUN apk add --no-cache --virtual \
-	build-base \
-	cargo \
-	gcc \
-	git \
-	libffi-dev \
-	musl-dev \
-	python3-dev \
-	postgresql-dev \
-	postgresql-libs
+RUN apk update; \
+	apk upgrade; \
+	apk add --no-cache --virtual \
+		autoconf \
+		automake \
+		bash \
+		build-base \
+		bzip2-dev \
+		cargo \
+		curl \
+		curl-dev \
+		gcc \
+		git \
+		libcurl \
+		libressl-dev \
+		libffi-dev \
+		linux-headers \
+		make \
+		musl-dev \
+		openssl-dev \
+		python3-dev \
+		postgresql-dev \
+		postgresql-libs \
+		perl \
+		xz-dev \
+		yaml-dev \
+		zlib-dev
+# RUN apk add --no-cache --virtual \
+# 	build-base \
+# 	cargo \
+# 	gcc \
+# 	git \
+# 	libffi-dev \
+# 	musl-dev \
+# 	python3-dev \
+# 	postgresql-dev \
+# 	postgresql-libs
 
 RUN mkdir /drs
 
@@ -33,7 +59,8 @@ RUN git config --global user.email "you@example.com" && \
 	git config --global user.name "Your Name" && \
 	git fetch && \
     git checkout "${BRANCH}" && \
-    git pull $(echo "${REPO} refs/tags/${TAG}:refs/tags/${TAG}")
+    git pull && \
+	git checkout tags/${TAG}
 
 RUN ["pip", "install", "-r", "requirements.txt"]
 

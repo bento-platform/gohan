@@ -18,10 +18,8 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -263,22 +261,23 @@ func (i *IngestionService) ExtractVcfGz(gzippedFilePath string, gzipStream io.Re
 	return newVcfFilePath
 }
 
-func (i *IngestionService) UploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File, drsUrl, drsUsername, drsPassword string) string {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile("file", filepath.Base(gzipStream.Name()))
-	io.Copy(part, gzipStream)
-	writer.Close()
+func (i *IngestionService) UploadVcfGzToDrs(gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
+	// body := &bytes.Buffer{}
+	// writer := multipart.NewWriter(body)
+	// part, _ := writer.CreateFormFile("file", filepath.Base(gzipStream.Name()))
+	// io.Copy(part, gzipStream)
+	// writer.Close()
 
 	// TEMP: SECURITY RISK
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	//
 
-	// TODO: Parameterize DRS Url and credentials
-	r, _ := http.NewRequest("POST", drsUrl+"/public/ingest", body)
+	data := fmt.Sprintf("{\"path\": \"/bridge/%s\"}", gzippedFileName)
+
+	r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
 	r.SetBasicAuth(drsUsername, drsPassword)
 
-	r.Header.Add("Content-Type", writer.FormDataContentType())
+	r.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(r)
 	if err != nil {

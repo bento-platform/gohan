@@ -17,9 +17,10 @@ type Config struct {
 	} `yaml:"elasticsearch"`
 
 	Drs struct {
-		Url      string `yaml:"url" envconfig:"GOHAN_DRS_URL"`
-		Username string `yaml:"username" envconfig:"GOHAN_DRS_BASIC_AUTH_USERNAME"`
-		Password string `yaml:"password" envconfig:"GOHAN_DRS_BASIC_AUTH_PASSWORD"`
+		Url             string `yaml:"url" envconfig:"GOHAN_DRS_URL"`
+		BridgeDirectory string `yaml:"bridgeDirectory" envconfig:"GOHAN_API_DRS_BRIDGE_DIR"`
+		Username        string `yaml:"username" envconfig:"GOHAN_DRS_BASIC_AUTH_USERNAME"`
+		Password        string `yaml:"password" envconfig:"GOHAN_DRS_BASIC_AUTH_PASSWORD"`
 	} `yaml:"drs"`
 
 	AuthX struct {
