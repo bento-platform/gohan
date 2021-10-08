@@ -106,7 +106,6 @@ func VariantsIngest(c echo.Context) error {
 
 	// ---
 
-	drsFileId := c.QueryParam("drsFileId")
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
 
 	startTime := time.Now()
@@ -206,55 +205,49 @@ func VariantsIngest(c echo.Context) error {
 			return
 		}
 
-		// a drs file id can be passed in as a parameter. if it is
-		// present, it means this file was already ingested into drs,
-		// so skip doing that here..
-		if drsFileId == "" {
-			// TODO: "copy" gzipped file over to a temp folder that is common to DRS and gohan
-			// such that DRS can load the file into memory to process rather than receiving
-			// the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind
-			tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Drs.BridgeDirectory, "/", gzippedFileName)
-			destination, err := os.Create(tmpDestinationFileName)
-			if err != nil {
-				msg := fmt.Sprintf("error creating temporary bridge file for %s: %s\n", gzippedFileName, err)
-				fmt.Println(msg)
+		// copy gzipped file over to a temp folder that is common to DRS and gohan
+		// such that DRS can load the file into memory to process rather than receiving
+		// the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind -----
+		tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Api.BridgeDirectory, "/", gzippedFileName)
+		destination, err := os.Create(tmpDestinationFileName)
+		if err != nil {
+			msg := fmt.Sprintf("error creating temporary bridge file for %s: %s\n", gzippedFileName, err)
+			fmt.Println(msg)
 
-				reqStat.State = ingest.Error
-				reqStat.Message = msg
-				ingestionService.IngestRequestChan <- reqStat
+			reqStat.State = ingest.Error
+			reqStat.Message = msg
+			ingestionService.IngestRequestChan <- reqStat
 
-				return
-			}
-			defer destination.Close()
-
-			_, err = io.Copy(destination, r)
-			if err != nil {
-				msg := fmt.Sprintf("error copying to temporary bridge file from %s to %s: %s\n", gzippedFileName, tmpDestinationFileName, err)
-				fmt.Println(msg)
-
-				reqStat.State = ingest.Error
-				reqStat.Message = msg
-				ingestionService.IngestRequestChan <- reqStat
-
-				return
-			}
-
-			// ---   push compressed to DRS
-			newDrsFileId := ingestionService.UploadVcfGzToDrs(gzippedFileName, drsUrl, drsUsername, drsPassword)
-			if newDrsFileId == "" {
-				msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
-				fmt.Println(msg)
-
-				reqStat.State = ingest.Error
-				reqStat.Message = msg
-				ingestionService.IngestRequestChan <- reqStat
-
-				return
-			} else {
-				drsFileId = newDrsFileId
-				// TODO: Remove temporary file now that it has been ingested successfully into DRS
-			}
+			return
 		}
+		defer destination.Close()
+
+		_, err = io.Copy(destination, r)
+		if err != nil {
+			msg := fmt.Sprintf("error copying to temporary bridge file from %s to %s: %s\n", gzippedFileName, tmpDestinationFileName, err)
+			fmt.Println(msg)
+
+			reqStat.State = ingest.Error
+			reqStat.Message = msg
+			ingestionService.IngestRequestChan <- reqStat
+
+			return
+		}
+		// -----
+
+		// ---   push compressed to DRS
+		drsFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
+		if drsFileId == "" {
+			msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
+			fmt.Println(msg)
+
+			reqStat.State = ingest.Error
+			reqStat.Message = msg
+			ingestionService.IngestRequestChan <- reqStat
+
+			return
+		}
+		// TODO: Remove temporary file now that it has been ingested successfully into DRS
 
 		r, err = os.Open(gzippedFilePath)
 		if err != nil {

@@ -37,7 +37,8 @@ func main() {
 		"\tElasticsearch Url : %s \n"+
 		"\tElasticsearch Username : %s\n\n"+
 
-		"\tDRS Bridge Directory : %s\n"+
+		"\tAPI's API-DRS Bridge Directory : %s\n"+
+		"\tDRS's API-DRS Bridge Directory : %s\n"+
 		"\tDRS Url : %s\n"+
 		"\tDRS Username : %s\n\n"+
 
@@ -52,7 +53,8 @@ func main() {
 		cfg.Api.VcfPath,
 		cfg.Api.GtfPath,
 		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,
-		cfg.Drs.BridgeDirectory, cfg.Drs.Url, cfg.Drs.Username,
+		cfg.Api.BridgeDirectory, cfg.Drs.BridgeDirectory,
+		cfg.Drs.Url, cfg.Drs.Username,
 		cfg.AuthX.IsAuthorizationEnabled,
 		cfg.AuthX.OidcPublicJwksUrl,
 		cfg.AuthX.OpaUrl,

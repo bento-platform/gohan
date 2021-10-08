@@ -261,18 +261,12 @@ func (i *IngestionService) ExtractVcfGz(gzippedFilePath string, gzipStream io.Re
 	return newVcfFilePath
 }
 
-func (i *IngestionService) UploadVcfGzToDrs(gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
-	// body := &bytes.Buffer{}
-	// writer := multipart.NewWriter(body)
-	// part, _ := writer.CreateFormFile("file", filepath.Base(gzipStream.Name()))
-	// io.Copy(part, gzipStream)
-	// writer.Close()
-
+func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
 	// TEMP: SECURITY RISK
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	//
 
-	data := fmt.Sprintf("{\"path\": \"/bridge/%s\"}", gzippedFileName)
+	data := fmt.Sprintf("{\"path\": \"%s/%s\"}", drsBridgeDirectory, gzippedFileName)
 
 	r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
 	r.SetBasicAuth(drsUsername, drsPassword)
