@@ -360,7 +360,13 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s (max size: %d)\n", term, assId, size)
 
 	// Execute
-	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, assId, size)
+	docs, geneErr := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, assId, size)
+	if geneErr != nil {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":  500,
+			"message": "Something went wrong... Please contact the administrator!",
+		})
+	}
 
 	docsHits := docs["hits"].(map[string]interface{})["hits"]
 	allDocHits := []map[string]interface{}{}
@@ -402,7 +408,13 @@ func GetGenesOverview(c echo.Context) error {
 	cfg := c.(*contexts.GohanContext).Config
 
 	// retrieve aggregation of genes/chromosomes by assembly id
-	results := esRepo.GetGeneBucketsByKeyword(cfg, es)
+	results, geneErr := esRepo.GetGeneBucketsByKeyword(cfg, es)
+	if geneErr != nil {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":  500,
+			"message": "Something went wrong... Please contact the administrator!",
+		})
+	}
 
 	// begin mapping results
 	geneChromosomeGroupBucketsMapped := []map[string]interface{}{}

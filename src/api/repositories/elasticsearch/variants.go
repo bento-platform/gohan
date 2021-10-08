@@ -27,7 +27,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	reference string, alternative string,
 	size int, sortByPosition c.SortDirection,
 	includeSamplesInResultSet bool,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) map[string]interface{} {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -199,6 +199,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
 		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
 	}
 
 	if cfg.Debug {
@@ -222,6 +223,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	)
 	if searchErr != nil {
 		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
 	}
 
 	defer res.Body.Close()
@@ -239,18 +241,19 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
 
-	return result
+	return result, nil
 }
 
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) map[string]interface{} {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -409,6 +412,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
 		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
 	}
 
 	if cfg.Debug {
@@ -431,6 +435,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	)
 	if searchErr != nil {
 		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
 	}
 
 	defer res.Body.Close()
@@ -448,14 +453,15 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
 
-	return result
+	return result, nil
 }
 
-func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) map[string]interface{} {
+func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) (map[string]interface{}, error) {
 	// begin building the request body.
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
@@ -476,6 +482,7 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(aggMap); err != nil {
 		log.Fatalf("Error encoding aggMap: %s\n", err)
+		return nil, err
 	}
 
 	if cfg.Debug {
@@ -497,6 +504,7 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 	)
 	if searchErr != nil {
 		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
 	}
 
 	defer res.Body.Close()
@@ -514,9 +522,10 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
 
-	return result
+	return result, nil
 }

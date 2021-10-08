@@ -311,7 +311,13 @@ func GetVariantsOverview(c echo.Context) error {
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
-		results := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
+		results, bucketsError := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
+		if bucketsError != nil {
+			resultsMap[key] = map[string]interface{}{
+				"error": "Something went wrong. Please contact the administrator!",
+			}
+			return
+		}
 
 		// retrieve aggregations.items.buckets
 		bucketsMapped := []interface{}{}
@@ -413,6 +419,9 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	respDTO := models.VariantsResponseDTO{}
 	respDTOMux := sync.RWMutex{}
 
+	var errors []error
+	errorMux := sync.RWMutex{}
+
 	// TODO: optimize - make 1 repo call with all variantIds at once
 	var wg sync.WaitGroup
 	for _, id := range ids {
@@ -423,13 +432,16 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 			variantRespDataModel := models.VariantResponseDataModel{}
 
-			var docs map[string]interface{}
+			var (
+				docs      map[string]interface{}
+				searchErr error
+			)
 			if isVariantIdQuery {
 				variantRespDataModel.VariantId = _id
 
 				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
 
-				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
@@ -441,12 +453,18 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
 
-				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
 					reference, alternative,
 					size, sortByPosition,
 					includeSamplesInResultSet, genotype, assemblyId)
+			}
+			if searchErr != nil {
+				errorMux.Lock()
+				errors = append(errors, searchErr)
+				errorMux.Unlock()
+				return
 			}
 
 			// query for each id
@@ -483,8 +501,13 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	wg.Wait()
 
-	respDTO.Status = 200
-	respDTO.Message = "Success"
+	if len(errors) == 0 {
+		respDTO.Status = 200
+		respDTO.Message = "Success"
+	} else {
+		respDTO.Status = 500
+		respDTO.Message = "Something went wrong.. Please contact the administrator!"
+	}
 
 	return c.JSON(http.StatusOK, respDTO)
 }
@@ -497,6 +520,8 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 	respDTO := models.VariantsResponseDTO{}
 	respDTOMux := sync.RWMutex{}
 
+	var errors []error
+	errorMux := sync.RWMutex{}
 	// TODO: optimize - make 1 repo call with all variantIds at once
 	var wg sync.WaitGroup
 	for _, id := range ids {
@@ -507,13 +532,16 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 			variantRespDataModel := models.VariantResponseDataModel{}
 
-			var docs map[string]interface{}
+			var (
+				docs       map[string]interface{}
+				countError error
+			)
 			if isVariantIdQuery {
 				variantRespDataModel.VariantId = _id
 
 				fmt.Printf("Executing Count-Variants for VariantId %s\n", _id)
 
-				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
 					reference, alternative, genotype, assemblyId)
@@ -523,10 +551,17 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
 
-				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
 					reference, alternative, genotype, assemblyId)
+			}
+
+			if countError != nil {
+				errorMux.Lock()
+				errors = append(errors, countError)
+				errorMux.Unlock()
+				return
 			}
 
 			variantRespDataModel.Count = int(docs["count"].(float64))
@@ -540,8 +575,13 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 	wg.Wait()
 
-	respDTO.Status = 200
-	respDTO.Message = "Success"
+	if len(errors) == 0 {
+		respDTO.Status = 200
+		respDTO.Message = "Success"
+	} else {
+		respDTO.Status = 500
+		respDTO.Message = "Something went wrong.. Please contact the administrator!"
+	}
 
 	return c.JSON(http.StatusOK, respDTO)
 }
