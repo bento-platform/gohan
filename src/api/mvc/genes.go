@@ -32,6 +32,8 @@ func GenesIngest(c echo.Context) error {
 	go func() {
 
 		cfg := c.(*contexts.GohanContext).Config
+		es7Client := c.(*contexts.GohanContext).Es7Client
+
 		gtfPath := cfg.Api.GtfPath
 
 		iz := c.(*contexts.GohanContext).IngestionService
@@ -64,7 +66,7 @@ func GenesIngest(c echo.Context) error {
 			newRequestState := ingest.GeneIngestRequest{
 				Filename:  fileName,
 				State:     ingest.Queued,
-				CreatedAt: fmt.Sprintf("%s", time.Now()),
+				CreatedAt: fmt.Sprintf("%v", time.Now()),
 			}
 
 			go func(_assId constants.AssemblyId, _fileName string, _assemblyWg *sync.WaitGroup, reqStat *ingest.GeneIngestRequest) {
@@ -192,6 +194,11 @@ func GenesIngest(c echo.Context) error {
 				}
 
 				defer gtfFile.Close()
+
+				// clean out genes currently in elasticsearch by assembly id
+				fmt.Printf("Cleaning out %s gene documents from genes index (if any)\n", string(_assId))
+				esRepo.DeleteGenesByAssemblyId(cfg, es7Client, _assId)
+
 				fileScanner := bufio.NewScanner(gtfFile)
 				fileScanner.Split(bufio.ScanLines)
 
@@ -206,17 +213,6 @@ func GenesIngest(c echo.Context) error {
 					nameHeaderKeys     = []int{3}
 					geneNameHeaderKeys []int
 				)
-
-				var columnsToPrint []string
-				if _assId == assemblyId.GRCh38 {
-					// GRCh38 dataset has multiple name fields (name, name2) and
-					// also includes gene name fields (geneName, geneName2)
-					columnsToPrint = append(columnsToPrint, "#chrom", "chromStart", "chromEnd", "name", "name2", "geneName", "geneName2")
-					nameHeaderKeys = append(nameHeaderKeys, 4)
-					geneNameHeaderKeys = append(geneNameHeaderKeys, 5, 6)
-				} else {
-					columnsToPrint = append(columnsToPrint, "chrom", "txStart", "txEnd", "#name")
-				}
 
 				for fileScanner.Scan() {
 					rowText := fileScanner.Text()

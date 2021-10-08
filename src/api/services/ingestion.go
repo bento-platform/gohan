@@ -186,7 +186,7 @@ func (i *IngestionService) Init() {
 					// Prepare the data payload: encode article to JSON
 					data, err := json.Marshal(g)
 					if err != nil {
-						log.Fatalf("Cannot encode gene %s: %s\n", g, err)
+						log.Fatalf("Cannot encode gene %+v: %s\n", g, err)
 					}
 
 					// Add an item to the BulkIndexer

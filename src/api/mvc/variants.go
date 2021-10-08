@@ -86,8 +86,6 @@ func VariantsIngest(c echo.Context) error {
 
 	ingestionService := c.(*contexts.GohanContext).IngestionService
 
-	// --- TEMP
-
 	// retrieve query parameters (comman separated)
 	fileNames := strings.Split(c.QueryParam("fileNames"), ",")
 	for _, fileName := range fileNames {
@@ -96,15 +94,6 @@ func VariantsIngest(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
 		}
 	}
-
-	// // retrieve a single fileName from query parameters
-	// fileName := c.QueryParam("fileName")
-	// if fileName == "" {
-	// 	// TODO: create a standard response object
-	// 	return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileName' query parameter!\"}")
-	// }
-
-	// ---
 
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
 

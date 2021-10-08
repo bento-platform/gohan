@@ -199,3 +199,58 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 
 	return result
 }
+
+func DeleteGenesByAssemblyId(cfg *models.Config, es *elasticsearch.Client, assId constants.AssemblyId) map[string]interface{} {
+
+	// TEMP: SECURITY RISK
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//
+
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"match": map[string]interface{}{
+				"assemblyId": string(assId),
+			},
+		},
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", err)
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	// Perform the delete request.
+	deleteRes, deleteErr := es.DeleteByQuery(
+		[]string{genesIndex},
+		bytes.NewReader(buf.Bytes()),
+	)
+	if deleteErr != nil {
+		fmt.Printf("Error getting response: %s\n", deleteErr)
+	}
+
+	defer deleteRes.Body.Close()
+
+	resultString := deleteRes.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Prepare an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the empty interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
+	}
+
+	return result
+}
