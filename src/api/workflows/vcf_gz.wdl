@@ -25,7 +25,7 @@ task vcf_gz_gohan {
         # "while loop to ping '/variants/ingest/requests' and wait for this file ingestion to complete or display an error..."
         while
         do
-            THIS_FILE_RESULT=$(curl "${gohan_url}/variants/ingestion/requests" -k | jq -r  '.[] | "\(.filename) \(.state)"' | grep v38 | awk '{print $2}')
+            THIS_FILE_RESULT=$(curl "${gohan_url}/variants/ingestion/requests" -k | jq -r  '.[] | "\(.filename) \(.state)"' | grep ${vcf_gz_file_name} | awk '{print $2}')
             
             if [ $THIS_FILE_RESULT == "Done" || $THIS_FILE_RESULT == "Error" ]
                 WITH_ERROR_MESSAGE=
