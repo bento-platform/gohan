@@ -170,6 +170,7 @@ func main() {
 
 	// -- Workflows
 	e.GET("/workflows", mvc.WorkflowsGet)
+	e.GET("/workflows/:file", mvc.WorkflowsServeFile)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))
