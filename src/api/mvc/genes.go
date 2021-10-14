@@ -28,6 +28,7 @@ import (
 )
 
 func GenesIngest(c echo.Context) error {
+	fmt.Printf("[%s] - GenesIngest hit!\n", time.Now())
 	// trigger global ingestion background process
 	go func() {
 
@@ -311,6 +312,7 @@ func GenesIngest(c echo.Context) error {
 }
 
 func GetAllGeneIngestionRequests(c echo.Context) error {
+	fmt.Printf("[%s] - GetAllGeneIngestionRequests hit!\n", time.Now())
 	izMap := c.(*contexts.GohanContext).IngestionService.GeneIngestRequestMap
 
 	// transform map of it-to-ingestRequests to an array
@@ -322,6 +324,7 @@ func GetAllGeneIngestionRequests(c echo.Context) error {
 }
 
 func GenesGetByNomenclatureWildcard(c echo.Context) error {
+	fmt.Printf("[%s] - GenesGetByNomenclatureWildcard hit!\n", time.Now())
 	cfg := c.(*contexts.GohanContext).Config
 	es := c.(*contexts.GohanContext).Es7Client
 
@@ -400,6 +403,7 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 }
 
 func GetGenesOverview(c echo.Context) error {
+	fmt.Printf("[%s] - GetGenesOverview hit!\n", time.Now())
 
 	resultsMap := map[string]interface{}{}
 	resultsMux := sync.RWMutex{}

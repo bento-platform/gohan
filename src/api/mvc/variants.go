@@ -32,6 +32,7 @@ import (
 )
 
 func VariantsGetByVariantId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsGetByVariantId hit!\n", time.Now())
 	// retrieve variant Ids from query parameter (comma separated)
 	variantIds := strings.Split(c.QueryParam("ids"), ",")
 	if len(variantIds[0]) == 0 {
@@ -43,6 +44,7 @@ func VariantsGetByVariantId(c echo.Context) error {
 }
 
 func VariantsGetBySampleId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsGetBySampleId hit!\n", time.Now())
 	// retrieve sample Ids from query parameter (comma separated)
 	sampleIds := strings.Split(c.QueryParam("ids"), ",")
 	if len(sampleIds[0]) == 0 {
@@ -54,6 +56,7 @@ func VariantsGetBySampleId(c echo.Context) error {
 }
 
 func VariantsCountByVariantId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsGetBySampleId hit!\n", time.Now())
 	// retrieve single variant id from query parameter and map to a list
 	// to conform to function signature
 	singleVariantIdSlice := []string{c.QueryParam("id")}
@@ -66,6 +69,7 @@ func VariantsCountByVariantId(c echo.Context) error {
 }
 
 func VariantsCountBySampleId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsCountBySampleId hit!\n", time.Now())
 	// retrieve single sample id from query parameter and map to a list
 	// to conform to function signature
 	singleSampleIdSlice := []string{c.QueryParam("id")}
@@ -78,6 +82,7 @@ func VariantsCountBySampleId(c echo.Context) error {
 }
 
 func VariantsIngest(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsIngest hit!\n", time.Now())
 	cfg := c.(*contexts.GohanContext).Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
@@ -300,6 +305,7 @@ func VariantsIngest(c echo.Context) error {
 }
 
 func GetVariantsOverview(c echo.Context) error {
+	fmt.Printf("[%s] - GetVariantsOverview hit!\n", time.Now())
 
 	resultsMap := map[string]interface{}{}
 	resultsMux := sync.RWMutex{}
@@ -369,6 +375,7 @@ func GetVariantsOverview(c echo.Context) error {
 }
 
 func GetAllVariantIngestionRequests(c echo.Context) error {
+	fmt.Printf("[%s] - GetAllVariantIngestionRequests hit!\n", time.Now())
 	izMap := c.(*contexts.GohanContext).IngestionService.IngestRequestMap
 
 	// transform map of it-to-ingestRequests to an array
