@@ -37,6 +37,8 @@ func main() {
 		"\tElasticsearch Url : %s \n"+
 		"\tElasticsearch Username : %s\n\n"+
 
+		"\tAPI's API-DRS Bridge Directory : %s\n"+
+		"\tDRS's API-DRS Bridge Directory : %s\n"+
 		"\tDRS Url : %s\n"+
 		"\tDRS Username : %s\n\n"+
 
@@ -51,6 +53,7 @@ func main() {
 		cfg.Api.VcfPath,
 		cfg.Api.GtfPath,
 		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,
+		cfg.Api.BridgeDirectory, cfg.Drs.BridgeDirectory,
 		cfg.Drs.Url, cfg.Drs.Username,
 		cfg.AuthX.IsAuthorizationEnabled,
 		cfg.AuthX.OidcPublicJwksUrl,
@@ -164,6 +167,10 @@ func main() {
 		gam.ValidateOptionalChromosomeAttribute)
 	e.GET("/genes/ingestion/requests", mvc.GetAllGeneIngestionRequests)
 	e.GET("/genes/ingestion/run", mvc.GenesIngest)
+
+	// -- Workflows
+	e.GET("/workflows", mvc.WorkflowsGet)
+	e.GET("/workflows/:file", mvc.WorkflowsServeFile)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))

@@ -19,7 +19,7 @@ import (
 
 const genesIndex = "genes"
 
-func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) map[string]interface{} {
+func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) (map[string]interface{}, error) {
 	// begin building the request body.
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
@@ -51,6 +51,7 @@ func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) map[s
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(aggMap); err != nil {
 		log.Fatalf("Error encoding aggMap: %s\n", err)
+		return nil, err
 	}
 
 	if cfg.Debug {
@@ -72,6 +73,7 @@ func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) map[s
 	)
 	if searchErr != nil {
 		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
 	}
 
 	defer res.Body.Close()
@@ -89,15 +91,16 @@ func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) map[s
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
 
-	return result
+	return result, nil
 }
 
 func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client,
-	chromosomeSearchTerm string, term string, assId constants.AssemblyId, size int) map[string]interface{} {
+	chromosomeSearchTerm string, term string, assId constants.AssemblyId, size int) (map[string]interface{}, error) {
 
 	// TEMP: SECURITY RISK
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -160,6 +163,7 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
 		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
 	}
 
 	if cfg.Debug {
@@ -178,6 +182,7 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 	)
 	if searchErr != nil {
 		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
 	}
 
 	defer searchRes.Body.Close()
@@ -195,7 +200,66 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
+		return nil, umErr
 	}
 
-	return result
+	return result, nil
+}
+
+func DeleteGenesByAssemblyId(cfg *models.Config, es *elasticsearch.Client, assId constants.AssemblyId) (map[string]interface{}, error) {
+
+	// TEMP: SECURITY RISK
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//
+
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"match": map[string]interface{}{
+				"assemblyId": string(assId),
+			},
+		},
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	// Perform the delete request.
+	deleteRes, deleteErr := es.DeleteByQuery(
+		[]string{genesIndex},
+		bytes.NewReader(buf.Bytes()),
+	)
+	if deleteErr != nil {
+		fmt.Printf("Error getting response: %s\n", deleteErr)
+		return nil, deleteErr
+	}
+
+	defer deleteRes.Body.Close()
+
+	resultString := deleteRes.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Prepare an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the empty interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
+		return nil, umErr
+	}
+
+	return result, nil
 }

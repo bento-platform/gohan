@@ -31,6 +31,9 @@ RUN apk update && \
 # Copy pre-built executeables
 COPY --from=builder /build/gohan_api /app/
 
+# Copy static workflow files
+COPY workflows/*.wdl /app/workflows/
+
 # Run
 ARG GOHAN_API_INTERNAL_PORT
 ENV GOHAN_API_INTERNAL_PORT=$GOHAN_API_INTERNAL_PORT

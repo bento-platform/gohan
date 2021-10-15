@@ -2,6 +2,8 @@ package utils
 
 import (
 	"api/models"
+	"net"
+	"net/http"
 
 	"fmt"
 	"time"
@@ -32,9 +34,15 @@ func CreateEsConnection(cfg *models.Config) *es7.Client {
 			return retryBackoff.NextBackOff()
 		},
 
-		// Retry up to 5 attempts
+		// Retry up to 2 attempts
 		//
-		MaxRetries: 5,
+		MaxRetries:           2,
+		EnableRetryOnTimeout: false,
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: time.Duration(2 / time.Second),
+			}).DialContext,
+		},
 	}
 
 	es7Client, _ := es7.NewClient(esCfg)
