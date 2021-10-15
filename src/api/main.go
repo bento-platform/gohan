@@ -9,6 +9,7 @@ import (
 	"api/services"
 	"api/utils"
 	"strings"
+	"time"
 
 	"fmt"
 	"net/http"
@@ -98,6 +99,7 @@ func main() {
 	// Begin MVC Routes
 	// -- Root
 	e.GET("/", func(c echo.Context) error {
+		fmt.Printf("[%s] - Root hit!\n", time.Now())
 		return c.JSON(http.StatusOK, serviceInfo.SERVICE_WELCOME)
 	})
 
