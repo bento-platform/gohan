@@ -30,6 +30,8 @@ services:
         BASE_IMAGE: ${GOHAN_API_BASE_IMAGE}
         # also passed in as an ENV from within Dockerfile :
         GOHAN_API_INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT} 
+        HOST_USER_UID: ${HOST_USER_UID}
+        HOST_USER_GID: ${HOST_USER_GID}
     image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
     container_name: ${GOHAN_API_CONTAINER_NAME}
     networks:
@@ -68,11 +70,17 @@ services:
       retries: 3
 
   elasticsearch:
-    image: ${GOHAN_ES_BASE_IMAGE}:${GOHAN_ES_BASE_VERSION}
+    image: ${GOHAN_ES_IMAGE}:${GOHAN_ES_VERSION}
+    build:
+      context: $PWD/elasticsearch
+      args:
+        BASE_IMAGE: ${GOHAN_ES_BASE_IMAGE}
+        BASE_IMAGE_VERSION: ${GOHAN_ES_BASE_VERSION}
+        HOST_USER_UID: ${HOST_USER_UID}
+        HOST_USER_GID: ${HOST_USER_GID}
     mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpuset: ${GOHAN_ES_CPUSET} # grant access to all cores
     container_name: ${GOHAN_ES_CONTAINER_NAME}
-      
     networks: 
       - bridge-net
     environment:
@@ -83,6 +91,11 @@ services:
       - discovery.type=${GOHAN_ES_DISC_TYP}
     volumes: 
       - ${GOHAN_ES_DATA_DIR}:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:${GOHAN_ES_INTERNAL_PORT_1}" ]
+      timeout: 5s
+      interval: 1m
+      retries: 3
 
   kibana:
     image: ${GOHAN_KB_BASE_IMAGE}:${GOHAN_KB_BASE_VERSION}
@@ -108,6 +121,8 @@ services:
         REPO: ${GOHAN_DRS_REPO}
         BRANCH: ${GOHAN_DRS_BRANCH}
         TAG: ${GOHAN_DRS_TAG}
+        HOST_USER_UID: ${HOST_USER_UID}
+        HOST_USER_GID: ${HOST_USER_GID}
     image: ${GOHAN_DRS_IMAGE}:${GOHAN_DRS_VERSION}
     container_name: ${GOHAN_DRS_CONTAINER_NAME}
     environment: 
@@ -143,11 +158,6 @@ services:
       - "--server"
       - "--log-level=debug"
       - "/api.policy.rego"
-    healthcheck:
-      test: [ "CMD", "curl", "http://localhost:${GOHAN_AUTHZ_OPA_INTERNAL_PORT}" ]
-      timeout: 5s
-      interval: 1m
-      retries: 3
 
 
 networks: 

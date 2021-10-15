@@ -64,11 +64,17 @@ RUN git config --global user.email "you@example.com" && \
 
 RUN ["pip", "install", "-r", "requirements.txt"]
 
+# Security :
+ARG HOST_USER_UID
+ARG HOST_USER_GID
+RUN addgroup -S drsgroup -g $HOST_USER_GID && \
+    adduser -S drsuser -u $HOST_USER_UID -G drsgroup
+
+USER drsuser
+
 # Run
 WORKDIR /drs/chord_drs/chord_drs
 
 COPY startup.sh ./startup.sh
-
 EXPOSE 5000
-
 CMD ["sh", "startup.sh"]

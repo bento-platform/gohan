@@ -14,20 +14,32 @@ COPY . /build/
 # Alpine updates and executable dependencies
 RUN apk update && \
     apk upgrade && \
+    # For compressing the final binary :
     apk add git upx
     
 RUN CGO_ENABLED=0 && \
     go build -ldflags="-s -w" -o gohan_api && \
+    # Compress the final binary :
     upx --brute gohan_api
 
 
 # Stage two - executioner
 FROM $BASE_IMAGE
 
-# # Alpine updates
+# Alpine updates
 RUN apk update && \
     apk upgrade && \
+    # For healthchecks :
     apk add curl
+    
+
+# Security :
+ARG HOST_USER_UID
+ARG HOST_USER_GID
+RUN addgroup -S apigroup -g $HOST_USER_GID && \
+    adduser -S apiuser -u $HOST_USER_UID -G apigroup
+
+USER apiuser
 
 # Copy pre-built executeables
 COPY --from=builder /build/gohan_api /app/

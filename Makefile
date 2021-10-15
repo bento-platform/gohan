@@ -9,6 +9,12 @@ export $(shell sed 's/=.*//' $(env))
 export GOOS=linux
 export GOARCH=amd64
 
+# export host user IDs for more secure
+# containerization and volume mounting
+export HOST_USER_UID=$(shell id -u)
+export HOST_USER_GID=$(shell id -g)
+
+
 # initialize services
 init:
 	# Gateway: 
@@ -21,7 +27,26 @@ init:
 	@# - API OPA policies 
 	@echo Configuring authorzation policies
 	@envsubst < ./etc/api.policy.rego.tpl > ./authorization/api.policy.rego
+	
+	@$(MAKE) init-data-dirs
 
+
+init-data-dirs:
+	@echo "Initializing data directories.." && \
+	# api-drs bridge: \
+	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
+		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
+		chmod -R 770 ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
+	# drs: \
+	mkdir -p ${GOHAN_DRS_DATA_DIR} && \
+		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR} && \
+		chmod -R 770 ${GOHAN_DRS_DATA_DIR} && \
+	# elasticsearch: \
+	mkdir -p ${GOHAN_ES_DATA_DIR} && \
+		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR} && \
+		chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
+	chmod -R 770 ./data && \
+	echo ".. done!"
 
 
 # Run
@@ -108,6 +133,12 @@ clean-elastic-data:
 clean-drs-data:
 	docker-compose -f docker-compose.yaml down
 	sudo rm -rf ${GOHAN_DRS_DATA_DIR}
+
+## -- WARNING: DELETES ALL LOCAL API-DRS-BRIDGE DATA
+clean-api-drs-bridge-data:
+	docker-compose -f docker-compose.yaml down
+	sudo rm -rf ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
+
 
 
 
