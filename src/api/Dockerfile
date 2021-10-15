@@ -26,7 +26,8 @@ FROM $BASE_IMAGE
 
 # # Alpine updates
 RUN apk update && \
-    apk upgrade
+    apk upgrade && \
+    apk add curl
 
 # Copy pre-built executeables
 COPY --from=builder /build/gohan_api /app/

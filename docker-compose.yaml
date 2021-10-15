@@ -15,7 +15,12 @@ services:
       - bridge-net
     ports:
       - "80:80"
-      - "443:443"  
+      - "443:443"
+    healthcheck:
+      test: [ "CMD", "curl", "https://localhost:443", "-k" ]
+      timeout: 5s
+      interval: 1m
+      retries: 3
 
   api:
     build:
@@ -56,6 +61,11 @@ services:
       - ${GOHAN_API_VCF_PATH}:${GOHAN_API_CONTAINERIZED_VCF_PATH}
       - ${GOHAN_API_GTF_PATH}:${GOHAN_API_CONTAINERIZED_GTF_PATH}
       - ${GOHAN_API_DRS_BRIDGE_HOST_DIR}:${GOHAN_API_API_DRS_BRIDGE_DIR_CONTAINERIZED}
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:${GOHAN_API_INTERNAL_PORT}" ]
+      timeout: 5s
+      interval: 1m
+      retries: 3
 
   elasticsearch:
     image: ${GOHAN_ES_BASE_IMAGE}:${GOHAN_ES_BASE_VERSION}
@@ -83,6 +93,11 @@ services:
       - ELASTICSEARCH_URL=${GOHAN_KB_ES_HOST}:${GOHAN_KB_ES_PORT}
       - ELASTICSEARCH_USERNAME=${GOHAN_ES_USERNAME}
       - ELASTICSEARCH_PASSWORD=${GOHAN_ES_PASSWORD}
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:${GOHAN_KB_INTERNAL_PORT}" ]
+      timeout: 5s
+      interval: 1m
+      retries: 3
 
   drs:
     build:
@@ -106,6 +121,11 @@ services:
     volumes:
       - ${GOHAN_DRS_DATA_DIR}:/drs/chord_drs/data
       - ${GOHAN_API_DRS_BRIDGE_HOST_DIR}:${GOHAN_DRS_API_DRS_BRIDGE_DIR_CONTAINERIZED}
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:${GOHAN_DRS_INTERNAL_PORT}" ]
+      timeout: 5s
+      interval: 1m
+      retries: 3
 
   authorization:
     build:
@@ -123,6 +143,11 @@ services:
       - "--server"
       - "--log-level=debug"
       - "/api.policy.rego"
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:${GOHAN_AUTHZ_OPA_INTERNAL_PORT}" ]
+      timeout: 5s
+      interval: 1m
+      retries: 3
 
 
 networks: 
