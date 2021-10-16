@@ -145,6 +145,7 @@ clean-api-drs-bridge-data:
 ## Tests
 test-api-dev: prepare-test-config
 	@# Run the tests
+	go clean -cache && \
 	go test tests/integration/... -v
 
 prepare-test-config:
