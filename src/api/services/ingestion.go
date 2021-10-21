@@ -399,6 +399,14 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 							tmpVariantMapMutex.Lock()
 							tmpVariant[key] = strings.Split(value, ":")
 							tmpVariantMapMutex.Unlock()
+						} else if key == "id" {
+							// check for "empty" IDs (i.e, those with a period) and tokenize with "none"
+							if value == "." {
+								value = "none"
+							}
+							tmpVariantMapMutex.Lock()
+							tmpVariant[key] = value
+							tmpVariantMapMutex.Unlock()
 						} else if key == "info" {
 							var allInfos []*models.Info
 

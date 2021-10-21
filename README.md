@@ -107,6 +107,7 @@ To create and use development certs from the project root, run
 mkdir -p gateway/certs/dev
 
 openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
+openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/es_gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/es_gohan_fullchain1.crt
 ```
 
 > Note: Ensure your `CN` matches the hostname (**gohan.local** by default)

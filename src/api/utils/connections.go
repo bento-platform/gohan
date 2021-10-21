@@ -2,6 +2,7 @@ package utils
 
 import (
 	"api/models"
+	"crypto/tls"
 	"net"
 	"net/http"
 
@@ -18,12 +19,22 @@ func CreateEsConnection(cfg *models.Config) *es7.Client {
 		retryBackoff = backoff.NewExponentialBackOff()
 	)
 
+	// TODO: configure 'tr' based on debug status
+	tr := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout: time.Duration(2 / time.Second),
+		}).DialContext,
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+
 	esCfg := es7.Config{
 		Addresses: clusterURLs,
 		Username:  cfg.Elasticsearch.Username,
 		Password:  cfg.Elasticsearch.Password,
 
 		RetryOnStatus: []int{502, 503, 504, 429},
+
+		Transport: tr,
 
 		// Configure the backoff function
 		//
@@ -38,11 +49,6 @@ func CreateEsConnection(cfg *models.Config) *es7.Client {
 		//
 		MaxRetries:           2,
 		EnableRetryOnTimeout: false,
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout: time.Duration(2 / time.Second),
-			}).DialContext,
-		},
 	}
 
 	es7Client, _ := es7.NewClient(esCfg)
