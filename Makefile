@@ -130,6 +130,16 @@ clean-authz:
 
 
 ## -- WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
+clean-all-data:
+	@read -p "Are you sure you want to clean out all data? (yes/no) : " answer; \
+	if [ "$$answer" == "yes" ]; then \
+		echo "-- Cleaning! --" ; \
+		docker-compose -f docker-compose.yaml down && \
+		sudo rm -rf ${GOHAN_DATA_ROOT} ; \
+		echo "-- Done! --" ; \
+	else \
+		echo "-- Skipping.. --" ; \
+	fi
 clean-elastic-data:
 	@read -p "Are you sure you want to clean out all elasticsearch data? (yes/no) : " answer; \
 	if [ "$$answer" == "yes" ]; then \

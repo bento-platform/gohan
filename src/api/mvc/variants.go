@@ -102,6 +102,20 @@ func VariantsIngest(c echo.Context) error {
 
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
 
+	// -- optional filter
+	var (
+		filterOutHomozygousReferences bool = false // default
+		fohrErr                       error
+	)
+	filterOutHomozygousReferencesQP := c.QueryParam("filterOutHomozygousReferences")
+	if len(filterOutHomozygousReferencesQP) > 0 {
+		filterOutHomozygousReferences, fohrErr = strconv.ParseBool(filterOutHomozygousReferencesQP)
+		if fohrErr != nil {
+			// TODO: create a standard response object
+			log.Fatal(fohrErr)
+		}
+	}
+
 	startTime := time.Now()
 
 	fmt.Printf("Ingest Start: %s\n", startTime)
@@ -284,7 +298,7 @@ func VariantsIngest(c echo.Context) error {
 			defer r.Close()
 
 			// ---	 load vcf into memory and ingest the vcf file into elasticsearch
-			ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId)
+			ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences)
 
 			// ---   delete the temporary vcf file
 			os.Remove(vcfFilePath)

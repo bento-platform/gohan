@@ -64,10 +64,6 @@ and *(optionally)*
 make run-kibana
 ```
 
-The first startup may fail on an `AccessDeniedException[/usr/share/elasticsearch/data/nodes];` and can be resolved by setting the data directory to have less strict permissions with
-```
-sudo chmod -R 777 data/
-```
 
 <br />
 

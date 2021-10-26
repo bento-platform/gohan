@@ -5,7 +5,7 @@ import (
 	"api/models/constants"
 	"api/models/constants/chromosome"
 	z "api/models/constants/zygosity"
-	zf "api/models/constants/zygosity-suffix"
+	zs "api/models/constants/zygosity-suffix"
 	"api/models/ingest"
 	"api/models/ingest/structs"
 	"api/utils"
@@ -300,7 +300,7 @@ func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFi
 	return id
 }
 
-func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, assemblyId constants.AssemblyId) {
+func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, assemblyId constants.AssemblyId, filterOutHomozygousReferences bool) {
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
@@ -536,15 +536,15 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 						var zygSuff constants.ZygositySuffix
 						switch zyg {
 						case z.Heterozygous:
-							zygSuff = zf.Empty
+							zygSuff = zs.Empty
 						case z.Homozygous:
 							if alleleLeft*alleleRight == 0 {
-								zygSuff = zf.Reference
+								zygSuff = zs.Reference
 							} else {
-								zygSuff = zf.Alternate
+								zygSuff = zs.Alternate
 							}
 						default:
-							zygSuff = zf.Unknown
+							zygSuff = zs.Unknown
 						}
 
 						variation.Genotype = models.Genotype{
@@ -579,18 +579,36 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 				sample.Id = tmpKeyString
 				sample.Variation = *variation
 
+				// ---- filter out homozygous reference calls
+				// TODO: determine if this is the most optimal place
+				// 		 to perform this verification
+				if filterOutHomozygousReferences &&
+					sample.Variation.Genotype.Zygosity == z.Homozygous &&
+					sample.Variation.Genotype.ZygositySuffix == zs.Reference {
+					return
+				}
+
 				samples = append(samples, sample)
 			}
 
-			tmpVariant["samples"] = samples
-			// ---	 push to a bulk "queue"
-			var resultingVariant models.Variant
-			mapstructure.Decode(tmpVariant, &resultingVariant)
+			// Determine if this variant is worth ingesting (if it has
+			// any samples after having maybe filtered out all homozygous
+			// references, and thus maybe all samples from the call
+			// [i.e. if this is a single-sample VCF])
+			if len(samples) > 0 {
+				tmpVariant["samples"] = samples
+				// ---	 push to a bulk "queue"
+				var resultingVariant models.Variant
+				mapstructure.Decode(tmpVariant, &resultingVariant)
 
-			// pass variant (along with a waitgroup) to the channel
-			i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
-				Variant:   &resultingVariant,
-				WaitGroup: fileWg,
+				// pass variant (along with a waitgroup) to the channel
+				i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
+					Variant:   &resultingVariant,
+					WaitGroup: fileWg,
+				}
+			} else {
+				// This variant call has been deemed unnecessary to ingest
+				fileWg.Done()
 			}
 
 		}(line, drsFileId, &_fileWG)
