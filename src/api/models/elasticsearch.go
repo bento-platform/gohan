@@ -40,10 +40,9 @@ type Variation struct {
 }
 
 type Genotype struct {
-	Phased      bool       `json:"phased"`
-	AlleleLeft  int        `json:"alleleLeft"`  // -1 = no call (equivalent to a '.')
-	AlleleRight int        `json:"alleleRight"` // -1 = no call (equivalent to a '.')
-	Zygosity    c.Zygosity `json:"zygosity"`
+	Phased         bool             `json:"phased"`
+	Zygosity       c.Zygosity       `json:"zygosity"`
+	ZygositySuffix c.ZygositySuffix `json:"zygositySuffix"`
 }
 
 type Gene struct {

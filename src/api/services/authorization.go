@@ -92,7 +92,7 @@ func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnTokenString s
 
 	json_data, jsonMarshallErr := json.Marshal(opaInputJson)
 	if jsonMarshallErr != nil {
-		fmt.Printf("%w\n", jsonMarshallErr.Error())
+		fmt.Printf("%s\n", jsonMarshallErr.Error())
 		return errors.New(publicOpaErrorMessage)
 	}
 
@@ -108,7 +108,7 @@ func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnTokenString s
 
 	if accessPermitted, isMapContainsKey := opaJson["result"]; isMapContainsKey {
 		if accessPermitted != true {
-			return errors.New("Access denied!")
+			return errors.New("access denied")
 		}
 	} else {
 		fmt.Printf("%s\n", "Missing 'result' key from Opa response!")

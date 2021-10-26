@@ -5,6 +5,7 @@ import (
 	"api/models/constants"
 	"api/models/constants/chromosome"
 	z "api/models/constants/zygosity"
+	zf "api/models/constants/zygosity-suffix"
 	"api/models/ingest"
 	"api/models/ingest/structs"
 	"api/utils"
@@ -520,24 +521,36 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 						}
 
 						// -- zygosity:
-						var zygosity constants.Zygosity
-
+						var zyg constants.Zygosity
 						if alleleLeft == -1 || alleleRight == -1 {
-							zygosity = z.Unknown
+							zyg = z.Unknown
 						} else {
 							switch alleleLeft == alleleRight {
 							case true:
-								zygosity = z.Homozygous
+								zyg = z.Homozygous
 							case false:
-								zygosity = z.Heterozygous
+								zyg = z.Heterozygous
 							}
 						}
 
+						var zygSuff constants.ZygositySuffix
+						switch zyg {
+						case z.Heterozygous:
+							zygSuff = zf.Empty
+						case z.Homozygous:
+							if alleleLeft*alleleRight == 0 {
+								zygSuff = zf.Reference
+							} else {
+								zygSuff = zf.Alternate
+							}
+						default:
+							zygSuff = zf.Unknown
+						}
+
 						variation.Genotype = models.Genotype{
-							Phased:      phased,
-							AlleleLeft:  alleleLeft,
-							AlleleRight: alleleRight,
-							Zygosity:    zygosity,
+							Phased:         phased,
+							Zygosity:       zyg,
+							ZygositySuffix: zygSuff,
 						}
 					} else if hasGenotypeProbability && k == genotypeProbabilityPosition {
 						// create genotype probability from value

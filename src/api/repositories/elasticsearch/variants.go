@@ -15,6 +15,7 @@ import (
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
+	zs "api/models/constants/zygosity-suffix"
 
 	"github.com/elastic/go-elasticsearch/v7"
 )
@@ -128,8 +129,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 			mustMap = append(mustMap, map[string]interface{}{
 				"match": map[string]interface{}{
-					"samples.variation.genotype.alleleLeft": map[string]interface{}{
-						"query": 0,
+					"samples.variation.genotype.zygositySuffix": map[string]interface{}{
+						"query": zs.Reference,
 					},
 				},
 			})
@@ -139,10 +140,10 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 				"query": z.Homozygous,
 			}
 
-			rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
-				"range": map[string]interface{}{
-					"samples.variation.genotype.alleleLeft": map[string]interface{}{
-						"gte": 0,
+			mustMap = append(mustMap, map[string]interface{}{
+				"match": map[string]interface{}{
+					"samples.variation.genotype.zygositySuffix": map[string]interface{}{
+						"query": zs.Alternate,
 					},
 				},
 			})
@@ -356,8 +357,8 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 			mustMap = append(mustMap, map[string]interface{}{
 				"match": map[string]interface{}{
-					"samples.variation.genotype.alleleLeft": map[string]interface{}{
-						"query": 0,
+					"samples.variation.genotype.zygositySuffix": map[string]interface{}{
+						"query": zs.Reference,
 					},
 				},
 			})
@@ -367,10 +368,10 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 				"query": z.Homozygous,
 			}
 
-			rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
-				"range": map[string]interface{}{
-					"samples.variation.genotype.alleleLeft": map[string]interface{}{
-						"gte": 0,
+			mustMap = append(mustMap, map[string]interface{}{
+				"match": map[string]interface{}{
+					"samples.variation.genotype.zygositySuffix": map[string]interface{}{
+						"query": zs.Alternate,
 					},
 				},
 			})
