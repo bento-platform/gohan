@@ -5,6 +5,7 @@ import (
 	"api/models/constants"
 	"api/models/constants/chromosome"
 	z "api/models/constants/zygosity"
+	zs "api/models/constants/zygosity-suffix"
 	"api/models/ingest"
 	"api/models/ingest/structs"
 	"api/utils"
@@ -299,7 +300,7 @@ func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFi
 	return id
 }
 
-func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, assemblyId constants.AssemblyId) {
+func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, assemblyId constants.AssemblyId, filterOutHomozygousReferences bool) {
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
@@ -520,24 +521,36 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 						}
 
 						// -- zygosity:
-						var zygosity constants.Zygosity
-
+						var zyg constants.Zygosity
 						if alleleLeft == -1 || alleleRight == -1 {
-							zygosity = z.Unknown
+							zyg = z.Unknown
 						} else {
 							switch alleleLeft == alleleRight {
 							case true:
-								zygosity = z.Homozygous
+								zyg = z.Homozygous
 							case false:
-								zygosity = z.Heterozygous
+								zyg = z.Heterozygous
 							}
 						}
 
+						var zygSuff constants.ZygositySuffix
+						switch zyg {
+						case z.Heterozygous:
+							zygSuff = zs.Empty
+						case z.Homozygous:
+							if alleleLeft*alleleRight == 0 {
+								zygSuff = zs.Reference
+							} else {
+								zygSuff = zs.Alternate
+							}
+						default:
+							zygSuff = zs.Unknown
+						}
+
 						variation.Genotype = models.Genotype{
-							Phased:      phased,
-							AlleleLeft:  alleleLeft,
-							AlleleRight: alleleRight,
-							Zygosity:    zygosity,
+							Phased:         phased,
+							Zygosity:       zyg,
+							ZygositySuffix: zygSuff,
 						}
 					} else if hasGenotypeProbability && k == genotypeProbabilityPosition {
 						// create genotype probability from value
@@ -566,18 +579,36 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 				sample.Id = tmpKeyString
 				sample.Variation = *variation
 
+				// ---- filter out homozygous reference calls
+				// TODO: determine if this is the most optimal place
+				// 		 to perform this verification
+				if filterOutHomozygousReferences &&
+					sample.Variation.Genotype.Zygosity == z.Homozygous &&
+					sample.Variation.Genotype.ZygositySuffix == zs.Reference {
+					return
+				}
+
 				samples = append(samples, sample)
 			}
 
-			tmpVariant["samples"] = samples
-			// ---	 push to a bulk "queue"
-			var resultingVariant models.Variant
-			mapstructure.Decode(tmpVariant, &resultingVariant)
+			// Determine if this variant is worth ingesting (if it has
+			// any samples after having maybe filtered out all homozygous
+			// references, and thus maybe all samples from the call
+			// [i.e. if this is a single-sample VCF])
+			if len(samples) > 0 {
+				tmpVariant["samples"] = samples
+				// ---	 push to a bulk "queue"
+				var resultingVariant models.Variant
+				mapstructure.Decode(tmpVariant, &resultingVariant)
 
-			// pass variant (along with a waitgroup) to the channel
-			i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
-				Variant:   &resultingVariant,
-				WaitGroup: fileWg,
+				// pass variant (along with a waitgroup) to the channel
+				i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
+					Variant:   &resultingVariant,
+					WaitGroup: fileWg,
+				}
+			} else {
+				// This variant call has been deemed unnecessary to ingest
+				fileWg.Done()
 			}
 
 		}(line, drsFileId, &_fileWG)

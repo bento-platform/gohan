@@ -5,10 +5,10 @@ import (
 )
 
 const (
-	Empty constants.Zygosity = iota - 1
-	Unknown
+	Unknown constants.Zygosity = iota
 	Homozygous
 	Heterozygous
+	Empty
 )
 
 func IsValid(value int) bool {

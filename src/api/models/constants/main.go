@@ -13,3 +13,4 @@ type SearchOperation string
 type SortDirection string
 
 type Zygosity int
+type ZygositySuffix int
