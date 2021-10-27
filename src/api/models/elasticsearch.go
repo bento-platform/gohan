@@ -40,9 +40,8 @@ type Variation struct {
 }
 
 type Genotype struct {
-	Phased         bool             `json:"phased"`
-	Zygosity       c.Zygosity       `json:"zygosity"`
-	ZygositySuffix c.ZygositySuffix `json:"zygositySuffix"`
+	Phased   bool       `json:"phased"`
+	Zygosity c.Zygosity `json:"zygosity"`
 }
 
 type Gene struct {

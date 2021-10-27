@@ -7,7 +7,6 @@ import (
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
-	zf "api/models/constants/zygosity-suffix"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -562,17 +561,14 @@ func makeGetVariantsCall(url string, _t *testing.T) models.VariantsResponseDTO {
 // --- sample validation
 func validateHeterozygousSample(__t *testing.T, sample *models.Sample) {
 	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
-	assert.True(__t, sample.Variation.Genotype.ZygositySuffix == zf.Empty)
 }
 
 func validateHomozygousReferenceSample(__t *testing.T, sample *models.Sample) {
-	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-	assert.True(__t, sample.Variation.Genotype.ZygositySuffix == zf.Reference)
+	assert.True(__t, sample.Variation.Genotype.Zygosity == z.HomozygousReference)
 }
 
 func validateHomozygousAlternateSample(__t *testing.T, sample *models.Sample) {
-	assert.True(__t, sample.Variation.Genotype.Zygosity == z.Homozygous)
-	assert.True(__t, sample.Variation.Genotype.ZygositySuffix == zf.Alternate)
+	assert.True(__t, sample.Variation.Genotype.Zygosity == z.HomozygousAlternate)
 }
 
 // --

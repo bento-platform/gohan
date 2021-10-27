@@ -5,7 +5,6 @@ import (
 	"api/models/constants"
 	"api/models/constants/chromosome"
 	z "api/models/constants/zygosity"
-	zs "api/models/constants/zygosity-suffix"
 	"api/models/ingest"
 	"api/models/ingest/structs"
 	"api/utils"
@@ -527,30 +526,20 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 						} else {
 							switch alleleLeft == alleleRight {
 							case true:
-								zyg = z.Homozygous
+								switch alleleLeft * alleleRight {
+								case 0:
+									zyg = z.HomozygousReference
+								default:
+									zyg = z.HomozygousAlternate
+								}
 							case false:
 								zyg = z.Heterozygous
 							}
 						}
 
-						var zygSuff constants.ZygositySuffix
-						switch zyg {
-						case z.Heterozygous:
-							zygSuff = zs.Empty
-						case z.Homozygous:
-							if alleleLeft*alleleRight == 0 {
-								zygSuff = zs.Reference
-							} else {
-								zygSuff = zs.Alternate
-							}
-						default:
-							zygSuff = zs.Unknown
-						}
-
 						variation.Genotype = models.Genotype{
-							Phased:         phased,
-							Zygosity:       zyg,
-							ZygositySuffix: zygSuff,
+							Phased:   phased,
+							Zygosity: zyg,
 						}
 					} else if hasGenotypeProbability && k == genotypeProbabilityPosition {
 						// create genotype probability from value
@@ -582,9 +571,7 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 				// ---- filter out homozygous reference calls
 				// TODO: determine if this is the most optimal place
 				// 		 to perform this verification
-				if filterOutHomozygousReferences &&
-					sample.Variation.Genotype.Zygosity == z.Homozygous &&
-					sample.Variation.Genotype.ZygositySuffix == zs.Reference {
+				if filterOutHomozygousReferences && sample.Variation.Genotype.Zygosity == z.HomozygousReference {
 					return
 				}
 

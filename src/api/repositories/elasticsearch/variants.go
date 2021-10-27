@@ -15,7 +15,6 @@ import (
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
-	zs "api/models/constants/zygosity-suffix"
 
 	"github.com/elastic/go-elasticsearch/v7"
 )
@@ -124,29 +123,13 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 		case gq.HOMOZYGOUS_REFERENCE:
 			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Homozygous,
+				"query": z.HomozygousReference,
 			}
-
-			mustMap = append(mustMap, map[string]interface{}{
-				"match": map[string]interface{}{
-					"samples.variation.genotype.zygositySuffix": map[string]interface{}{
-						"query": zs.Reference,
-					},
-				},
-			})
 
 		case gq.HOMOZYGOUS_ALTERNATE:
 			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Homozygous,
+				"query": z.HomozygousAlternate,
 			}
-
-			mustMap = append(mustMap, map[string]interface{}{
-				"match": map[string]interface{}{
-					"samples.variation.genotype.zygositySuffix": map[string]interface{}{
-						"query": zs.Alternate,
-					},
-				},
-			})
 		}
 
 		mustMap = append(mustMap, map[string]interface{}{
@@ -352,29 +335,13 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 		case gq.HOMOZYGOUS_REFERENCE:
 			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Homozygous,
+				"query": z.HomozygousReference,
 			}
-
-			mustMap = append(mustMap, map[string]interface{}{
-				"match": map[string]interface{}{
-					"samples.variation.genotype.zygositySuffix": map[string]interface{}{
-						"query": zs.Reference,
-					},
-				},
-			})
 
 		case gq.HOMOZYGOUS_ALTERNATE:
 			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Homozygous,
+				"query": z.HomozygousAlternate,
 			}
-
-			mustMap = append(mustMap, map[string]interface{}{
-				"match": map[string]interface{}{
-					"samples.variation.genotype.zygositySuffix": map[string]interface{}{
-						"query": zs.Alternate,
-					},
-				},
-			})
 		}
 
 		mustMap = append(mustMap, map[string]interface{}{
