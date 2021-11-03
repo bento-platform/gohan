@@ -3,6 +3,7 @@ api:
   url: "${GOHAN_PUBLIC_URL}"
   port: "${GOHAN_API_INTERNAL_PORT}"
   vcfPath: "${GOHAN_API_CONTAINERIZED_VCF_PATH}"
+  localVcfPath: "${GOHAN_API_VCF_PATH}"
 
 elasticsearch:
   url: "${GOHAN_ES_PUBLIC_URL}"

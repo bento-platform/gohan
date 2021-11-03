@@ -28,10 +28,13 @@ import (
 )
 
 func GenesIngest(c echo.Context) error {
+	fmt.Printf("[%s] - GenesIngest hit!\n", time.Now())
 	// trigger global ingestion background process
 	go func() {
 
 		cfg := c.(*contexts.GohanContext).Config
+		es7Client := c.(*contexts.GohanContext).Es7Client
+
 		gtfPath := cfg.Api.GtfPath
 
 		iz := c.(*contexts.GohanContext).IngestionService
@@ -64,7 +67,7 @@ func GenesIngest(c echo.Context) error {
 			newRequestState := ingest.GeneIngestRequest{
 				Filename:  fileName,
 				State:     ingest.Queued,
-				CreatedAt: fmt.Sprintf("%s", time.Now()),
+				CreatedAt: fmt.Sprintf("%v", time.Now()),
 			}
 
 			go func(_assId constants.AssemblyId, _fileName string, _assemblyWg *sync.WaitGroup, reqStat *ingest.GeneIngestRequest) {
@@ -192,6 +195,11 @@ func GenesIngest(c echo.Context) error {
 				}
 
 				defer gtfFile.Close()
+
+				// clean out genes currently in elasticsearch by assembly id
+				fmt.Printf("Cleaning out %s gene documents from genes index (if any)\n", string(_assId))
+				esRepo.DeleteGenesByAssemblyId(cfg, es7Client, _assId)
+
 				fileScanner := bufio.NewScanner(gtfFile)
 				fileScanner.Split(bufio.ScanLines)
 
@@ -206,17 +214,6 @@ func GenesIngest(c echo.Context) error {
 					nameHeaderKeys     = []int{3}
 					geneNameHeaderKeys []int
 				)
-
-				var columnsToPrint []string
-				if _assId == assemblyId.GRCh38 {
-					// GRCh38 dataset has multiple name fields (name, name2) and
-					// also includes gene name fields (geneName, geneName2)
-					columnsToPrint = append(columnsToPrint, "#chrom", "chromStart", "chromEnd", "name", "name2", "geneName", "geneName2")
-					nameHeaderKeys = append(nameHeaderKeys, 4)
-					geneNameHeaderKeys = append(geneNameHeaderKeys, 5, 6)
-				} else {
-					columnsToPrint = append(columnsToPrint, "chrom", "txStart", "txEnd", "#name")
-				}
 
 				for fileScanner.Scan() {
 					rowText := fileScanner.Text()
@@ -315,6 +312,7 @@ func GenesIngest(c echo.Context) error {
 }
 
 func GetAllGeneIngestionRequests(c echo.Context) error {
+	fmt.Printf("[%s] - GetAllGeneIngestionRequests hit!\n", time.Now())
 	izMap := c.(*contexts.GohanContext).IngestionService.GeneIngestRequestMap
 
 	// transform map of it-to-ingestRequests to an array
@@ -326,6 +324,7 @@ func GetAllGeneIngestionRequests(c echo.Context) error {
 }
 
 func GenesGetByNomenclatureWildcard(c echo.Context) error {
+	fmt.Printf("[%s] - GenesGetByNomenclatureWildcard hit!\n", time.Now())
 	cfg := c.(*contexts.GohanContext).Config
 	es := c.(*contexts.GohanContext).Es7Client
 
@@ -364,7 +363,13 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s (max size: %d)\n", term, assId, size)
 
 	// Execute
-	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, assId, size)
+	docs, geneErr := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, assId, size)
+	if geneErr != nil {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":  500,
+			"message": "Something went wrong... Please contact the administrator!",
+		})
+	}
 
 	docsHits := docs["hits"].(map[string]interface{})["hits"]
 	allDocHits := []map[string]interface{}{}
@@ -398,6 +403,7 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 }
 
 func GetGenesOverview(c echo.Context) error {
+	fmt.Printf("[%s] - GetGenesOverview hit!\n", time.Now())
 
 	resultsMap := map[string]interface{}{}
 	resultsMux := sync.RWMutex{}
@@ -406,7 +412,13 @@ func GetGenesOverview(c echo.Context) error {
 	cfg := c.(*contexts.GohanContext).Config
 
 	// retrieve aggregation of genes/chromosomes by assembly id
-	results := esRepo.GetGeneBucketsByKeyword(cfg, es)
+	results, geneErr := esRepo.GetGeneBucketsByKeyword(cfg, es)
+	if geneErr != nil {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":  500,
+			"message": "Something went wrong... Please contact the administrator!",
+		})
+	}
 
 	// begin mapping results
 	geneChromosomeGroupBucketsMapped := []map[string]interface{}{}

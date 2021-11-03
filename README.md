@@ -64,10 +64,6 @@ and *(optionally)*
 make run-kibana
 ```
 
-The first startup may fail on an `AccessDeniedException[/usr/share/elasticsearch/data/nodes];` and can be resolved by setting the data directory to have less strict permissions with
-```
-sudo chmod -R 777 data/
-```
 
 <br />
 
@@ -107,6 +103,7 @@ To create and use development certs from the project root, run
 mkdir -p gateway/certs/dev
 
 openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
+openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/es_gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/es_gohan_fullchain1.crt
 ```
 
 > Note: Ensure your `CN` matches the hostname (**gohan.local** by default)
@@ -215,8 +212,8 @@ Requests
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
->   - includeSamplesInResultSet : **boolean** `(true | false)`
->   - genotype : **string** `( "HOMOZYGOUS" | "HETEROZYGOUS_REFERENCE" | "HETEROZYGOUS_ALTERNATE" )`
+>   - includeInfoInResultSet : **boolean** `(true | false)`
+>   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
@@ -226,7 +223,7 @@ Requests
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
->   - genotype : **string** `( "HOMOZYGOUS" | "HETEROZYGOUS_REFERENCE" | "HETEROZYGOUS_ALTERNATE" )`
+>   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
@@ -238,8 +235,8 @@ Requests
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
->   - includeSamplesInResultSet : **boolean** `(true | false)`
->   - genotype : **string** `( "HOMOZYGOUS" | "HETEROZYGOUS_REFERENCE" | "HETEROZYGOUS_ALTERNATE" )`
+>   - includeInfoInResultSet : **boolean** `(true | false)`
+>   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
@@ -249,7 +246,7 @@ Requests
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
->   - genotype : **string** `( "HOMOZYGOUS" | "HETEROZYGOUS_REFERENCE" | "HETEROZYGOUS_ALTERNATE" )`
+>   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 >
 
 <br />
@@ -281,22 +278,19 @@ Generalized Response Body Structure
 >                    "format":`string`,
 >                    "qual": `number`,
 >                    "id": `string`,
->                    "samples": [
->                        {
->                            "id": `string`,
->                            "variation": {
->                                "genotype": {
->                                    "phased": `boolean`,
->                                    "alleleLeft": `number`,
->                                    "alleleRight": `number`,
->                                    "zygosity": `number` (0 : "Unknown" | 1 : "Homozygous" | 2 : "Heterozygous")
->                                },
->                                "genotypeProbability": `[]float` | null,
->                                "phredScaleLikelyhood": `[]float` | null,
->                            }
->                        },
->                        ...
->                    ],
+>                    "sample": {
+>                        "id": `string`,
+>                        "variation": {
+>                            "genotype": {
+>                                "phased": `boolean`,
+>                                "alleleLeft": `number`,
+>                                "alleleRight": `number`,
+>                                "zygosity": `number` (0 : "Unknown" | 1 : "Heterozygous" | 2 : "HomozygousReference" | 3 : "HomozygousAlternate")
+>                            },
+>                            "genotypeProbability": `[]float` | null,
+>                            "phredScaleLikelyhood": `[]float` | null,
+>                        }
+>                    },
 >                    "fileId": `string` (UUID),
 >                    "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),
 >                 },

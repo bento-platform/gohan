@@ -26,8 +26,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	variantId string, sampleId string,
 	reference string, alternative string,
 	size int, sortByPosition c.SortDirection,
-	includeSamplesInResultSet bool,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) map[string]interface{} {
+	includeInfoInResultSet bool,
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -52,7 +52,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	if sampleId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": map[string]interface{}{
-				"samples.id": map[string]interface{}{
+				"sample.id": map[string]interface{}{
 					"query": sampleId,
 				},
 			},
@@ -117,35 +117,19 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 		switch genotype {
 		case gq.HETEROZYGOUS:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 				"query": z.Heterozygous,
 			}
 
 		case gq.HOMOZYGOUS_REFERENCE:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Homozygous,
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.HomozygousReference,
 			}
-
-			mustMap = append(mustMap, map[string]interface{}{
-				"match": map[string]interface{}{
-					"samples.variation.genotype.alleleLeft": map[string]interface{}{
-						"query": 0,
-					},
-				},
-			})
 
 		case gq.HOMOZYGOUS_ALTERNATE:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Homozygous,
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.HomozygousAlternate,
 			}
-
-			rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
-				"range": map[string]interface{}{
-					"samples.variation.genotype.alleleLeft": map[string]interface{}{
-						"gte": 0,
-					},
-				},
-			})
 		}
 
 		mustMap = append(mustMap, map[string]interface{}{
@@ -162,8 +146,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 	// exclude samples from result?
 	var excludesSlice []string = make([]string, 0)
-	if !includeSamplesInResultSet {
-		excludesSlice = append(excludesSlice, "samples")
+	if !includeInfoInResultSet {
+		excludesSlice = append(excludesSlice, "info")
 	}
 
 	// overall query structure
@@ -199,6 +183,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
 		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
 	}
 
 	if cfg.Debug {
@@ -222,6 +207,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	)
 	if searchErr != nil {
 		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
 	}
 
 	defer res.Body.Close()
@@ -239,18 +225,19 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
 
-	return result
+	return result, nil
 }
 
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) map[string]interface{} {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -277,7 +264,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	if sampleId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": map[string]interface{}{
-				"samples.id": map[string]interface{}{
+				"sample.id": map[string]interface{}{
 					"query": sampleId,
 				},
 			},
@@ -342,35 +329,19 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 		switch genotype {
 		case gq.HETEROZYGOUS:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 				"query": z.Heterozygous,
 			}
 
 		case gq.HOMOZYGOUS_REFERENCE:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Homozygous,
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.HomozygousReference,
 			}
-
-			mustMap = append(mustMap, map[string]interface{}{
-				"match": map[string]interface{}{
-					"samples.variation.genotype.alleleLeft": map[string]interface{}{
-						"query": 0,
-					},
-				},
-			})
 
 		case gq.HOMOZYGOUS_ALTERNATE:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Homozygous,
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+				"query": z.HomozygousAlternate,
 			}
-
-			rangeMapSlice = append(rangeMapSlice, map[string]interface{}{
-				"range": map[string]interface{}{
-					"samples.variation.genotype.alleleLeft": map[string]interface{}{
-						"gte": 0,
-					},
-				},
-			})
 		}
 
 		mustMap = append(mustMap, map[string]interface{}{
@@ -409,6 +380,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
 		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
 	}
 
 	if cfg.Debug {
@@ -431,6 +403,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	)
 	if searchErr != nil {
 		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
 	}
 
 	defer res.Body.Close()
@@ -448,14 +421,15 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
 
-	return result
+	return result, nil
 }
 
-func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) map[string]interface{} {
+func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) (map[string]interface{}, error) {
 	// begin building the request body.
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
@@ -476,6 +450,7 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(aggMap); err != nil {
 		log.Fatalf("Error encoding aggMap: %s\n", err)
+		return nil, err
 	}
 
 	if cfg.Debug {
@@ -497,6 +472,7 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 	)
 	if searchErr != nil {
 		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
 	}
 
 	defer res.Body.Close()
@@ -514,9 +490,10 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
 
-	return result
+	return result, nil
 }

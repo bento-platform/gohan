@@ -18,10 +18,8 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -41,17 +39,20 @@ type (
 		GeneIngestRequestChan          chan *ingest.GeneIngestRequest
 		GeneIngestRequestMap           map[string]*ingest.GeneIngestRequest
 		IngestionBulkIndexingCapacity  int
-		ElasticsearchClient            *elasticsearch.Client
 		IngestionBulkIndexingQueue     chan *structs.IngestionQueueStructure
 		IngestionBulkIndexer           esutil.BulkIndexer
 		GeneIngestionBulkIndexingQueue chan *structs.GeneIngestionQueueStructure
 		GeneIngestionBulkIndexer       esutil.BulkIndexer
+		ConcurrentFileIngestionQueue   chan bool
+		ElasticsearchClient            *elasticsearch.Client
 	}
 )
 
-const defaultBulkIndexingCap int = 10000
+const (
+	defaultBulkIndexingCap int = 10000 // TODO: make parameterizable
+)
 
-func NewIngestionService(es *elasticsearch.Client) *IngestionService {
+func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *IngestionService {
 
 	iz := &IngestionService{
 		Initialized:                    false,
@@ -62,6 +63,7 @@ func NewIngestionService(es *elasticsearch.Client) *IngestionService {
 		IngestionBulkIndexingCapacity:  defaultBulkIndexingCap,
 		IngestionBulkIndexingQueue:     make(chan *structs.IngestionQueueStructure, defaultBulkIndexingCap),
 		GeneIngestionBulkIndexingQueue: make(chan *structs.GeneIngestionQueueStructure, 10),
+		ConcurrentFileIngestionQueue:   make(chan bool, cfg.Api.FileProcessingConcurrencyLevel),
 		ElasticsearchClient:            es,
 	}
 
@@ -188,7 +190,7 @@ func (i *IngestionService) Init() {
 					// Prepare the data payload: encode article to JSON
 					data, err := json.Marshal(g)
 					if err != nil {
-						log.Fatalf("Cannot encode gene %s: %s\n", g, err)
+						log.Fatalf("Cannot encode gene %+v: %s\n", g, err)
 					}
 
 					// Add an item to the BulkIndexer
@@ -263,22 +265,17 @@ func (i *IngestionService) ExtractVcfGz(gzippedFilePath string, gzipStream io.Re
 	return newVcfFilePath
 }
 
-func (i *IngestionService) UploadVcfGzToDrs(gzippedFilePath string, gzipStream *os.File, drsUrl, drsUsername, drsPassword string) string {
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	part, _ := writer.CreateFormFile("file", filepath.Base(gzipStream.Name()))
-	io.Copy(part, gzipStream)
-	writer.Close()
-
+func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
 	// TEMP: SECURITY RISK
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	//
 
-	// TODO: Parameterize DRS Url and credentials
-	r, _ := http.NewRequest("POST", drsUrl+"/public/ingest", body)
+	data := fmt.Sprintf("{\"path\": \"%s/%s\"}", drsBridgeDirectory, gzippedFileName)
+
+	r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
 	r.SetBasicAuth(drsUsername, drsPassword)
 
-	r.Header.Add("Content-Type", writer.FormDataContentType())
+	r.Header.Add("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(r)
 	if err != nil {
@@ -306,7 +303,11 @@ func (i *IngestionService) UploadVcfGzToDrs(gzippedFilePath string, gzipStream *
 	return id
 }
 
-func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, assemblyId constants.AssemblyId) {
+func (i *IngestionService) ProcessVcf(
+	vcfFilePath string, drsFileId string,
+	assemblyId constants.AssemblyId, filterOutHomozygousReferences bool,
+	lineProcessingConcurrencyLevel int) {
+
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
@@ -319,6 +320,10 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 	var headers []string
 
 	var _fileWG sync.WaitGroup
+
+	// "line ingestion queue"
+	// - manage # of lines being concurrently processed per file at any given time
+	lineProcessingQueue := make(chan bool, lineProcessingConcurrencyLevel)
 
 	for scanner.Scan() {
 		//fmt.Println(scanner.Text())
@@ -339,8 +344,13 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 			}
 		}
 
+		// take a spot in the queue
+		lineProcessingQueue <- true
 		_fileWG.Add(1)
 		go func(line string, drsFileId string, fileWg *sync.WaitGroup) {
+			// free up a spot in the queue
+			defer func() { <-lineProcessingQueue }()
+
 			// ----  break up line
 			rowComponents := strings.Split(line, "\t")
 
@@ -405,6 +415,14 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 							// Split all formats by colon
 							tmpVariantMapMutex.Lock()
 							tmpVariant[key] = strings.Split(value, ":")
+							tmpVariantMapMutex.Unlock()
+						} else if key == "id" {
+							// check for "empty" IDs (i.e, those with a period) and tokenize with "none"
+							if value == "." {
+								value = "none"
+							}
+							tmpVariantMapMutex.Lock()
+							tmpVariant[key] = value
 							tmpVariantMapMutex.Unlock()
 						} else if key == "info" {
 							var allInfos []*models.Info
@@ -519,24 +537,26 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 						}
 
 						// -- zygosity:
-						var zygosity constants.Zygosity
-
+						var zyg constants.Zygosity
 						if alleleLeft == -1 || alleleRight == -1 {
-							zygosity = z.Unknown
+							zyg = z.Unknown
 						} else {
 							switch alleleLeft == alleleRight {
 							case true:
-								zygosity = z.Homozygous
+								switch alleleLeft * alleleRight {
+								case 0:
+									zyg = z.HomozygousReference
+								default:
+									zyg = z.HomozygousAlternate
+								}
 							case false:
-								zygosity = z.Heterozygous
+								zyg = z.Heterozygous
 							}
 						}
 
 						variation.Genotype = models.Genotype{
-							Phased:      phased,
-							AlleleLeft:  alleleLeft,
-							AlleleRight: alleleRight,
-							Zygosity:    zygosity,
+							Phased:   phased,
+							Zygosity: zyg,
 						}
 					} else if hasGenotypeProbability && k == genotypeProbabilityPosition {
 						// create genotype probability from value
@@ -565,21 +585,46 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 				sample.Id = tmpKeyString
 				sample.Variation = *variation
 
+				// ---- filter out homozygous reference calls
+				// TODO: determine if this is the most optimal place
+				// 		 to perform this verification
+				if filterOutHomozygousReferences &&
+					sample.Variation.Genotype.Zygosity == z.HomozygousReference {
+					continue
+				}
+
 				samples = append(samples, sample)
 			}
 
-			tmpVariant["samples"] = samples
-			// ---	 push to a bulk "queue"
-			var resultingVariant models.Variant
-			mapstructure.Decode(tmpVariant, &resultingVariant)
+			// Determine if this variant is worth ingesting (if it has
+			// any samples after having maybe filtered out all homozygous
+			// references, and thus maybe all samples from the call
+			// [i.e. if this is a single-sample VCF])
+			if len(samples) > 0 {
+				// Create a whole variant document for each sample found on this VCF line
+				// TODO: revisit this model as it is surely not storage efficient
+				for _, sample := range samples {
+					tmpVariant["sample"] = sample
+					// ---	 push to a bulk "queue"
+					var resultingVariant models.Variant
+					mapstructure.Decode(tmpVariant, &resultingVariant)
 
-			// pass variant (along with a waitgroup) to the channel
-			i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
-				Variant:   &resultingVariant,
-				WaitGroup: fileWg,
+					// pass variant (along with a waitgroup) to the channel
+					i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
+						Variant:   &resultingVariant,
+						WaitGroup: fileWg,
+					}
+				}
+			} else {
+				// This variant call has been deemed unnecessary to ingest
+				fileWg.Done()
 			}
-
 		}(line, drsFileId, &_fileWG)
+	}
+
+	// allowing all lines to be queued up and waited for
+	for i := 0; i < lineProcessingConcurrencyLevel; i++ {
+		lineProcessingQueue <- true
 	}
 
 	// let all lines be queued up and processed
