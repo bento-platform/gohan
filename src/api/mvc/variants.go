@@ -385,7 +385,7 @@ func GetVariantsOverview(c echo.Context) error {
 
 	// get distribution of sample IDs
 	wg.Add(1)
-	go callGetBucketsByKeyword("sampleIDs", "samples.id.keyword", &wg)
+	go callGetBucketsByKeyword("sampleIDs", "sample.id.keyword", &wg)
 
 	// get distribution of assembly IDs
 	wg.Add(1)
@@ -431,13 +431,13 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	sortByPosition := s.CastToSortDirection(c.QueryParam("sortByPosition"))
 
-	includeSamplesInResultSetQP := c.QueryParam("includeSamplesInResultSet")
+	includeInfoInResultSetQP := c.QueryParam("includeInfoInResultSet")
 	var (
-		includeSamplesInResultSet bool
-		isirsErr                  error
+		includeInfoInResultSet bool
+		isirsErr               error
 	)
-	if len(includeSamplesInResultSetQP) > 0 {
-		includeSamplesInResultSet, isirsErr = strconv.ParseBool(includeSamplesInResultSetQP)
+	if len(includeInfoInResultSetQP) > 0 {
+		includeInfoInResultSet, isirsErr = strconv.ParseBool(includeInfoInResultSetQP)
 		if isirsErr != nil {
 			log.Fatal(isirsErr)
 		}
@@ -475,7 +475,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
 					size, sortByPosition,
-					includeSamplesInResultSet, genotype, assemblyId)
+					includeInfoInResultSet, genotype, assemblyId)
 			} else {
 				// implied sampleId query
 				variantRespDataModel.SampleId = _id
@@ -487,7 +487,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					"", _id, // note : "" is for variantId
 					reference, alternative,
 					size, sortByPosition,
-					includeSamplesInResultSet, genotype, assemblyId)
+					includeInfoInResultSet, genotype, assemblyId)
 			}
 			if searchErr != nil {
 				errorMux.Lock()

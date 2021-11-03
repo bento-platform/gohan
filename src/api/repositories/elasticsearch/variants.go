@@ -26,7 +26,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	variantId string, sampleId string,
 	reference string, alternative string,
 	size int, sortByPosition c.SortDirection,
-	includeSamplesInResultSet bool,
+	includeInfoInResultSet bool,
 	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
 
 	// begin building the request body.
@@ -52,7 +52,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	if sampleId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": map[string]interface{}{
-				"samples.id": map[string]interface{}{
+				"sample.id": map[string]interface{}{
 					"query": sampleId,
 				},
 			},
@@ -117,17 +117,17 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 		switch genotype {
 		case gq.HETEROZYGOUS:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 				"query": z.Heterozygous,
 			}
 
 		case gq.HOMOZYGOUS_REFERENCE:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 				"query": z.HomozygousReference,
 			}
 
 		case gq.HOMOZYGOUS_ALTERNATE:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 				"query": z.HomozygousAlternate,
 			}
 		}
@@ -146,8 +146,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 	// exclude samples from result?
 	var excludesSlice []string = make([]string, 0)
-	if !includeSamplesInResultSet {
-		excludesSlice = append(excludesSlice, "samples")
+	if !includeInfoInResultSet {
+		excludesSlice = append(excludesSlice, "info")
 	}
 
 	// overall query structure
@@ -264,7 +264,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	if sampleId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": map[string]interface{}{
-				"samples.id": map[string]interface{}{
+				"sample.id": map[string]interface{}{
 					"query": sampleId,
 				},
 			},
@@ -329,17 +329,17 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 		switch genotype {
 		case gq.HETEROZYGOUS:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 				"query": z.Heterozygous,
 			}
 
 		case gq.HOMOZYGOUS_REFERENCE:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 				"query": z.HomozygousReference,
 			}
 
 		case gq.HOMOZYGOUS_ALTERNATE:
-			zygosityMatchMap["samples.variation.genotype.zygosity"] = map[string]interface{}{
+			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 				"query": z.HomozygousAlternate,
 			}
 		}

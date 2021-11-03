@@ -212,7 +212,7 @@ Requests
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
->   - includeSamplesInResultSet : **boolean** `(true | false)`
+>   - includeInfoInResultSet : **boolean** `(true | false)`
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
@@ -235,7 +235,7 @@ Requests
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
->   - includeSamplesInResultSet : **boolean** `(true | false)`
+>   - includeInfoInResultSet : **boolean** `(true | false)`
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
@@ -278,22 +278,19 @@ Generalized Response Body Structure
 >                    "format":`string`,
 >                    "qual": `number`,
 >                    "id": `string`,
->                    "samples": [
->                        {
->                            "id": `string`,
->                            "variation": {
->                                "genotype": {
->                                    "phased": `boolean`,
->                                    "alleleLeft": `number`,
->                                    "alleleRight": `number`,
->                                    "zygosity": `number` (0 : "Unknown" | 1 : "Homozygous" | 2 : "Heterozygous")
->                                },
->                                "genotypeProbability": `[]float` | null,
->                                "phredScaleLikelyhood": `[]float` | null,
->                            }
->                        },
->                        ...
->                    ],
+>                    "sample": {
+>                        "id": `string`,
+>                        "variation": {
+>                            "genotype": {
+>                                "phased": `boolean`,
+>                                "alleleLeft": `number`,
+>                                "alleleRight": `number`,
+>                                "zygosity": `number` (0 : "Unknown" | 1 : "Heterozygous" | 2 : "HomozygousReference" | 3 : "HomozygousAlternate")
+>                            },
+>                            "genotypeProbability": `[]float` | null,
+>                            "phredScaleLikelyhood": `[]float` | null,
+>                        }
+>                    },
 >                    "fileId": `string` (UUID),
 >                    "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),
 >                 },
