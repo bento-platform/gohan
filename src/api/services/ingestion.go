@@ -33,41 +33,38 @@ import (
 
 type (
 	IngestionService struct {
-		Initialized                              bool
-		IngestRequestChan                        chan *ingest.VariantIngestRequest
-		IngestRequestMap                         map[string]*ingest.VariantIngestRequest
-		GeneIngestRequestChan                    chan *ingest.GeneIngestRequest
-		GeneIngestRequestMap                     map[string]*ingest.GeneIngestRequest
-		IngestionBulkIndexingCapacity            int
-		IngestionBulkIndexingQueue               chan *structs.IngestionQueueStructure
-		IngestionBulkIndexer                     esutil.BulkIndexer
-		GeneIngestionBulkIndexingQueue           chan *structs.GeneIngestionQueueStructure
-		GeneIngestionBulkIndexer                 esutil.BulkIndexer
-		NumberOfConcurrentFilesIngestionCapacity int
-		ConcurrentFileIngestionQueue             chan bool
-		ElasticsearchClient                      *elasticsearch.Client
+		Initialized                    bool
+		IngestRequestChan              chan *ingest.VariantIngestRequest
+		IngestRequestMap               map[string]*ingest.VariantIngestRequest
+		GeneIngestRequestChan          chan *ingest.GeneIngestRequest
+		GeneIngestRequestMap           map[string]*ingest.GeneIngestRequest
+		IngestionBulkIndexingCapacity  int
+		IngestionBulkIndexingQueue     chan *structs.IngestionQueueStructure
+		IngestionBulkIndexer           esutil.BulkIndexer
+		GeneIngestionBulkIndexingQueue chan *structs.GeneIngestionQueueStructure
+		GeneIngestionBulkIndexer       esutil.BulkIndexer
+		ConcurrentFileIngestionQueue   chan bool
+		ElasticsearchClient            *elasticsearch.Client
 	}
 )
 
 const (
-	defaultBulkIndexingCap                   int = 10000 // TODO: make parameterizable
-	numberOfConcurrentFilesIngestionCapacity int = 3     // TODO: make parameterizable
+	defaultBulkIndexingCap int = 10000 // TODO: make parameterizable
 )
 
-func NewIngestionService(es *elasticsearch.Client) *IngestionService {
+func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *IngestionService {
 
 	iz := &IngestionService{
-		Initialized:                              false,
-		IngestRequestChan:                        make(chan *ingest.VariantIngestRequest),
-		IngestRequestMap:                         map[string]*ingest.VariantIngestRequest{},
-		GeneIngestRequestChan:                    make(chan *ingest.GeneIngestRequest),
-		GeneIngestRequestMap:                     map[string]*ingest.GeneIngestRequest{},
-		IngestionBulkIndexingCapacity:            defaultBulkIndexingCap,
-		IngestionBulkIndexingQueue:               make(chan *structs.IngestionQueueStructure, defaultBulkIndexingCap),
-		GeneIngestionBulkIndexingQueue:           make(chan *structs.GeneIngestionQueueStructure, 10),
-		NumberOfConcurrentFilesIngestionCapacity: numberOfConcurrentFilesIngestionCapacity,
-		ConcurrentFileIngestionQueue:             make(chan bool, numberOfConcurrentFilesIngestionCapacity),
-		ElasticsearchClient:                      es,
+		Initialized:                    false,
+		IngestRequestChan:              make(chan *ingest.VariantIngestRequest),
+		IngestRequestMap:               map[string]*ingest.VariantIngestRequest{},
+		GeneIngestRequestChan:          make(chan *ingest.GeneIngestRequest),
+		GeneIngestRequestMap:           map[string]*ingest.GeneIngestRequest{},
+		IngestionBulkIndexingCapacity:  defaultBulkIndexingCap,
+		IngestionBulkIndexingQueue:     make(chan *structs.IngestionQueueStructure, defaultBulkIndexingCap),
+		GeneIngestionBulkIndexingQueue: make(chan *structs.GeneIngestionQueueStructure, 10),
+		ConcurrentFileIngestionQueue:   make(chan bool, cfg.Api.FileProcessingConcurrencyLevel),
+		ElasticsearchClient:            es,
 	}
 
 	//see: https://www.elastic.co/blog/why-am-i-seeing-bulk-rejections-in-my-elasticsearch-cluster
@@ -306,7 +303,11 @@ func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFi
 	return id
 }
 
-func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, assemblyId constants.AssemblyId, filterOutHomozygousReferences bool) {
+func (i *IngestionService) ProcessVcf(
+	vcfFilePath string, drsFileId string,
+	assemblyId constants.AssemblyId, filterOutHomozygousReferences bool,
+	lineProcessingConcurrencyLevel int) {
+
 	f, err := os.Open(vcfFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
@@ -322,7 +323,6 @@ func (i *IngestionService) ProcessVcf(vcfFilePath string, drsFileId string, asse
 
 	// "line ingestion queue"
 	// - manage # of lines being concurrently processed per file at any given time
-	lineProcessingConcurrencyLevel := 1000 // TODO: make parameterizeable
 	lineProcessingQueue := make(chan bool, lineProcessingConcurrencyLevel)
 
 	for scanner.Scan() {

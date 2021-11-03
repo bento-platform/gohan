@@ -305,7 +305,7 @@ func VariantsIngest(c echo.Context) error {
 				defer r.Close()
 
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
-				ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences)
+				ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
 
 				// ---   delete the temporary vcf file
 				os.Remove(vcfFilePath)
