@@ -7,6 +7,7 @@ type Config struct {
 		Url             string `yaml:"url" envconfig:"GOHAN_PUBLIC_URL"`
 		Port            string `yaml:"port" envconfig:"GOHAN_API_INTERNAL_PORT"`
 		VcfPath         string `yaml:"vcfPath" envconfig:"GOHAN_API_VCF_PATH"`
+		LocalVcfPath    string `yaml:"localVcfPath" envconfig:"GOHAN_API_VCF_PATH"`
 		GtfPath         string `yaml:"gtfPath" envconfig:"GOHAN_API_GTF_PATH"`
 		BridgeDirectory string `yaml:"bridgeDirectory" envconfig:"GOHAN_API_API_DRS_BRIDGE_DIR"`
 	} `yaml:"api"`
