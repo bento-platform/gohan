@@ -406,9 +406,9 @@ func runAndValidateGenotypeQueryResults(_t *testing.T, genotypeQuery c.GenotypeQ
 	}
 }
 
-func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeSamples bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, assemblyId c.AssemblyId, referenceAllelePattern string, alternativeAllelePattern string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
+func buildQueryAndMakeGetVariantsCall(chromosome string, sampleId string, includeInfo bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, assemblyId c.AssemblyId, referenceAllelePattern string, alternativeAllelePattern string, _t *testing.T, _cfg *models.Config) models.VariantsResponseDTO {
 
-	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeInfoInResultSet=%t&sortByPosition=%s&assemblyId=%s", chromosome, sampleId, includeSamples, sortByPosition, assemblyId)
+	queryString := fmt.Sprintf("?chromosome=%s&ids=%s&includeInfoInResultSet=%t&sortByPosition=%s&assemblyId=%s", chromosome, sampleId, includeInfo, sortByPosition, assemblyId)
 
 	if genotype != gq.UNCALLED {
 		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&genotype=%s", string(genotype)))
@@ -481,7 +481,7 @@ func getOverviewResultCombinations(chromosomeStruct interface{}, sampleIdsStruct
 	return allCombinations
 }
 
-func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeSamples bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, referenceAllelePattern string, alternativeAllelePattern string) []models.VariantsResponseDTO {
+func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeInfo bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, referenceAllelePattern string, alternativeAllelePattern string) []models.VariantsResponseDTO {
 	cfg := common.InitConfig()
 
 	// retrieve the overview
@@ -511,7 +511,7 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 			assemblyId := a.CastToAssemblyId(_combination[2])
 
 			// make the call
-			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeSamples, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, _t, cfg)
+			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, _t, cfg)
 
 			assert.Equal(_t, 1, len(dto.Data))
 
