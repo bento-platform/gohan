@@ -601,15 +601,19 @@ func (i *IngestionService) ProcessVcf(
 			// references, and thus maybe all samples from the call
 			// [i.e. if this is a single-sample VCF])
 			if len(samples) > 0 {
-				tmpVariant["samples"] = samples
-				// ---	 push to a bulk "queue"
-				var resultingVariant models.Variant
-				mapstructure.Decode(tmpVariant, &resultingVariant)
+				// Create a whole variant document for each sample found on this VCF line
+				// TODO: revisit this model as it is surely not storage efficient
+				for _, sample := range samples {
+					tmpVariant["sample"] = sample
+					// ---	 push to a bulk "queue"
+					var resultingVariant models.Variant
+					mapstructure.Decode(tmpVariant, &resultingVariant)
 
-				// pass variant (along with a waitgroup) to the channel
-				i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
-					Variant:   &resultingVariant,
-					WaitGroup: fileWg,
+					// pass variant (along with a waitgroup) to the channel
+					i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
+						Variant:   &resultingVariant,
+						WaitGroup: fileWg,
+					}
 				}
 			} else {
 				// This variant call has been deemed unnecessary to ingest

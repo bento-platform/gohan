@@ -17,7 +17,7 @@ type Variant struct {
 	Filter string   `json:"filter"`
 	Info   []Info   `json:"info"`
 
-	Samples []Sample `json:"samples"`
+	Sample Sample `json:"sample"`
 
 	FileId     string       `json:"fileId"`
 	AssemblyId c.AssemblyId `json:"assemblyId"`
