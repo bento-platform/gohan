@@ -14,7 +14,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -79,22 +78,10 @@ func GenesIngest(c echo.Context) error {
 				)
 				gtfFile, err := os.Open(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 				if err != nil {
-					// log.Fatalf("failed to open file: %s", err)
 					// Download the file
 					fullURLFile := assemblyIdGTFUrlMap[_assId]
 
-					// Build fileName from fullPath
-					fileURL, err := url.Parse(fullURLFile)
-					if err != nil {
-						log.Fatal(err)
-					}
-					path := fileURL.Path
-					segments := strings.Split(path, "/")
-					_fileName = segments[len(segments)-1]
-
-					// Create blank file
-					file, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, _fileName))
-					if err != nil {
+					handleHardErr := func(err error) {
 						msg := "Something went wrong:  " + err.Error()
 						fmt.Println(msg)
 
@@ -102,6 +89,25 @@ func GenesIngest(c echo.Context) error {
 						reqStat.Message = msg
 						iz.GeneIngestRequestChan <- reqStat
 					}
+
+					// Build fileName from fullPath
+					fileURL, err := url.Parse(fullURLFile)
+					if err != nil {
+						handleHardErr(err)
+						return
+					}
+
+					path := fileURL.Path
+					segments := strings.Split(path, "/")
+					_fileName = segments[len(segments)-1]
+
+					// Create blank file
+					file, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, _fileName))
+					if err != nil {
+						handleHardErr(err)
+						return
+					}
+
 					client := http.Client{
 						CheckRedirect: func(r *http.Request, via []*http.Request) error {
 							r.URL.Opaque = r.URL.Path
@@ -116,23 +122,15 @@ func GenesIngest(c echo.Context) error {
 					// Put content on file
 					resp, err := client.Get(fullURLFile)
 					if err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 					defer resp.Body.Close()
 
 					size, err := io.Copy(file, resp.Body)
 					if err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 					defer file.Close()
 
@@ -141,43 +139,30 @@ func GenesIngest(c echo.Context) error {
 					fmt.Printf("Unzipping %s...\n", _fileName)
 					unzippedFile, err := os.Open(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						handleHardErr(err)
+						return
 					}
 
 					reader, err := gzip.NewReader(unzippedFile)
 					if err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 					defer reader.Close()
 
 					unzippedFileName = strings.TrimSuffix(_fileName, ".gz")
 
 					writer, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, unzippedFileName))
-
 					if err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 
 					defer writer.Close()
 
 					if _, err = io.Copy(writer, reader); err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 
 					fmt.Printf("Opening %s\n", unzippedFileName)
@@ -186,6 +171,7 @@ func GenesIngest(c echo.Context) error {
 					fmt.Printf("Deleting %s\n", _fileName)
 					err = os.Remove(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 					if err != nil {
+						// "soft" error
 						fmt.Println(err)
 					}
 				} else {
@@ -296,6 +282,7 @@ func GenesIngest(c echo.Context) error {
 				fmt.Printf("Deleting %s\n", unzippedFileName)
 				err = os.Remove(fmt.Sprintf("%s/%s", gtfPath, unzippedFileName))
 				if err != nil {
+					// "soft" error
 					fmt.Println(err)
 				}
 
