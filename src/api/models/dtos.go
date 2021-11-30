@@ -10,7 +10,8 @@ type VariantResponseDataModel struct {
 	VariantId string    `json:"variantId"`
 	SampleId  string    `json:"sampleId"`
 	Count     int       `json:"count"`
-	Results   []Variant `json:"results"` // []Variant
+	Results   []Variant `json:"results"`   // []Variant
+	SampleIds []string  `json:"sampleIds"` // []string
 }
 
 type GenesResponseDTO struct {

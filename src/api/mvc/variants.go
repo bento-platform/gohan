@@ -414,6 +414,19 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
+	getSampleIdsOnlyQP := c.QueryParam("getSampleIdsOnly")
+	var (
+		getSampleIdsOnly bool = false
+		getSioErr        error
+	)
+	// only respond sampleIds-only
+	if isVariantIdQuery && len(getSampleIdsOnlyQP) > 0 {
+		getSampleIdsOnly, getSioErr = strconv.ParseBool(getSampleIdsOnlyQP)
+		if getSioErr != nil {
+			log.Fatal(getSioErr)
+		}
+	}
+
 	sizeQP := c.QueryParam("size")
 	var (
 		defaultSize = 100
@@ -475,7 +488,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
 					size, sortByPosition,
-					includeInfoInResultSet, genotype, assemblyId)
+					includeInfoInResultSet, genotype, assemblyId,
+					getSampleIdsOnly)
 			} else {
 				// implied sampleId query
 				variantRespDataModel.SampleId = _id
@@ -487,7 +501,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					"", _id, // note : "" is for variantId
 					reference, alternative,
 					size, sortByPosition,
-					includeInfoInResultSet, genotype, assemblyId)
+					includeInfoInResultSet, genotype, assemblyId,
+					false)
 			}
 			if searchErr != nil {
 				errorMux.Lock()
@@ -498,28 +513,49 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 			// query for each id
 
-			docsHits := docs["hits"].(map[string]interface{})["hits"]
-			allDocHits := []map[string]interface{}{}
-			mapstructure.Decode(docsHits, &allDocHits)
+			if !getSampleIdsOnly {
+				docsHits := docs["hits"].(map[string]interface{})["hits"]
+				allDocHits := []map[string]interface{}{}
+				mapstructure.Decode(docsHits, &allDocHits)
 
-			// grab _source for each hit
-			var allSources []models.Variant
+				// grab _source for each hit
+				var allSources []models.Variant
 
-			for _, r := range allDocHits {
-				source := r["_source"].(map[string]interface{})
+				for _, r := range allDocHits {
+					source := r["_source"].(map[string]interface{})
 
-				// cast map[string]interface{} to struct
-				var resultingVariant models.Variant
-				mapstructure.Decode(source, &resultingVariant)
+					// cast map[string]interface{} to struct
+					var resultingVariant models.Variant
+					mapstructure.Decode(source, &resultingVariant)
 
-				// accumulate structs
-				allSources = append(allSources, resultingVariant)
+					// accumulate structs
+					allSources = append(allSources, resultingVariant)
+				}
+
+				fmt.Printf("Found %d docs!\n", len(allSources))
+
+				variantRespDataModel.Count = len(allSources)
+				variantRespDataModel.Results = allSources
+			} else {
+				// TODO: refactor this 'else' statement
+				docsBuckets := docs["aggregations"].(map[string]interface{})["sampleIds"].(map[string]interface{})["buckets"]
+				allDocBuckets := []map[string]interface{}{}
+				mapstructure.Decode(docsBuckets, &allDocBuckets)
+
+				var allSampleIdsOnly []string
+
+				for _, r := range allDocBuckets {
+					sampleId := r["key"].(string)
+
+					// accumulate sample Id's
+					allSampleIdsOnly = append(allSampleIdsOnly, sampleId)
+				}
+
+				fmt.Printf("Found %d docs!\n", len(allSampleIdsOnly))
+
+				variantRespDataModel.Count = len(allSampleIdsOnly)
+				variantRespDataModel.SampleIds = allSampleIdsOnly
 			}
-
-			fmt.Printf("Found %d docs!\n", len(allSources))
-
-			variantRespDataModel.Count = len(allSources)
-			variantRespDataModel.Results = allSources
 
 			respDTOMux.Lock()
 			respDTO.Data = append(respDTO.Data, variantRespDataModel)
