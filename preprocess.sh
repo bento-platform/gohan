@@ -56,7 +56,7 @@ echo Step 3 : compressing individual VCF files -
 echo This also may take a while...
 
 time for file in vcfs/split/*vcf; do
-  gzip -f $file;
+  bgzip -f $file;
   # tabix -fp vcf $file.gz
 done
 

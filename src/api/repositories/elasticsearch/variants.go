@@ -27,7 +27,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	reference string, alternative string,
 	size int, sortByPosition c.SortDirection,
 	includeInfoInResultSet bool,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId,
+	getSampleIdsOnly bool) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -162,11 +163,24 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 				},
 			},
 		},
-		"_source": map[string]interface{}{
+	}
+
+	if !getSampleIdsOnly {
+		query["size"] = size
+		query["_source"] = map[string]interface{}{
 			"includes": [1]string{"*"}, // include every field except those that may be specified in the 'excludesSlice'
 			"excludes": excludesSlice,
-		},
-		"size": size,
+		}
+	} else {
+		query["size"] = 0                       // return no full variant documents
+		query["aggs"] = map[string]interface{}{ // aggregate only sample ids
+			"sampleIds": map[string]interface{}{
+				"terms": map[string]interface{}{
+					"size":  "10000", // increases the number of buckets returned (default is 10)
+					"field": "sample.id.keyword",
+				},
+			},
+		}
 	}
 
 	// set up sorting

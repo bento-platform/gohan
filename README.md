@@ -204,7 +204,7 @@ Response
 Requests
 > &nbsp;&nbsp;**GET** `/variants/get/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number**
+>   - chromosome : **string** `( 1-23, X, Y, M )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele ( "A" | "C" | "G" | "T"  or some combination thereof )`
@@ -217,7 +217,7 @@ Requests
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number**
+>   - chromosome : **string** `( 1-23, X, Y, M )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -227,7 +227,7 @@ Requests
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number**
+>   - chromosome : **string** `( 1-23, X, Y, M )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -240,7 +240,7 @@ Requests
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **number**
+>   - chromosome : **string** `( 1-23, X, Y, M )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
