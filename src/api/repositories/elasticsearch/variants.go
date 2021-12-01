@@ -41,10 +41,9 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	// TODO: refactor common code between 'Get' and 'Count'-DocumentsContainerVariantOrSampleIdInPositionRange
 	if variantId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"id": map[string]interface{}{
-					"query": variantId,
-				},
+			"query_string": map[string]interface{}{
+				"fields": []string{"id"},
+				"query":  variantId,
 			},
 		})
 
@@ -52,10 +51,9 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 	if sampleId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"sample.id": map[string]interface{}{
-					"query": sampleId,
-				},
+			"query_string": map[string]interface{}{
+				"fields": []string{"sample.id"},
+				"query":  sampleId,
 			},
 		})
 	}
