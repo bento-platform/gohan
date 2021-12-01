@@ -20,6 +20,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
@@ -104,7 +106,7 @@ func (i *IngestionService) Init() {
 				select {
 				case newRequest := <-i.IngestRequestChan:
 					if newRequest.State == ingest.Queued {
-						fmt.Printf("Received new request for %s", newRequest.Filename)
+						fmt.Printf("Received new request for %s\n", newRequest.Filename)
 					}
 
 					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
@@ -118,7 +120,7 @@ func (i *IngestionService) Init() {
 				select {
 				case newRequest := <-i.GeneIngestRequestChan:
 					if newRequest.State == ingest.Queued {
-						fmt.Printf("Received new request for %s", newRequest.Filename)
+						fmt.Printf("Received new request for %s\n", newRequest.Filename)
 					}
 
 					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
@@ -263,6 +265,23 @@ func (i *IngestionService) ExtractVcfGz(gzippedFilePath string, gzipStream io.Re
 	f.Close()
 
 	return newVcfFilePath
+}
+
+func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string, error) {
+	cmd := exec.Command("tabix", "-f", gzippedFilePath)
+	cmdOutput := &bytes.Buffer{}
+	cmd.Stdout = cmdOutput
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(cmdOutput.String())
+		fmt.Println(err.Error())
+		os.Stderr.WriteString(err.Error())
+		return "", "", err
+	}
+	fmt.Print(cmdOutput.String())
+
+	dir, file := path.Split(fmt.Sprintf("%s.tbi", gzippedFilePath))
+	return dir, file, nil
 }
 
 func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
