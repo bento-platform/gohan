@@ -251,6 +251,19 @@ func VariantsIngest(c echo.Context) error {
 				}
 				// -----
 
+				// --- tabix generation
+				tabixFileDir, tabixFileName, tabixErr := ingestionService.GenerateTabix(tmpDestinationFileName)
+				if tabixErr != nil {
+					msg := "Something went wrong: Tabix problem " + gzippedFileName
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+
 				// ---   push compressed to DRS
 				drsFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
 				if drsFileId == "" {
@@ -264,9 +277,33 @@ func VariantsIngest(c echo.Context) error {
 					return
 				}
 
-				// ---   remove temporary file now that it has been ingested successfully into DRS
+				// -- push tabix to DRS
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileName, drsUrl, drsUsername, drsPassword)
+				if drsTabixFileId == "" {
+					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileName
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+
+				// ---   remove temporary files now that they have been ingested successfully into DRS
 				if tmpFileRemovalErr := os.Remove(tmpDestinationFileName); tmpFileRemovalErr != nil {
 					msg := fmt.Sprintf("Something went wrong: trying to remove temporary file at %s : %s\n", tmpDestinationFileName, tmpFileRemovalErr)
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+				tmpTabixFilePath := fmt.Sprintf("%s%s", tabixFileDir, tabixFileName)
+				if tmpTabixFileRemovalErr := os.Remove(tmpTabixFilePath); tmpTabixFileRemovalErr != nil {
+					msg := fmt.Sprintf("Something went wrong: trying to remove temporary file at %s : %s\n", tmpTabixFilePath, tmpTabixFileRemovalErr)
 					fmt.Println(msg)
 
 					reqStat.State = ingest.Error
