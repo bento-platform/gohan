@@ -46,7 +46,6 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 				"query":  variantId,
 			},
 		})
-
 	}
 
 	if sampleId != "" {
@@ -264,21 +263,18 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 	if variantId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"id": map[string]interface{}{
-					"query": variantId,
-				},
+			"query_string": map[string]interface{}{
+				"fields": []string{"id"},
+				"query":  variantId,
 			},
 		})
-
 	}
 
 	if sampleId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"sample.id": map[string]interface{}{
-					"query": sampleId,
-				},
+			"query_string": map[string]interface{}{
+				"fields": []string{"sample.id"},
+				"query":  sampleId,
 			},
 		})
 	}
