@@ -9,6 +9,7 @@ import (
 	"api/services"
 	"api/utils"
 	"strings"
+	"time"
 
 	"fmt"
 	"net/http"
@@ -34,9 +35,13 @@ func main() {
 
 		"\tVCF Directory Path : %s \n"+
 		"\tGTF Directory Path : %s \n"+
+		"\tFile Processing Concurrency Level : %d\n"+
+		"\tLine Processing Concurrency Level : %d\n"+
 		"\tElasticsearch Url : %s \n"+
 		"\tElasticsearch Username : %s\n\n"+
 
+		"\tAPI's API-DRS Bridge Directory : %s\n"+
+		"\tDRS's API-DRS Bridge Directory : %s\n"+
 		"\tDRS Url : %s\n"+
 		"\tDRS Username : %s\n\n"+
 
@@ -50,7 +55,10 @@ func main() {
 		cfg.Debug,
 		cfg.Api.VcfPath,
 		cfg.Api.GtfPath,
+		cfg.Api.FileProcessingConcurrencyLevel,
+		cfg.Api.LineProcessingConcurrencyLevel,
 		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,
+		cfg.Api.BridgeDirectory, cfg.Drs.BridgeDirectory,
 		cfg.Drs.Url, cfg.Drs.Username,
 		cfg.AuthX.IsAuthorizationEnabled,
 		cfg.AuthX.OidcPublicJwksUrl,
@@ -71,7 +79,7 @@ func main() {
 
 	// Service Singletons
 	az := services.NewAuthzService(&cfg)
-	iz := services.NewIngestionService(es)
+	iz := services.NewIngestionService(es, &cfg)
 
 	// Configure Server
 	e.Use(middleware.Recover())
@@ -95,6 +103,7 @@ func main() {
 	// Begin MVC Routes
 	// -- Root
 	e.GET("/", func(c echo.Context) error {
+		fmt.Printf("[%s] - Root hit!\n", time.Now())
 		return c.JSON(http.StatusOK, serviceInfo.SERVICE_WELCOME)
 	})
 
@@ -164,6 +173,10 @@ func main() {
 		gam.ValidateOptionalChromosomeAttribute)
 	e.GET("/genes/ingestion/requests", mvc.GetAllGeneIngestionRequests)
 	e.GET("/genes/ingestion/run", mvc.GenesIngest)
+
+	// -- Workflows
+	e.GET("/workflows", mvc.WorkflowsGet)
+	e.GET("/workflows/:file", mvc.WorkflowsServeFile)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))

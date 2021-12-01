@@ -17,7 +17,7 @@ type Variant struct {
 	Filter string   `json:"filter"`
 	Info   []Info   `json:"info"`
 
-	Samples []Sample `json:"samples"`
+	Sample Sample `json:"sample"`
 
 	FileId     string       `json:"fileId"`
 	AssemblyId c.AssemblyId `json:"assemblyId"`
@@ -40,10 +40,8 @@ type Variation struct {
 }
 
 type Genotype struct {
-	Phased      bool       `json:"phased"`
-	AlleleLeft  int        `json:"alleleLeft"`  // -1 = no call (equivalent to a '.')
-	AlleleRight int        `json:"alleleRight"` // -1 = no call (equivalent to a '.')
-	Zygosity    c.Zygosity `json:"zygosity"`
+	Phased   bool       `json:"phased"`
+	Zygosity c.Zygosity `json:"zygosity"`
 }
 
 type Gene struct {

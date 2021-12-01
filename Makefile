@@ -3,11 +3,22 @@
 # import global variables
 env ?= .env
 
+#>>>
+# set default shell
+#<<<
+SHELL = bash
+
 include $(env)
 export $(shell sed 's/=.*//' $(env))
 
 export GOOS=linux
 export GOARCH=amd64
+
+# export host user IDs for more secure
+# containerization and volume mounting
+export HOST_USER_UID=$(shell id -u)
+export HOST_USER_GID=$(shell id -g)
+
 
 # initialize services
 init:
@@ -21,7 +32,26 @@ init:
 	@# - API OPA policies 
 	@echo Configuring authorzation policies
 	@envsubst < ./etc/api.policy.rego.tpl > ./authorization/api.policy.rego
+	
+	@$(MAKE) init-data-dirs
 
+
+init-data-dirs:
+	@echo "Initializing data directories.." && \
+	# api-drs bridge: \
+	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
+		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
+		chmod -R 770 ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
+	# drs: \
+	mkdir -p ${GOHAN_DRS_DATA_DIR} && \
+		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR} && \
+		chmod -R 770 ${GOHAN_DRS_DATA_DIR} && \
+	# elasticsearch: \
+	mkdir -p ${GOHAN_ES_DATA_DIR} && \
+		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR} && \
+		chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
+	chmod -R 770 ./data && \
+	echo ".. done!"
 
 
 # Run
@@ -100,20 +130,57 @@ clean-authz:
 
 
 ## -- WARNING: DELETES ALL LOCAL ELASTICSEARCH DATA
+clean-all-data:
+	@read -p "Are you sure you want to clean out all data? (yes/no) : " answer; \
+	if [ "$$answer" == "yes" ]; then \
+		echo "-- Cleaning! --" ; \
+		docker-compose -f docker-compose.yaml down && \
+		sudo rm -rf ${GOHAN_DATA_ROOT} ; \
+		echo "-- Done! --" ; \
+	else \
+		echo "-- Skipping.. --" ; \
+	fi
 clean-elastic-data:
-	docker-compose -f docker-compose.yaml down
-	sudo rm -rf ${GOHAN_ES_DATA_DIR}
+	@read -p "Are you sure you want to clean out all elasticsearch data? (yes/no) : " answer; \
+	if [ "$$answer" == "yes" ]; then \
+		echo "-- Cleaning! --" ; \
+		docker-compose -f docker-compose.yaml down && \
+		sudo rm -rf ${GOHAN_ES_DATA_DIR} ; \
+		echo "-- Done! --" ; \
+	else \
+		echo "-- Skipping.. --" ; \
+	fi
 
 ## -- WARNING: DELETES ALL LOCAL DRS DATA
 clean-drs-data:
-	docker-compose -f docker-compose.yaml down
-	sudo rm -rf ${GOHAN_DRS_DATA_DIR}
+	@read -p "Are you sure you want to clean out all drs data? (yes/no) : " answer; \
+	if [ "$$answer" == "yes" ]; then \
+		echo "-- Cleaning! --" ; \
+		docker-compose -f docker-compose.yaml down && \
+		sudo rm -rf ${GOHAN_DRS_DATA_DIR} ; \
+		echo "-- Done! --" ; \
+	else \
+		echo "-- Skipping.. --" ; \
+	fi
 
+## -- WARNING: DELETES ALL LOCAL API-DRS-BRIDGE DATA
+clean-api-drs-bridge-data:
+	@read -p "Are you sure you want to clean out all api-drs-bridge data? (yes/no) : " answer; \
+	if [ "$$answer" == "yes" ]; then \
+		echo "-- Cleaning! --" ; \
+		docker-compose -f docker-compose.yaml down && \
+		sudo rm -rf ${GOHAN_API_DRS_BRIDGE_HOST_DIR} ; \
+		echo "-- Done! --" ; \
+	else \
+		echo "-- Skipping.. --" ; \
+	fi
 
+	
 
 ## Tests
 test-api-dev: prepare-test-config
 	@# Run the tests
+	go clean -cache && \
 	go test tests/integration/... -v
 
 prepare-test-config:

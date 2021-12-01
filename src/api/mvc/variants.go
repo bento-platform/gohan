@@ -2,6 +2,7 @@ package mvc
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -31,6 +32,7 @@ import (
 )
 
 func VariantsGetByVariantId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsGetByVariantId hit!\n", time.Now())
 	// retrieve variant Ids from query parameter (comma separated)
 	variantIds := strings.Split(c.QueryParam("ids"), ",")
 	if len(variantIds[0]) == 0 {
@@ -42,6 +44,7 @@ func VariantsGetByVariantId(c echo.Context) error {
 }
 
 func VariantsGetBySampleId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsGetBySampleId hit!\n", time.Now())
 	// retrieve sample Ids from query parameter (comma separated)
 	sampleIds := strings.Split(c.QueryParam("ids"), ",")
 	if len(sampleIds[0]) == 0 {
@@ -53,6 +56,7 @@ func VariantsGetBySampleId(c echo.Context) error {
 }
 
 func VariantsCountByVariantId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsCountByVariantId hit!\n", time.Now())
 	// retrieve single variant id from query parameter and map to a list
 	// to conform to function signature
 	singleVariantIdSlice := []string{c.QueryParam("id")}
@@ -65,6 +69,7 @@ func VariantsCountByVariantId(c echo.Context) error {
 }
 
 func VariantsCountBySampleId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsCountBySampleId hit!\n", time.Now())
 	// retrieve single sample id from query parameter and map to a list
 	// to conform to function signature
 	singleSampleIdSlice := []string{c.QueryParam("id")}
@@ -77,6 +82,7 @@ func VariantsCountBySampleId(c echo.Context) error {
 }
 
 func VariantsIngest(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsIngest hit!\n", time.Now())
 	cfg := c.(*contexts.GohanContext).Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
@@ -96,6 +102,20 @@ func VariantsIngest(c echo.Context) error {
 
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
 
+	// -- optional filter
+	var (
+		filterOutHomozygousReferences bool = false // default
+		fohrErr                       error
+	)
+	filterOutHomozygousReferencesQP := c.QueryParam("filterOutHomozygousReferences")
+	if len(filterOutHomozygousReferencesQP) > 0 {
+		filterOutHomozygousReferences, fohrErr = strconv.ParseBool(filterOutHomozygousReferencesQP)
+		if fohrErr != nil {
+			// TODO: create a standard response object
+			log.Fatal(fohrErr)
+		}
+	}
+
 	startTime := time.Now()
 
 	fmt.Printf("Ingest Start: %s\n", startTime)
@@ -103,6 +123,9 @@ func VariantsIngest(c echo.Context) error {
 	// get vcf files
 	var vcfGzfiles []string
 
+	// TODO: simply load files by filename provided
+	// rather than load all available files and looping over them
+	// -----
 	// Read all files
 	fileInfo, err := ioutil.ReadDir(vcfPath)
 	if err != nil {
@@ -119,20 +142,19 @@ func VariantsIngest(c echo.Context) error {
 		}
 	}
 
-	//fmt.Printf("Found .vcf.gz files: %s\n", vcfGzfiles)
-
 	// Locate fileName from request inside found files
 	for _, fileName := range fileNames {
 		if utils.StringInSlice(fileName, vcfGzfiles) == false {
 			return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
 		}
 	}
+	// -----
 
 	// create temporary directory for unzipped vcfs
-	vcfTmpPath := vcfPath + "/tmp"
+	vcfTmpPath := fmt.Sprintf("%s/tmp", vcfPath)
 	_, err = os.Stat(vcfTmpPath)
 	if os.IsNotExist(err) {
-		fmt.Println("VCF /tmp folder does not exist, creating...")
+		fmt.Printf("VCF %s folder does not exist -- creating...", vcfTmpPath)
 		err = os.Mkdir(vcfTmpPath, 0755)
 		if err != nil {
 			fmt.Println(err)
@@ -146,7 +168,7 @@ func VariantsIngest(c echo.Context) error {
 	responseDtos := []ingest.IngestResponseDTO{}
 	for _, fileName := range fileNames {
 
-		// check if there is an already exisiting ingestion request state
+		// check if there is an already existing ingestion request state
 		if ingestionService.FilenameAlreadyRunning(fileName) {
 			responseDtos = append(responseDtos, ingest.IngestResponseDTO{
 				Filename: fileName,
@@ -157,12 +179,14 @@ func VariantsIngest(c echo.Context) error {
 		}
 
 		// if not, execute
+
 		newRequestState := &ingest.VariantIngestRequest{
 			Id:        uuid.New(),
 			Filename:  fileName,
 			State:     ingest.Queued,
-			CreatedAt: fmt.Sprintf("%s", startTime),
+			CreatedAt: fmt.Sprintf("%v", startTime),
 		}
+		ingestionService.IngestRequestChan <- newRequestState
 
 		responseDtos = append(responseDtos, ingest.IngestResponseDTO{
 			Id:       newRequestState.Id,
@@ -171,73 +195,176 @@ func VariantsIngest(c echo.Context) error {
 			Message:  "Successfully queued..",
 		})
 
-		go func(file string, reqStat *ingest.VariantIngestRequest) {
+		go func(_fileName string, _newRequestState *ingest.VariantIngestRequest) {
 
-			reqStat.State = ingest.Running
-			ingestionService.IngestRequestChan <- reqStat
+			// take a spot in the queue
+			ingestionService.ConcurrentFileIngestionQueue <- true
+			go func(gzippedFileName string, reqStat *ingest.VariantIngestRequest) {
+				// free up a spot in the queue
+				defer func() { <-ingestionService.ConcurrentFileIngestionQueue }()
 
-			// ---	 decompress vcf.gz
-			gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", file)
-			r, err := os.Open(gzippedFilePath)
-			if err != nil {
-				msg := fmt.Sprintf("error opening %s: %s\n", file, err)
-				fmt.Printf(msg)
-
-				reqStat.State = ingest.Error
-				reqStat.Message = msg
+				reqStat.State = ingest.Running
 				ingestionService.IngestRequestChan <- reqStat
 
-				return
-			}
-			defer r.Close()
+				// ---	 decompress vcf.gz
+				gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", gzippedFileName)
+				r, err := os.Open(gzippedFilePath)
+				if err != nil {
+					msg := fmt.Sprintf("error opening %s: %s\n", gzippedFileName, err)
+					fmt.Println(msg)
 
-			vcfFilePath := ingestionService.ExtractVcfGz(gzippedFilePath, r, vcfTmpPath)
-			if vcfFilePath == "" {
-				msg := "Something went wrong: filepath is empty for " + file
-				fmt.Println(msg)
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
 
-				reqStat.State = ingest.Error
-				reqStat.Message = msg
+					return
+				}
+
+				// ---   copy gzipped file over to a temp folder that is common to DRS and gohan
+				// 	     such that DRS can load the file into memory to process rather than receiving
+				//       the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind
+				// -----
+				tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Api.BridgeDirectory, "/", gzippedFileName)
+				destination, err := os.Create(tmpDestinationFileName)
+				if err != nil {
+					msg := fmt.Sprintf("error creating temporary bridge file for %s: %s\n", gzippedFileName, err)
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+				defer destination.Close()
+
+				_, err = io.Copy(destination, r)
+				if err != nil {
+					msg := fmt.Sprintf("error copying to temporary bridge file from %s to %s: %s\n", gzippedFileName, tmpDestinationFileName, err)
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+				// -----
+
+				// --- tabix generation
+				tabixFileDir, tabixFileName, tabixErr := ingestionService.GenerateTabix(tmpDestinationFileName)
+				if tabixErr != nil {
+					msg := "Something went wrong: Tabix problem " + gzippedFileName
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+
+				// ---   push compressed to DRS
+				drsFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
+				if drsFileId == "" {
+					msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+
+				// -- push tabix to DRS
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileName, drsUrl, drsUsername, drsPassword)
+				if drsTabixFileId == "" {
+					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileName
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+
+				// ---   remove temporary files now that they have been ingested successfully into DRS
+				if tmpFileRemovalErr := os.Remove(tmpDestinationFileName); tmpFileRemovalErr != nil {
+					msg := fmt.Sprintf("Something went wrong: trying to remove temporary file at %s : %s\n", tmpDestinationFileName, tmpFileRemovalErr)
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+				tmpTabixFilePath := fmt.Sprintf("%s%s", tabixFileDir, tabixFileName)
+				if tmpTabixFileRemovalErr := os.Remove(tmpTabixFilePath); tmpTabixFileRemovalErr != nil {
+					msg := fmt.Sprintf("Something went wrong: trying to remove temporary file at %s : %s\n", tmpTabixFilePath, tmpTabixFileRemovalErr)
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+
+				// ---   reopen gzipped file after having been copied to the temporary api-drs
+				//       bridge directory, as the stream depletes and needs a refresh
+				r, err = os.Open(gzippedFilePath)
+				if err != nil {
+					msg := fmt.Sprintf("error reopening %s: %s\n", gzippedFileName, err)
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+
+				// ---   extract gzip compressed vcf file
+				vcfFilePath := ingestionService.ExtractVcfGz(gzippedFilePath, r, vcfTmpPath)
+				if vcfFilePath == "" {
+					msg := "Something went wrong: filepath is empty for " + gzippedFileName
+					fmt.Println(msg)
+
+					reqStat.State = ingest.Error
+					reqStat.Message = msg
+					ingestionService.IngestRequestChan <- reqStat
+
+					return
+				}
+				defer r.Close()
+
+				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
+				ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+
+				// ---   delete the temporary vcf file
+				os.Remove(vcfFilePath)
+
+				// ---   delete full tmp path and all contents
+				// 		 (WARNING : Only do this when running over a single file)
+				//os.RemoveAll(vcfTmpPath)
+
+				fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(startTime))
+
+				reqStat.State = ingest.Done
 				ingestionService.IngestRequestChan <- reqStat
-
-				return
-			}
-
-			// ---   push compressed to DRS
-			drsFileId := ingestionService.UploadVcfGzToDrs(gzippedFilePath, r, drsUrl, drsUsername, drsPassword)
-			if drsFileId == "" {
-				msg := "Something went wrong: DRS File Id is empty for " + file
-				fmt.Println(msg)
-
-				reqStat.State = ingest.Error
-				reqStat.Message = msg
-				ingestionService.IngestRequestChan <- reqStat
-
-				return
-			}
-
-			// ---	 load back into memory and process
-			ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId)
-
-			// ---   delete the temporary vcf file
-			os.Remove(vcfFilePath)
-
-			// ---   delete full tmp path and all contents
-			// 		 (WARNING : Only do this when running over a single file)
-			//os.RemoveAll(vcfTmpPath)
-
-			fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(startTime))
-
-			reqStat.State = ingest.Done
-			ingestionService.IngestRequestChan <- reqStat
-
+			}(_fileName, _newRequestState)
 		}(fileName, newRequestState)
+
 	}
 
 	return c.JSON(http.StatusOK, responseDtos)
 }
 
 func GetVariantsOverview(c echo.Context) error {
+	fmt.Printf("[%s] - GetVariantsOverview hit!\n", time.Now())
 
 	resultsMap := map[string]interface{}{}
 	resultsMux := sync.RWMutex{}
@@ -249,7 +376,13 @@ func GetVariantsOverview(c echo.Context) error {
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
-		results := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
+		results, bucketsError := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
+		if bucketsError != nil {
+			resultsMap[key] = map[string]interface{}{
+				"error": "Something went wrong. Please contact the administrator!",
+			}
+			return
+		}
 
 		// retrieve aggregations.items.buckets
 		bucketsMapped := []interface{}{}
@@ -289,7 +422,7 @@ func GetVariantsOverview(c echo.Context) error {
 
 	// get distribution of sample IDs
 	wg.Add(1)
-	go callGetBucketsByKeyword("sampleIDs", "samples.id.keyword", &wg)
+	go callGetBucketsByKeyword("sampleIDs", "sample.id.keyword", &wg)
 
 	// get distribution of assembly IDs
 	wg.Add(1)
@@ -301,6 +434,7 @@ func GetVariantsOverview(c echo.Context) error {
 }
 
 func GetAllVariantIngestionRequests(c echo.Context) error {
+	fmt.Printf("[%s] - GetAllVariantIngestionRequests hit!\n", time.Now())
 	izMap := c.(*contexts.GohanContext).IngestionService.IngestRequestMap
 
 	// transform map of it-to-ingestRequests to an array
@@ -317,6 +451,19 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
+	getSampleIdsOnlyQP := c.QueryParam("getSampleIdsOnly")
+	var (
+		getSampleIdsOnly bool = false
+		getSioErr        error
+	)
+	// only respond sampleIds-only
+	if isVariantIdQuery && len(getSampleIdsOnlyQP) > 0 {
+		getSampleIdsOnly, getSioErr = strconv.ParseBool(getSampleIdsOnlyQP)
+		if getSioErr != nil {
+			log.Fatal(getSioErr)
+		}
+	}
+
 	sizeQP := c.QueryParam("size")
 	var (
 		defaultSize = 100
@@ -334,13 +481,13 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	sortByPosition := s.CastToSortDirection(c.QueryParam("sortByPosition"))
 
-	includeSamplesInResultSetQP := c.QueryParam("includeSamplesInResultSet")
+	includeInfoInResultSetQP := c.QueryParam("includeInfoInResultSet")
 	var (
-		includeSamplesInResultSet bool
-		isirsErr                  error
+		includeInfoInResultSet bool
+		isirsErr               error
 	)
-	if len(includeSamplesInResultSetQP) > 0 {
-		includeSamplesInResultSet, isirsErr = strconv.ParseBool(includeSamplesInResultSetQP)
+	if len(includeInfoInResultSetQP) > 0 {
+		includeInfoInResultSet, isirsErr = strconv.ParseBool(includeInfoInResultSetQP)
 		if isirsErr != nil {
 			log.Fatal(isirsErr)
 		}
@@ -350,6 +497,9 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	// prepare response
 	respDTO := models.VariantsResponseDTO{}
 	respDTOMux := sync.RWMutex{}
+
+	var errors []error
+	errorMux := sync.RWMutex{}
 
 	// TODO: optimize - make 1 repo call with all variantIds at once
 	var wg sync.WaitGroup
@@ -361,56 +511,88 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 			variantRespDataModel := models.VariantResponseDataModel{}
 
-			var docs map[string]interface{}
+			var (
+				docs      map[string]interface{}
+				searchErr error
+			)
 			if isVariantIdQuery {
 				variantRespDataModel.VariantId = _id
 
 				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
 
-				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
 					size, sortByPosition,
-					includeSamplesInResultSet, genotype, assemblyId)
+					includeInfoInResultSet, genotype, assemblyId,
+					getSampleIdsOnly)
 			} else {
 				// implied sampleId query
 				variantRespDataModel.SampleId = _id
 
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
 
-				docs = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
 					reference, alternative,
 					size, sortByPosition,
-					includeSamplesInResultSet, genotype, assemblyId)
+					includeInfoInResultSet, genotype, assemblyId,
+					false)
+			}
+			if searchErr != nil {
+				errorMux.Lock()
+				errors = append(errors, searchErr)
+				errorMux.Unlock()
+				return
 			}
 
 			// query for each id
 
-			docsHits := docs["hits"].(map[string]interface{})["hits"]
-			allDocHits := []map[string]interface{}{}
-			mapstructure.Decode(docsHits, &allDocHits)
+			if !getSampleIdsOnly {
+				docsHits := docs["hits"].(map[string]interface{})["hits"]
+				allDocHits := []map[string]interface{}{}
+				mapstructure.Decode(docsHits, &allDocHits)
 
-			// grab _source for each hit
-			var allSources []models.Variant
+				// grab _source for each hit
+				var allSources []models.Variant
 
-			for _, r := range allDocHits {
-				source := r["_source"].(map[string]interface{})
+				for _, r := range allDocHits {
+					source := r["_source"].(map[string]interface{})
 
-				// cast map[string]interface{} to struct
-				var resultingVariant models.Variant
-				mapstructure.Decode(source, &resultingVariant)
+					// cast map[string]interface{} to struct
+					var resultingVariant models.Variant
+					mapstructure.Decode(source, &resultingVariant)
 
-				// accumulate structs
-				allSources = append(allSources, resultingVariant)
+					// accumulate structs
+					allSources = append(allSources, resultingVariant)
+				}
+
+				fmt.Printf("Found %d docs!\n", len(allSources))
+
+				variantRespDataModel.Count = len(allSources)
+				variantRespDataModel.Results = allSources
+			} else {
+				// TODO: refactor this 'else' statement
+				docsBuckets := docs["aggregations"].(map[string]interface{})["sampleIds"].(map[string]interface{})["buckets"]
+				allDocBuckets := []map[string]interface{}{}
+				mapstructure.Decode(docsBuckets, &allDocBuckets)
+
+				var allSampleIdsOnly []string
+
+				for _, r := range allDocBuckets {
+					sampleId := r["key"].(string)
+
+					// accumulate sample Id's
+					allSampleIdsOnly = append(allSampleIdsOnly, sampleId)
+				}
+
+				fmt.Printf("Found %d docs!\n", len(allSampleIdsOnly))
+
+				variantRespDataModel.Count = len(allSampleIdsOnly)
+				variantRespDataModel.SampleIds = allSampleIdsOnly
 			}
-
-			fmt.Printf("Found %d docs!\n", len(allSources))
-
-			variantRespDataModel.Count = len(allSources)
-			variantRespDataModel.Results = allSources
 
 			respDTOMux.Lock()
 			respDTO.Data = append(respDTO.Data, variantRespDataModel)
@@ -421,8 +603,13 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	wg.Wait()
 
-	respDTO.Status = 200
-	respDTO.Message = "Success"
+	if len(errors) == 0 {
+		respDTO.Status = 200
+		respDTO.Message = "Success"
+	} else {
+		respDTO.Status = 500
+		respDTO.Message = "Something went wrong.. Please contact the administrator!"
+	}
 
 	return c.JSON(http.StatusOK, respDTO)
 }
@@ -435,6 +622,8 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 	respDTO := models.VariantsResponseDTO{}
 	respDTOMux := sync.RWMutex{}
 
+	var errors []error
+	errorMux := sync.RWMutex{}
 	// TODO: optimize - make 1 repo call with all variantIds at once
 	var wg sync.WaitGroup
 	for _, id := range ids {
@@ -445,13 +634,16 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 			variantRespDataModel := models.VariantResponseDataModel{}
 
-			var docs map[string]interface{}
+			var (
+				docs       map[string]interface{}
+				countError error
+			)
 			if isVariantIdQuery {
 				variantRespDataModel.VariantId = _id
 
 				fmt.Printf("Executing Count-Variants for VariantId %s\n", _id)
 
-				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
 					reference, alternative, genotype, assemblyId)
@@ -461,10 +653,17 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
 
-				docs = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
 					reference, alternative, genotype, assemblyId)
+			}
+
+			if countError != nil {
+				errorMux.Lock()
+				errors = append(errors, countError)
+				errorMux.Unlock()
+				return
 			}
 
 			variantRespDataModel.Count = int(docs["count"].(float64))
@@ -478,8 +677,13 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 	wg.Wait()
 
-	respDTO.Status = 200
-	respDTO.Message = "Success"
+	if len(errors) == 0 {
+		respDTO.Status = 200
+		respDTO.Message = "Success"
+	} else {
+		respDTO.Status = 500
+		respDTO.Message = "Something went wrong.. Please contact the administrator!"
+	}
 
 	return c.JSON(http.StatusOK, respDTO)
 }

@@ -14,22 +14,59 @@ COPY . /build/
 # Alpine updates and executable dependencies
 RUN apk update && \
     apk upgrade && \
+    # For compressing the final binary :
     apk add git upx
     
+# Install & build samtools from github repos (htslib needed first)
+RUN apk --update add ncurses-dev && \
+    apk add git build-base xz-dev zlib-dev bzip2-dev curl-dev && \ 
+    git clone git://github.com/samtools/htslib.git && \
+    cd htslib && \
+    git submodule update --init --recursive && \
+    make && \
+    make install && \
+    cd .. && \
+    git clone git://github.com/samtools/samtools.git && \
+    cd samtools && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf htslib samtools
+    
+# Build gohan api
 RUN CGO_ENABLED=0 && \
     go build -ldflags="-s -w" -o gohan_api && \
+    # Compress the final binary :
     upx --brute gohan_api
 
 
 # Stage two - executioner
 FROM $BASE_IMAGE
 
-# # Alpine updates
+# Alpine updates
 RUN apk update && \
-    apk upgrade
+    apk upgrade && \
+    # Dependencies :
+    apk add \
+    # - for healthchecks
+    curl \
+    # - for tabix
+    xz-dev zlib-dev bzip2-dev
 
-# Copy pre-built executeables
+# Security :
+ARG HOST_USER_UID
+ARG HOST_USER_GID
+RUN addgroup -S apigroup -g $HOST_USER_GID && \
+    adduser -S apiuser -u $HOST_USER_UID -G apigroup
+
+USER apiuser
+
+# Copy pre-built executables
 COPY --from=builder /build/gohan_api /app/
+COPY --from=builder /usr/local/bin/tabix /usr/local/bin/
+
+# Copy static workflow files
+COPY workflows/*.wdl /app/workflows/
 
 # Run
 ARG GOHAN_API_INTERNAL_PORT

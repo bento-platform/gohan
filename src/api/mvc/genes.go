@@ -14,7 +14,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -28,10 +27,13 @@ import (
 )
 
 func GenesIngest(c echo.Context) error {
+	fmt.Printf("[%s] - GenesIngest hit!\n", time.Now())
 	// trigger global ingestion background process
 	go func() {
 
 		cfg := c.(*contexts.GohanContext).Config
+		es7Client := c.(*contexts.GohanContext).Es7Client
+
 		gtfPath := cfg.Api.GtfPath
 
 		iz := c.(*contexts.GohanContext).IngestionService
@@ -64,7 +66,7 @@ func GenesIngest(c echo.Context) error {
 			newRequestState := ingest.GeneIngestRequest{
 				Filename:  fileName,
 				State:     ingest.Queued,
-				CreatedAt: fmt.Sprintf("%s", time.Now()),
+				CreatedAt: fmt.Sprintf("%v", time.Now()),
 			}
 
 			go func(_assId constants.AssemblyId, _fileName string, _assemblyWg *sync.WaitGroup, reqStat *ingest.GeneIngestRequest) {
@@ -76,22 +78,10 @@ func GenesIngest(c echo.Context) error {
 				)
 				gtfFile, err := os.Open(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 				if err != nil {
-					// log.Fatalf("failed to open file: %s", err)
 					// Download the file
 					fullURLFile := assemblyIdGTFUrlMap[_assId]
 
-					// Build fileName from fullPath
-					fileURL, err := url.Parse(fullURLFile)
-					if err != nil {
-						log.Fatal(err)
-					}
-					path := fileURL.Path
-					segments := strings.Split(path, "/")
-					_fileName = segments[len(segments)-1]
-
-					// Create blank file
-					file, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, _fileName))
-					if err != nil {
+					handleHardErr := func(err error) {
 						msg := "Something went wrong:  " + err.Error()
 						fmt.Println(msg)
 
@@ -99,6 +89,25 @@ func GenesIngest(c echo.Context) error {
 						reqStat.Message = msg
 						iz.GeneIngestRequestChan <- reqStat
 					}
+
+					// Build fileName from fullPath
+					fileURL, err := url.Parse(fullURLFile)
+					if err != nil {
+						handleHardErr(err)
+						return
+					}
+
+					path := fileURL.Path
+					segments := strings.Split(path, "/")
+					_fileName = segments[len(segments)-1]
+
+					// Create blank file
+					file, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, _fileName))
+					if err != nil {
+						handleHardErr(err)
+						return
+					}
+
 					client := http.Client{
 						CheckRedirect: func(r *http.Request, via []*http.Request) error {
 							r.URL.Opaque = r.URL.Path
@@ -113,23 +122,15 @@ func GenesIngest(c echo.Context) error {
 					// Put content on file
 					resp, err := client.Get(fullURLFile)
 					if err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 					defer resp.Body.Close()
 
 					size, err := io.Copy(file, resp.Body)
 					if err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 					defer file.Close()
 
@@ -138,43 +139,30 @@ func GenesIngest(c echo.Context) error {
 					fmt.Printf("Unzipping %s...\n", _fileName)
 					unzippedFile, err := os.Open(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 					if err != nil {
-						fmt.Println(err)
-						os.Exit(1)
+						handleHardErr(err)
+						return
 					}
 
 					reader, err := gzip.NewReader(unzippedFile)
 					if err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 					defer reader.Close()
 
 					unzippedFileName = strings.TrimSuffix(_fileName, ".gz")
 
 					writer, err := os.Create(fmt.Sprintf("%s/%s", gtfPath, unzippedFileName))
-
 					if err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 
 					defer writer.Close()
 
 					if _, err = io.Copy(writer, reader); err != nil {
-						msg := "Something went wrong:  " + err.Error()
-						fmt.Println(msg)
-
-						reqStat.State = ingest.Error
-						reqStat.Message = msg
-						iz.GeneIngestRequestChan <- reqStat
+						handleHardErr(err)
+						return
 					}
 
 					fmt.Printf("Opening %s\n", unzippedFileName)
@@ -183,6 +171,7 @@ func GenesIngest(c echo.Context) error {
 					fmt.Printf("Deleting %s\n", _fileName)
 					err = os.Remove(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 					if err != nil {
+						// "soft" error
 						fmt.Println(err)
 					}
 				} else {
@@ -192,6 +181,11 @@ func GenesIngest(c echo.Context) error {
 				}
 
 				defer gtfFile.Close()
+
+				// clean out genes currently in elasticsearch by assembly id
+				fmt.Printf("Cleaning out %s gene documents from genes index (if any)\n", string(_assId))
+				esRepo.DeleteGenesByAssemblyId(cfg, es7Client, _assId)
+
 				fileScanner := bufio.NewScanner(gtfFile)
 				fileScanner.Split(bufio.ScanLines)
 
@@ -206,17 +200,6 @@ func GenesIngest(c echo.Context) error {
 					nameHeaderKeys     = []int{3}
 					geneNameHeaderKeys []int
 				)
-
-				var columnsToPrint []string
-				if _assId == assemblyId.GRCh38 {
-					// GRCh38 dataset has multiple name fields (name, name2) and
-					// also includes gene name fields (geneName, geneName2)
-					columnsToPrint = append(columnsToPrint, "#chrom", "chromStart", "chromEnd", "name", "name2", "geneName", "geneName2")
-					nameHeaderKeys = append(nameHeaderKeys, 4)
-					geneNameHeaderKeys = append(geneNameHeaderKeys, 5, 6)
-				} else {
-					columnsToPrint = append(columnsToPrint, "chrom", "txStart", "txEnd", "#name")
-				}
 
 				for fileScanner.Scan() {
 					rowText := fileScanner.Text()
@@ -299,6 +282,7 @@ func GenesIngest(c echo.Context) error {
 				fmt.Printf("Deleting %s\n", unzippedFileName)
 				err = os.Remove(fmt.Sprintf("%s/%s", gtfPath, unzippedFileName))
 				if err != nil {
+					// "soft" error
 					fmt.Println(err)
 				}
 
@@ -315,6 +299,7 @@ func GenesIngest(c echo.Context) error {
 }
 
 func GetAllGeneIngestionRequests(c echo.Context) error {
+	fmt.Printf("[%s] - GetAllGeneIngestionRequests hit!\n", time.Now())
 	izMap := c.(*contexts.GohanContext).IngestionService.GeneIngestRequestMap
 
 	// transform map of it-to-ingestRequests to an array
@@ -326,6 +311,7 @@ func GetAllGeneIngestionRequests(c echo.Context) error {
 }
 
 func GenesGetByNomenclatureWildcard(c echo.Context) error {
+	fmt.Printf("[%s] - GenesGetByNomenclatureWildcard hit!\n", time.Now())
 	cfg := c.(*contexts.GohanContext).Config
 	es := c.(*contexts.GohanContext).Es7Client
 
@@ -364,7 +350,13 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s (max size: %d)\n", term, assId, size)
 
 	// Execute
-	docs := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, assId, size)
+	docs, geneErr := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, assId, size)
+	if geneErr != nil {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":  500,
+			"message": "Something went wrong... Please contact the administrator!",
+		})
+	}
 
 	docsHits := docs["hits"].(map[string]interface{})["hits"]
 	allDocHits := []map[string]interface{}{}
@@ -398,6 +390,7 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 }
 
 func GetGenesOverview(c echo.Context) error {
+	fmt.Printf("[%s] - GetGenesOverview hit!\n", time.Now())
 
 	resultsMap := map[string]interface{}{}
 	resultsMux := sync.RWMutex{}
@@ -406,7 +399,13 @@ func GetGenesOverview(c echo.Context) error {
 	cfg := c.(*contexts.GohanContext).Config
 
 	// retrieve aggregation of genes/chromosomes by assembly id
-	results := esRepo.GetGeneBucketsByKeyword(cfg, es)
+	results, geneErr := esRepo.GetGeneBucketsByKeyword(cfg, es)
+	if geneErr != nil {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status":  500,
+			"message": "Something went wrong... Please contact the administrator!",
+		})
+	}
 
 	// begin mapping results
 	geneChromosomeGroupBucketsMapped := []map[string]interface{}{}
