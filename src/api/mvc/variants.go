@@ -591,7 +591,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 				fmt.Printf("Found %d docs!\n", len(allSampleIdsOnly))
 
 				variantRespDataModel.Count = len(allSampleIdsOnly)
-				variantRespDataModel.SampleIds = allSampleIdsOnly
+				variantRespDataModel.Results = allSampleIdsOnly
 			}
 
 			respDTOMux.Lock()
