@@ -496,6 +496,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	// prepare response
 	respDTO := models.VariantsResponseDTO{}
+	respDTO.DataType = "variants"
+
 	respDTOMux := sync.RWMutex{}
 
 	var errors []error
@@ -510,7 +512,6 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			defer wg.Done()
 
 			variantRespDataModel := models.VariantResponseDataModel{}
-			variantRespDataModel.DataType = "variants"
 
 			var (
 				docs      map[string]interface{}
