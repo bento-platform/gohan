@@ -510,6 +510,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			defer wg.Done()
 
 			variantRespDataModel := models.VariantResponseDataModel{}
+			variantRespDataModel.DataType = "variants"
 
 			var (
 				docs      map[string]interface{}
