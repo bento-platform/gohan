@@ -495,10 +495,12 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	// ---
 
 	// prepare response
-	respDTO := models.VariantsResponseDTO{}
-	respDTO.DataType = "variants"
+	var respDTO = make(map[string]interface{})
+	respDTO["DataType"] = "variants"
 
 	respDTOMux := sync.RWMutex{}
+
+	var tmpResults []interface{}
 
 	var errors []error
 	errorMux := sync.RWMutex{}
@@ -511,16 +513,18 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		go func(_id string) {
 			defer wg.Done()
 
-			variantRespDataModel := models.VariantResponseDataModel{}
+			var variantRespDataModel = make(map[string]interface{})
+			// variantRespDataModel := models.VariantResponseDataModel{}
 
 			var (
 				docs      map[string]interface{}
 				searchErr error
 			)
 			if isVariantIdQuery {
-				variantRespDataModel.VariantId = _id
-
-				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+				if !getSampleIdsOnly {
+					variantRespDataModel["VariantId"] = _id
+					fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+				}
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -531,7 +535,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					getSampleIdsOnly)
 			} else {
 				// implied sampleId query
-				variantRespDataModel.SampleId = _id
+				variantRespDataModel["SampleId"] = _id
 
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
 
@@ -573,32 +577,29 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 				fmt.Printf("Found %d docs!\n", len(allSources))
 
-				variantRespDataModel.Count = len(allSources)
-				variantRespDataModel.Results = allSources
+				respDTOMux.Lock()
+				tmpResults = append(tmpResults, variantRespDataModel)
+				respDTOMux.Unlock()
 			} else {
 				// TODO: refactor this 'else' statement
 				docsBuckets := docs["aggregations"].(map[string]interface{})["sampleIds"].(map[string]interface{})["buckets"]
 				allDocBuckets := []map[string]interface{}{}
 				mapstructure.Decode(docsBuckets, &allDocBuckets)
 
-				var allSampleIdsOnly []string
-
 				for _, r := range allDocBuckets {
 					sampleId := r["key"].(string)
 
+					// cast map[string]interface{} to struct
+					simplifiedResponse := models.BentoV2CompatibleVariantResponseDataModel{
+						SampleId: sampleId,
+					}
+
 					// accumulate sample Id's
-					allSampleIdsOnly = append(allSampleIdsOnly, sampleId)
+					respDTOMux.Lock()
+					tmpResults = append(tmpResults, simplifiedResponse)
+					respDTOMux.Unlock()
 				}
-
-				fmt.Printf("Found %d docs!\n", len(allSampleIdsOnly))
-
-				variantRespDataModel.Count = len(allSampleIdsOnly)
-				variantRespDataModel.Results = allSampleIdsOnly
 			}
-
-			respDTOMux.Lock()
-			respDTO.Data = append(respDTO.Data, variantRespDataModel)
-			respDTOMux.Unlock()
 
 		}(id)
 	}
@@ -606,14 +607,33 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	wg.Wait()
 
 	if len(errors) == 0 {
-		respDTO.Status = 200
-		respDTO.Message = "Success"
+		respDTO["Status"] = 200
+		respDTO["Message"] = "Success"
 	} else {
-		respDTO.Status = 500
-		respDTO.Message = "Something went wrong.. Please contact the administrator!"
+		respDTO["Status"] = 500
+		respDTO["Message"] = "Something went wrong.. Please contact the administrator!"
 	}
 
-	return c.JSON(http.StatusOK, respDTO)
+	// cast generic map[string]interface{} to type
+	// depending on `getSampleIdsOnly`
+	if getSampleIdsOnly {
+		respDTO["Calls"] = tmpResults
+	} else {
+		respDTO["Data"] = tmpResults
+
+	}
+
+	if getSampleIdsOnly {
+		var dto models.BentoV2CompatibleVariantsResponseDTO
+		mapstructure.Decode(respDTO, &dto)
+
+		return c.JSON(http.StatusOK, dto)
+	} else {
+		var dto models.VariantsResponseDTO
+		mapstructure.Decode(respDTO, &dto)
+
+		return c.JSON(http.StatusOK, dto)
+	}
 }
 
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {

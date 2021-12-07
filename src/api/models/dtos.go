@@ -1,5 +1,9 @@
 package models
 
+type BentoV2CompatibleVariantsResponseDTO struct {
+	Calls    []BentoV2CompatibleVariantResponseDataModel `json:"calls"`
+	DataType string                                      `json:"data_type"` // i.e.: "variants"
+}
 type VariantsResponseDTO struct {
 	Status   int                        `json:"status"`
 	Message  string                     `json:"message"`
@@ -7,6 +11,9 @@ type VariantsResponseDTO struct {
 	DataType string                     `json:"data_type"` // i.e.: "variants"
 }
 
+type BentoV2CompatibleVariantResponseDataModel struct {
+	SampleId string `json:"sample_id"`
+}
 type VariantResponseDataModel struct {
 	VariantId string      `json:"variantId"`
 	SampleId  string      `json:"sampleId"`
