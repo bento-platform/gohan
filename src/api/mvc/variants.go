@@ -614,14 +614,14 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		respDTO["Message"] = "Something went wrong.. Please contact the administrator!"
 	}
 
-	// cast generic map[string]interface{} to type
-	// depending on `getSampleIdsOnly`
-	if getSampleIdsOnly {
-		respDTO["Calls"] = tmpResults
-	} else {
-		respDTO["Data"] = tmpResults
-
-	}
+	// // cast generic map[string]interface{} to type
+	// // depending on `getSampleIdsOnly`
+	// if getSampleIdsOnly {
+	// 	respDTO["Calls"] = tmpResults
+	// } else {
+	// 	respDTO["Data"] = tmpResults
+	// }
+	respDTO["Data"] = tmpResults
 
 	if getSampleIdsOnly {
 		var dto models.BentoV2CompatibleVariantsResponseDTO
