@@ -496,7 +496,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	// prepare response
 	var respDTO = make(map[string]interface{})
-	respDTO["DataType"] = "variants"
+	respDTO["DataType"] = "variant"
 
 	respDTOMux := sync.RWMutex{}
 
