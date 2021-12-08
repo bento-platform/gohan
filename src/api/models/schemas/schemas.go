@@ -52,7 +52,7 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 	"id":          "variant:variant_call", // TODO: Real ID
 	"type":        "object",
 	"description": "An object representing a called instance of a variant.",
-	"required":    []string{"sample_id", "genotype_bases"},
+	"required":    []string{"sample_id"},
 	"properties": map[string]interface{}{
 		"sample_id": map[string]interface{}{
 			"type":        "string",
