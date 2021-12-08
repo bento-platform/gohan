@@ -500,7 +500,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	respDTOMux := sync.RWMutex{}
 
-	var tmpResults []interface{}
+	// initialize length 0 to avoid nil response
+	tmpResults := make([]interface{}, 0)
 
 	var errors []error
 	errorMux := sync.RWMutex{}
@@ -577,6 +578,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 				fmt.Printf("Found %d docs!\n", len(allSources))
 
+				variantRespDataModel["Results"] = allSources
+
 				respDTOMux.Lock()
 				tmpResults = append(tmpResults, variantRespDataModel)
 				respDTOMux.Unlock()
@@ -614,14 +617,14 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		respDTO["Message"] = "Something went wrong.. Please contact the administrator!"
 	}
 
-	// // cast generic map[string]interface{} to type
-	// // depending on `getSampleIdsOnly`
-	// if getSampleIdsOnly {
-	// 	respDTO["Calls"] = tmpResults
-	// } else {
-	// 	respDTO["Data"] = tmpResults
-	// }
-	respDTO["Data"] = tmpResults
+	// cast generic map[string]interface{} to type
+	// depending on `getSampleIdsOnly`
+	if getSampleIdsOnly {
+		// respDTO["Calls"] = tmpResults
+		respDTO["Results"] = tmpResults
+	} else {
+		respDTO["Data"] = tmpResults
+	}
 
 	if getSampleIdsOnly {
 		var dto models.BentoV2CompatibleVariantsResponseDTO
