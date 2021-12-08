@@ -502,6 +502,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	// initialize length 0 to avoid nil response
 	tmpResults := make([]interface{}, 0)
+	tmpCalls := []models.BentoV2CompatibleVariantResponseCallsModel{}
 
 	var errors []error
 	errorMux := sync.RWMutex{}
@@ -596,11 +597,11 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					simplifiedResponse := models.BentoV2CompatibleVariantResponseDataModel{
 						SampleId: sampleId,
 					}
+					call := models.BentoV2CompatibleVariantResponseCallsModel{}
+					call.Calls = append(call.Calls, simplifiedResponse)
 
 					// accumulate sample Id's
-					respDTOMux.Lock()
-					tmpResults = append(tmpResults, simplifiedResponse)
-					respDTOMux.Unlock()
+					tmpCalls = append(tmpCalls, call)
 				}
 			}
 
@@ -620,14 +621,12 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	// cast generic map[string]interface{} to type
 	// depending on `getSampleIdsOnly`
 	if getSampleIdsOnly {
-		tmpCalls := make(map[string]interface{})
-		tmpCalls["Calls"] = tmpResults
-
 		respDTO["Results"] = tmpCalls
 	} else {
 		respDTO["Data"] = tmpResults
 	}
 
+	// TODO: Refactor
 	if getSampleIdsOnly {
 		var dto models.BentoV2CompatibleVariantsResponseDTO
 		mapstructure.Decode(respDTO, &dto)
