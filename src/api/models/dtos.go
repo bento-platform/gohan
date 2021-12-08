@@ -1,10 +1,13 @@
 package models
 
+import "api/models/constants"
+
 type BentoV2CompatibleVariantsResponseDTO struct {
 	Results []BentoV2CompatibleVariantResponseCallsModel `json:"results"`
 }
 type BentoV2CompatibleVariantResponseCallsModel struct {
-	Calls []BentoV2CompatibleVariantResponseDataModel `json:"calls"`
+	AssemblyId constants.AssemblyId                        `json:"assembly_id"`
+	Calls      []BentoV2CompatibleVariantResponseDataModel `json:"calls"`
 }
 type BentoV2CompatibleVariantResponseDataModel struct {
 	SampleId string `json:"sample_id"`

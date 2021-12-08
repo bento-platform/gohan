@@ -599,6 +599,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					}
 					call := models.BentoV2CompatibleVariantResponseCallsModel{}
 					call.Calls = append(call.Calls, simplifiedResponse)
+					call.AssemblyId = assemblyId
 
 					// accumulate sample Id's
 					tmpCalls = append(tmpCalls, call)
