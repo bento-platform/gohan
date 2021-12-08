@@ -36,6 +36,9 @@ func GetVariantDataTypeMetadataSchema(c echo.Context) error {
 func FakeBentoTableSchema(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"assembly_ids": []string{
+			"GRCh38",
+			"GRCh37",
+			"NCBI36",
 			"Other",
 		},
 		"data_type": "variant",
