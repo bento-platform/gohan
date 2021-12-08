@@ -30,7 +30,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 	"$schema":     "http://json-schema.org/draft-07/schema#",
 	"description": "Bento variant data type",
 	"type":        "object",
-	"required":    []string{"assembly_id", "chromosome", "start", "end", "ref", "alt", "calls"},
+	"required":    []string{"calls"},
 	"search": map[string]interface{}{
 		"operations": []c.SearchOperation{},
 	},
