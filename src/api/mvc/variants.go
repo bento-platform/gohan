@@ -620,8 +620,10 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	// cast generic map[string]interface{} to type
 	// depending on `getSampleIdsOnly`
 	if getSampleIdsOnly {
-		// respDTO["Calls"] = tmpResults
-		respDTO["Results"] = tmpResults
+		tmpCalls := make(map[string]interface{})
+		tmpCalls["Calls"] = tmpResults
+
+		respDTO["Results"] = tmpCalls
 	} else {
 		respDTO["Data"] = tmpResults
 	}
