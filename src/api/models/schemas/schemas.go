@@ -35,6 +35,26 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 		"operations": []c.SearchOperation{},
 	},
 	"properties": map[string]interface{}{
+		"assembly_id": map[string]interface{}{
+			"description": "Reference genome assembly ID.",
+			"enum": []string{
+				"GRCh38",
+				"GRCh37",
+				"NCBI36",
+				"Other",
+			},
+			"search": map[string]interface{}{
+				"canNegate": false,
+				"operations": []string{
+					"eq",
+				},
+				"order":     0,
+				"queryable": "all",
+				"required":  true,
+				"type":      "single",
+			},
+			"type": "string",
+		},
 		"calls": map[string]interface{}{
 			"type":        "array",
 			"description": "Called instances of this variant on samples.",
@@ -66,5 +86,28 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 				"order":      0,
 			},
 		},
+		// "genotype_type": map[string]interface{}{
+		// 	"description": "Variant call genotype type.",
+		// 	"enum": []string{
+		// 		"MISSING",
+		// 		"MISSING_UPSTREAM_DELETION",
+		// 		"REFERENCE",
+		// 		"ALTERNATE",
+		// 		"HOMOZYGOUS_REFERENCE",
+		// 		"HETEROZYGOUS",
+		// 		"HOMOZYGOUS_ALTERNATE",
+		// 	},
+		// 	"search": map[string]interface{}{
+		// 		"canNegate": true,
+		// 		"operations": []string{
+		// 			"eq",
+		// 		},
+		// 		"order":     2.0,
+		// 		"queryable": "all",
+		// 		"required":  true,
+		// 		"type":      "single",
+		// 	},
+		// 	"type": "string",
+		// },
 	},
 }
