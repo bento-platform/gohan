@@ -595,7 +595,11 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 					// cast map[string]interface{} to struct
 					simplifiedResponse := models.BentoV2CompatibleVariantResponseDataModel{
-						SampleId: sampleId,
+						SampleId:     sampleId,
+						Chromosome:   chromosome,
+						Start:        lowerBound,
+						End:          upperBound,
+						GenotypeType: string(genotype),
 					}
 					call := models.BentoV2CompatibleVariantResponseCallsModel{}
 					call.Calls = append(call.Calls, simplifiedResponse)

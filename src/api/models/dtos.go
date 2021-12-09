@@ -10,7 +10,11 @@ type BentoV2CompatibleVariantResponseCallsModel struct {
 	Calls      []BentoV2CompatibleVariantResponseDataModel `json:"calls"`
 }
 type BentoV2CompatibleVariantResponseDataModel struct {
-	SampleId string `json:"sample_id"`
+	SampleId     string `json:"sample_id"`
+	Chromosome   string `json:"chromosome"`
+	GenotypeType string `json:"genotype_type"`
+	Start        int    `json:"start"`
+	End          int    `json:"end"`
 }
 
 type VariantsResponseDTO struct {
