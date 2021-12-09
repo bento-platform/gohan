@@ -30,7 +30,13 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 	"$schema":     "http://json-schema.org/draft-07/schema#",
 	"description": "Bento variant data type",
 	"type":        "object",
-	"required":    []string{"calls"},
+	"required": []string{
+		"assembly_id",
+		"chromosome",
+		"start",
+		"end",
+		"calls",
+	},
 	"search": map[string]interface{}{
 		"operations": []c.SearchOperation{},
 	},
@@ -64,50 +70,6 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 				"type":     "unlimited",
 				"order":    7,
 			},
-		},
-	},
-}
-
-var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
-	"id":          "variant:variant_call", // TODO: Real ID
-	"type":        "object",
-	"description": "An object representing a called instance of a variant.",
-	"required":    []string{"sample_id"},
-	"properties": map[string]interface{}{
-		"sample_id": map[string]interface{}{
-			"type":        "string",
-			"description": "Variant call sample ID.", // TODO: More detailed?
-			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-				"queryable":  "internal",
-				"canNegate":  true,
-				"required":   false,
-				"type":       "single",
-				"order":      0,
-			},
-		},
-		"genotype_type": map[string]interface{}{
-			"description": "Variant call genotype type.",
-			"enum": []string{
-				"MISSING",
-				"MISSING_UPSTREAM_DELETION",
-				"REFERENCE",
-				"ALTERNATE",
-				"HOMOZYGOUS_REFERENCE",
-				"HETEROZYGOUS",
-				"HOMOZYGOUS_ALTERNATE",
-			},
-			"search": map[string]interface{}{
-				"canNegate": true,
-				"operations": []string{
-					"eq",
-				},
-				"order":     2.0,
-				"queryable": "all",
-				"required":  true,
-				"type":      "single",
-			},
-			"type": "string",
 		},
 		"chromosome": map[string]interface{}{
 			"description": "Reference genome chromosome identifier (e.g. 17 or X)",
@@ -158,6 +120,53 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 				"type":      "unlimited",
 			},
 			"type": "integer",
+		},
+	},
+}
+
+var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
+	"id":          "variant:variant_call", // TODO: Real ID
+	"type":        "object",
+	"description": "An object representing a called instance of a variant.",
+	"required": []string{
+		"sample_id",
+		"genotype_type",
+	},
+	"properties": map[string]interface{}{
+		"sample_id": map[string]interface{}{
+			"type":        "string",
+			"description": "Variant call sample ID.", // TODO: More detailed?
+			"search": map[string]interface{}{
+				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
+				"queryable":  "internal",
+				"canNegate":  true,
+				"required":   false,
+				"type":       "single",
+				"order":      0,
+			},
+		},
+		"genotype_type": map[string]interface{}{
+			"description": "Variant call genotype type.",
+			"enum": []string{
+				"MISSING",
+				"MISSING_UPSTREAM_DELETION",
+				"REFERENCE",
+				"ALTERNATE",
+				"HOMOZYGOUS_REFERENCE",
+				"HETEROZYGOUS",
+				"HOMOZYGOUS_ALTERNATE",
+			},
+			"search": map[string]interface{}{
+				"canNegate": true,
+				"operations": []string{
+					"eq",
+				},
+				"order":     2.0,
+				"queryable": "all",
+				"required":  true,
+				"type":      "single",
+			},
+			"type": "string",
 		},
 	},
 }

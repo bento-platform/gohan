@@ -8,13 +8,13 @@ type BentoV2CompatibleVariantsResponseDTO struct {
 type BentoV2CompatibleVariantResponseCallsModel struct {
 	AssemblyId constants.AssemblyId                        `json:"assembly_id"`
 	Calls      []BentoV2CompatibleVariantResponseDataModel `json:"calls"`
+	Chromosome string                                      `json:"chromosome"`
+	Start      int                                         `json:"start"`
+	End        int                                         `json:"end"`
 }
 type BentoV2CompatibleVariantResponseDataModel struct {
 	SampleId     string `json:"sample_id"`
-	Chromosome   string `json:"chromosome"`
 	GenotypeType string `json:"genotype_type"`
-	Start        int    `json:"start"`
-	End          int    `json:"end"`
 }
 
 type VariantsResponseDTO struct {
