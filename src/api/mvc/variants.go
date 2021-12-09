@@ -595,7 +595,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 					// cast map[string]interface{} to struct
 					simplifiedResponse := models.BentoV2CompatibleVariantResponseDataModel{
-						SampleId:     sampleId,
+						SampleId:     strings.ToUpper(sampleId),
 						GenotypeType: string(genotype),
 					}
 
