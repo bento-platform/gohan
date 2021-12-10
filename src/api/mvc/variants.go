@@ -132,20 +132,33 @@ func VariantsIngest(c echo.Context) error {
 	// -----
 	// Read all files and temporarily catalog all .vcf.gz files
 	err := filepath.Walk(vcfPath,
-		func(path string, info os.FileInfo, err error) error {
+		func(absoluteFileName string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
 
+			if absoluteFileName == vcfPath {
+				// skip
+				return nil
+			}
+
 			// keep track of relative path
-			relativePath := strings.ReplaceAll(path, vcfPath, "")
+			relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
+
+			// verify if there is a relative path
+			directoryPath, fileName := path.Split(relativePathFileName)
+			if directoryPath == "/" {
+				relativePathFileName = fileName // effectively strips the leading '/' away
+			}
 
 			// Filter only .vcf.gz files
-			if matched, _ := regexp.MatchString(".vcf.gz", relativePath); matched {
-				vcfGzfiles = append(vcfGzfiles, relativePath)
+			// if fileName != "" {
+			if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
+				vcfGzfiles = append(vcfGzfiles, relativePathFileName)
 			} else {
-				fmt.Printf("Skipping %s\n", relativePath)
+				fmt.Printf("Skipping %s\n", relativePathFileName)
 			}
+			// }
 			return nil
 		})
 	if err != nil {
