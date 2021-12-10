@@ -6,11 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 
-	"io/ioutil"
 	"regexp"
 	"time"
 
@@ -93,10 +94,13 @@ func VariantsIngest(c echo.Context) error {
 
 	// retrieve query parameters (comman separated)
 	fileNames := strings.Split(c.QueryParam("fileNames"), ",")
-	for _, fileName := range fileNames {
+	for i, fileName := range fileNames {
 		if fileName == "" {
 			// TODO: create a standard response object
 			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
+		} else {
+			// remove DRS bridge directory base path from the requested filenames (if present)
+			fileNames[i] = strings.ReplaceAll(fileName, cfg.Drs.BridgeDirectory, "")
 		}
 	}
 
@@ -126,25 +130,31 @@ func VariantsIngest(c echo.Context) error {
 	// TODO: simply load files by filename provided
 	// rather than load all available files and looping over them
 	// -----
-	// Read all files
-	fileInfo, err := ioutil.ReadDir(vcfPath)
-	if err != nil {
-		fmt.Printf("Failed: %s\n", err)
-		return err
-	}
+	// Read all files and temporarily catalog all .vcf.gz files
+	err := filepath.Walk(vcfPath,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 
-	// Filter only .vcf.gz files
-	for _, file := range fileInfo {
-		if matched, _ := regexp.MatchString(".vcf.gz", file.Name()); matched {
-			vcfGzfiles = append(vcfGzfiles, file.Name())
-		} else {
-			fmt.Printf("Skipping %s\n", file.Name())
-		}
+			// keep track of relative path
+			relativePath := strings.ReplaceAll(path, vcfPath, "")
+
+			// Filter only .vcf.gz files
+			if matched, _ := regexp.MatchString(".vcf.gz", relativePath); matched {
+				vcfGzfiles = append(vcfGzfiles, relativePath)
+			} else {
+				fmt.Printf("Skipping %s\n", relativePath)
+			}
+			return nil
+		})
+	if err != nil {
+		log.Println(err)
 	}
 
 	// Locate fileName from request inside found files
 	for _, fileName := range fileNames {
-		if utils.StringInSlice(fileName, vcfGzfiles) == false {
+		if !utils.StringInSlice(fileName, vcfGzfiles) {
 			return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
 		}
 	}
@@ -207,7 +217,8 @@ func VariantsIngest(c echo.Context) error {
 				ingestionService.IngestRequestChan <- reqStat
 
 				// ---	 decompress vcf.gz
-				gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", gzippedFileName)
+
+				gzippedFilePath := fmt.Sprintf("%s%s", vcfPath, gzippedFileName)
 				r, err := os.Open(gzippedFilePath)
 				if err != nil {
 					msg := fmt.Sprintf("error opening %s: %s\n", gzippedFileName, err)
@@ -224,7 +235,17 @@ func VariantsIngest(c echo.Context) error {
 				// 	     such that DRS can load the file into memory to process rather than receiving
 				//       the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind
 				// -----
-				tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Api.BridgeDirectory, "/", gzippedFileName)
+				tmpDestinationFileName := fmt.Sprintf("%s%s", cfg.Api.BridgeDirectory, gzippedFileName)
+
+				// prepare directory inside bridge directory
+				partialTmpDir, _ := path.Split(gzippedFileName)
+				fullTmpDir, _ := path.Split(tmpDestinationFileName)
+				if partialTmpDir != "" {
+					if _, err := os.Stat(fullTmpDir); os.IsNotExist(err) {
+						os.MkdirAll(fullTmpDir, 0700) // Create your file
+					}
+				}
+
 				destination, err := os.Create(tmpDestinationFileName)
 				if err != nil {
 					msg := fmt.Sprintf("error creating temporary bridge file for %s: %s\n", gzippedFileName, err)
@@ -263,6 +284,7 @@ func VariantsIngest(c echo.Context) error {
 
 					return
 				}
+				tabixFileNameWithRelativePath := fmt.Sprintf("%s%s", partialTmpDir, tabixFileName)
 
 				// ---   push compressed to DRS
 				drsFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
@@ -278,9 +300,9 @@ func VariantsIngest(c echo.Context) error {
 				}
 
 				// -- push tabix to DRS
-				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileName, drsUrl, drsUsername, drsPassword)
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
 				if drsTabixFileId == "" {
-					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileName
+					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileNameWithRelativePath
 					fmt.Println(msg)
 
 					reqStat.State = ingest.Error
@@ -312,6 +334,17 @@ func VariantsIngest(c echo.Context) error {
 
 					return
 				}
+				// TODO: implement (below temporarily disabled -- too risky this way)
+				// // ---- remove temporarily relative paths if they are empty
+				// if files, err := ioutil.ReadDir(fullTmpDir); err == nil {
+				// 	if len(files) == 0 {
+				// 		if err = os.Remove(fullTmpDir); err != nil {
+				// 			panic(err)
+				// 		}
+				// 	}
+				// } else {
+				// 	panic(err)
+				// }
 
 				// ---   reopen gzipped file after having been copied to the temporary api-drs
 				//       bridge directory, as the stream depletes and needs a refresh
