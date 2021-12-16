@@ -6,11 +6,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 
-	"io/ioutil"
 	"regexp"
 	"time"
 
@@ -93,10 +94,13 @@ func VariantsIngest(c echo.Context) error {
 
 	// retrieve query parameters (comman separated)
 	fileNames := strings.Split(c.QueryParam("fileNames"), ",")
-	for _, fileName := range fileNames {
+	for i, fileName := range fileNames {
 		if fileName == "" {
 			// TODO: create a standard response object
 			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
+		} else {
+			// remove DRS bridge directory base path from the requested filenames (if present)
+			fileNames[i] = strings.ReplaceAll(fileName, cfg.Drs.BridgeDirectory, "")
 		}
 	}
 
@@ -126,25 +130,44 @@ func VariantsIngest(c echo.Context) error {
 	// TODO: simply load files by filename provided
 	// rather than load all available files and looping over them
 	// -----
-	// Read all files
-	fileInfo, err := ioutil.ReadDir(vcfPath)
-	if err != nil {
-		fmt.Printf("Failed: %s\n", err)
-		return err
-	}
+	// Read all files and temporarily catalog all .vcf.gz files
+	err := filepath.Walk(vcfPath,
+		func(absoluteFileName string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
 
-	// Filter only .vcf.gz files
-	for _, file := range fileInfo {
-		if matched, _ := regexp.MatchString(".vcf.gz", file.Name()); matched {
-			vcfGzfiles = append(vcfGzfiles, file.Name())
-		} else {
-			fmt.Printf("Skipping %s\n", file.Name())
-		}
+			if absoluteFileName == vcfPath {
+				// skip
+				return nil
+			}
+
+			// keep track of relative path
+			relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
+
+			// verify if there is a relative path
+			directoryPath, fileName := path.Split(relativePathFileName)
+			if directoryPath == "/" {
+				relativePathFileName = fileName // effectively strips the leading '/' away
+			}
+
+			// Filter only .vcf.gz files
+			// if fileName != "" {
+			if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
+				vcfGzfiles = append(vcfGzfiles, relativePathFileName)
+			} else {
+				fmt.Printf("Skipping %s\n", relativePathFileName)
+			}
+			// }
+			return nil
+		})
+	if err != nil {
+		log.Println(err)
 	}
 
 	// Locate fileName from request inside found files
 	for _, fileName := range fileNames {
-		if utils.StringInSlice(fileName, vcfGzfiles) == false {
+		if !utils.StringInSlice(fileName, vcfGzfiles) {
 			return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
 		}
 	}
@@ -207,7 +230,8 @@ func VariantsIngest(c echo.Context) error {
 				ingestionService.IngestRequestChan <- reqStat
 
 				// ---	 decompress vcf.gz
-				gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, "/", gzippedFileName)
+
+				gzippedFilePath := fmt.Sprintf("%s%s", vcfPath, gzippedFileName)
 				r, err := os.Open(gzippedFilePath)
 				if err != nil {
 					msg := fmt.Sprintf("error opening %s: %s\n", gzippedFileName, err)
@@ -224,7 +248,17 @@ func VariantsIngest(c echo.Context) error {
 				// 	     such that DRS can load the file into memory to process rather than receiving
 				//       the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind
 				// -----
-				tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Api.BridgeDirectory, "/", gzippedFileName)
+				tmpDestinationFileName := fmt.Sprintf("%s%s", cfg.Api.BridgeDirectory, gzippedFileName)
+
+				// prepare directory inside bridge directory
+				partialTmpDir, _ := path.Split(gzippedFileName)
+				fullTmpDir, _ := path.Split(tmpDestinationFileName)
+				if partialTmpDir != "" {
+					if _, err := os.Stat(fullTmpDir); os.IsNotExist(err) {
+						os.MkdirAll(fullTmpDir, 0700) // Create your file
+					}
+				}
+
 				destination, err := os.Create(tmpDestinationFileName)
 				if err != nil {
 					msg := fmt.Sprintf("error creating temporary bridge file for %s: %s\n", gzippedFileName, err)
@@ -263,6 +297,7 @@ func VariantsIngest(c echo.Context) error {
 
 					return
 				}
+				tabixFileNameWithRelativePath := fmt.Sprintf("%s%s", partialTmpDir, tabixFileName)
 
 				// ---   push compressed to DRS
 				drsFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
@@ -278,9 +313,9 @@ func VariantsIngest(c echo.Context) error {
 				}
 
 				// -- push tabix to DRS
-				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileName, drsUrl, drsUsername, drsPassword)
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
 				if drsTabixFileId == "" {
-					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileName
+					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileNameWithRelativePath
 					fmt.Println(msg)
 
 					reqStat.State = ingest.Error
@@ -312,6 +347,17 @@ func VariantsIngest(c echo.Context) error {
 
 					return
 				}
+				// TODO: implement (below temporarily disabled -- too risky this way)
+				// // ---- remove temporarily relative paths if they are empty
+				// if files, err := ioutil.ReadDir(fullTmpDir); err == nil {
+				// 	if len(files) == 0 {
+				// 		if err = os.Remove(fullTmpDir); err != nil {
+				// 			panic(err)
+				// 		}
+				// 	}
+				// } else {
+				// 	panic(err)
+				// }
 
 				// ---   reopen gzipped file after having been copied to the temporary api-drs
 				//       bridge directory, as the stream depletes and needs a refresh
@@ -495,8 +541,14 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	// ---
 
 	// prepare response
-	respDTO := models.VariantsResponseDTO{}
+	var respDTO = make(map[string]interface{})
+	respDTO["DataType"] = "variant"
+
 	respDTOMux := sync.RWMutex{}
+
+	// initialize length 0 to avoid nil response
+	tmpResults := make([]interface{}, 0)
+	tmpCalls := []models.BentoV2CompatibleVariantResponseCallsModel{}
 
 	var errors []error
 	errorMux := sync.RWMutex{}
@@ -509,16 +561,18 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		go func(_id string) {
 			defer wg.Done()
 
-			variantRespDataModel := models.VariantResponseDataModel{}
+			var variantRespDataModel = make(map[string]interface{})
+			// variantRespDataModel := models.VariantResponseDataModel{}
 
 			var (
 				docs      map[string]interface{}
 				searchErr error
 			)
 			if isVariantIdQuery {
-				variantRespDataModel.VariantId = _id
-
-				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+				if !getSampleIdsOnly {
+					variantRespDataModel["VariantId"] = _id
+					fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+				}
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -529,7 +583,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					getSampleIdsOnly)
 			} else {
 				// implied sampleId query
-				variantRespDataModel.SampleId = _id
+				variantRespDataModel["SampleId"] = _id
 
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
 
@@ -571,32 +625,37 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 				fmt.Printf("Found %d docs!\n", len(allSources))
 
-				variantRespDataModel.Count = len(allSources)
-				variantRespDataModel.Results = allSources
+				variantRespDataModel["Results"] = allSources
+
+				respDTOMux.Lock()
+				tmpResults = append(tmpResults, variantRespDataModel)
+				respDTOMux.Unlock()
 			} else {
 				// TODO: refactor this 'else' statement
 				docsBuckets := docs["aggregations"].(map[string]interface{})["sampleIds"].(map[string]interface{})["buckets"]
 				allDocBuckets := []map[string]interface{}{}
 				mapstructure.Decode(docsBuckets, &allDocBuckets)
 
-				var allSampleIdsOnly []string
-
 				for _, r := range allDocBuckets {
 					sampleId := r["key"].(string)
 
+					// cast map[string]interface{} to struct
+					simplifiedResponse := models.BentoV2CompatibleVariantResponseDataModel{
+						SampleId:     strings.ToUpper(sampleId),
+						GenotypeType: string(genotype),
+					}
+
+					call := models.BentoV2CompatibleVariantResponseCallsModel{}
+					call.AssemblyId = assemblyId
+					call.Chromosome = chromosome
+					call.Start = lowerBound
+					call.End = upperBound
+					call.Calls = append(call.Calls, simplifiedResponse)
+
 					// accumulate sample Id's
-					allSampleIdsOnly = append(allSampleIdsOnly, sampleId)
+					tmpCalls = append(tmpCalls, call)
 				}
-
-				fmt.Printf("Found %d docs!\n", len(allSampleIdsOnly))
-
-				variantRespDataModel.Count = len(allSampleIdsOnly)
-				variantRespDataModel.SampleIds = allSampleIdsOnly
 			}
-
-			respDTOMux.Lock()
-			respDTO.Data = append(respDTO.Data, variantRespDataModel)
-			respDTOMux.Unlock()
 
 		}(id)
 	}
@@ -604,14 +663,33 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	wg.Wait()
 
 	if len(errors) == 0 {
-		respDTO.Status = 200
-		respDTO.Message = "Success"
+		respDTO["Status"] = 200
+		respDTO["Message"] = "Success"
 	} else {
-		respDTO.Status = 500
-		respDTO.Message = "Something went wrong.. Please contact the administrator!"
+		respDTO["Status"] = 500
+		respDTO["Message"] = "Something went wrong.. Please contact the administrator!"
 	}
 
-	return c.JSON(http.StatusOK, respDTO)
+	// cast generic map[string]interface{} to type
+	// depending on `getSampleIdsOnly`
+	if getSampleIdsOnly {
+		respDTO["Results"] = tmpCalls
+	} else {
+		respDTO["Data"] = tmpResults
+	}
+
+	// TODO: Refactor
+	if getSampleIdsOnly {
+		var dto models.BentoV2CompatibleVariantsResponseDTO
+		mapstructure.Decode(respDTO, &dto)
+
+		return c.JSON(http.StatusOK, dto)
+	} else {
+		var dto models.VariantsResponseDTO
+		mapstructure.Decode(respDTO, &dto)
+
+		return c.JSON(http.StatusOK, dto)
+	}
 }
 
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {

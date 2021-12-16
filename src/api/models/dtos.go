@@ -1,17 +1,32 @@
 package models
 
+import "api/models/constants"
+
+type BentoV2CompatibleVariantsResponseDTO struct {
+	Results []BentoV2CompatibleVariantResponseCallsModel `json:"results"`
+}
+type BentoV2CompatibleVariantResponseCallsModel struct {
+	AssemblyId constants.AssemblyId                        `json:"assembly_id"`
+	Calls      []BentoV2CompatibleVariantResponseDataModel `json:"calls"`
+	Chromosome string                                      `json:"chromosome"`
+	Start      int                                         `json:"start"`
+	End        int                                         `json:"end"`
+}
+type BentoV2CompatibleVariantResponseDataModel struct {
+	SampleId     string `json:"sample_id"`
+	GenotypeType string `json:"genotype_type"`
+}
+
 type VariantsResponseDTO struct {
 	Status  int                        `json:"status"`
 	Message string                     `json:"message"`
 	Data    []VariantResponseDataModel `json:"data"`
 }
-
 type VariantResponseDataModel struct {
-	VariantId string    `json:"variantId"`
-	SampleId  string    `json:"sampleId"`
-	Count     int       `json:"count"`
-	Results   []Variant `json:"results"`   // []Variant
-	SampleIds []string  `json:"sampleIds"` // []string
+	VariantId string      `json:"variantId"`
+	SampleId  string      `json:"sampleId"`
+	Count     int         `json:"count"`
+	Results   interface{} `json:"results"` // i.e.: []Variant or []string
 }
 
 type GenesResponseDTO struct {

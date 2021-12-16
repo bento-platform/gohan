@@ -35,9 +35,10 @@ RUN apk --update add ncurses-dev && \
     
 # Build gohan api
 RUN CGO_ENABLED=0 && \
-    go build -ldflags="-s -w" -o gohan_api && \
+    go build -ldflags="-s -w" -o gohan_api 
+    #&& \
     # Compress the final binary :
-    upx --brute gohan_api
+    #upx --brute gohan_api
 
 
 # Stage two - executioner

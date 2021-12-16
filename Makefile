@@ -51,6 +51,12 @@ init-data-dirs:
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR} && \
 		chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
 	chmod -R 770 ./data && \
+	# tmp: \
+	# (setup for when gohan needs to preprocess vcf's at ingestion time): \
+	mkdir -p ${GOHAN_API_VCF_PATH}/tmp && \
+		chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_VCF_PATH}/tmp && \
+		chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp && \
+	chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp && \
 	echo ".. done!"
 
 

@@ -2,7 +2,6 @@ package schemas
 
 import (
 	c "api/models/constants"
-	gq "api/models/constants/genotype-query"
 	so "api/models/constants/search"
 )
 
@@ -31,101 +30,36 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 	"$schema":     "http://json-schema.org/draft-07/schema#",
 	"description": "Bento variant data type",
 	"type":        "object",
-	"required":    []string{"assembly_id", "chromosome", "start", "end", "ref", "alt", "calls"},
+	"required": []string{
+		"assembly_id",
+		"chromosome",
+		"start",
+		"end",
+		"calls",
+	},
 	"search": map[string]interface{}{
 		"operations": []c.SearchOperation{},
 	},
 	"properties": map[string]interface{}{
 		"assembly_id": map[string]interface{}{
-			"type":        "string",
-			"enum":        []string{"GRCh38", "GRCh37", "NCBI36", "Other"},
 			"description": "Reference genome assembly ID.",
-			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-				"queryable":  "all",
-				"canNegate":  false,
-				"required":   true,
-				"type":       "single",
-				"order":      0,
+			"enum": []string{
+				"GRCh38",
+				"GRCh37",
+				"NCBI36",
+				"Other",
 			},
-		},
-		"chromosome": map[string]interface{}{
-			"type": "string",
-			// TODO: Choices
-			"description": "Reference genome chromosome identifier (e.g. 17 or X)",
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-				"queryable":  "all",
-				"canNegate":  false,
-				"required":   true,
-				"type":       "single", // single / unlimited
-				"order":      1,
-			},
-		},
-		"start": map[string]interface{}{
-			"type":        "integer",
-			"description": "1-indexed start location of the variant on the chromosome.",
-			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ, so.SEARCH_OP_LT, so.SEARCH_OP_LE, so.SEARCH_OP_GT, so.SEARCH_OP_GE},
-				"queryable":  "all",
-				"canNegate":  false,
-				"required":   true,        // TODO: Shouldn't be "required" here; but should show up by default anyway
-				"type":       "unlimited", // single / unlimited
-				"order":      2,
-			},
-		},
-		"end": map[string]interface{}{
-			"type": "integer",
-			"description": ("1-indexed end location (exclusive) of the variant on the chromosome, in terms of the " +
-				"number of bases in the reference sequence for the variant."),
-			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ, so.SEARCH_OP_LT, so.SEARCH_OP_LE, so.SEARCH_OP_GT, so.SEARCH_OP_GE},
-				"queryable":  "all",
-				"canNegate":  true,
-				"required":   false,
-				"type":       "unlimited", // single / unlimited
-				"order":      3,
-			},
-		},
-		"ref": map[string]interface{}{
-			"type":        "string",
-			"description": "Reference base sequence for the variant.",
-			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-				"queryable":  "all",
-				"canNegate":  true,
-				"required":   false,
-				"type":       "single", // single / unlimited
-				"order":      4,
-			},
-		},
-		"alt": map[string]interface{}{
-			"type":        "array",
-			"description": "Alternate (non-reference) base sequences for the variant.",
-			"items": map[string]interface{}{
-				"type":        "string",
-				"description": "Alternate base sequence for the variant.",
-				"search": map[string]interface{}{
-					"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-					"queryable":  "all",
-					"canNegate":  true,
-					"required":   false,
-					"type":       "single", // single / unlimited
-					"order":      0,
+				"canNegate": false,
+				"operations": []string{
+					"eq",
 				},
+				"order":     0,
+				"queryable": "all",
+				"required":  true,
+				"type":      "single",
 			},
-			"search": map[string]interface{}{
-				"order": 5,
-			},
-		},
-		"qual": map[string]interface{}{
-			"type":        []string{"integer", "null"},
-			"description": "Phred-scaled quality score for the assertion made by the alt field.",
-			"search": map[string]interface{}{
-				"required": false,
-				"type":     "unlimited",
-				"order":    6,
-			},
+			"type": "string",
 		},
 		"calls": map[string]interface{}{
 			"type":        "array",
@@ -137,27 +71,55 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 				"order":    7,
 			},
 		},
-		"_extra": map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"file_uri": map[string]interface{}{
-					"type": "string",
-					"search": map[string]interface{}{
-						"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-						"queryable":  "internal",
-						"canNegate":  true,
-						"required":   false,
-						"type":       "single", // single / unlimited
-						"order":      0,
-					},
-				},
-			},
+		"chromosome": map[string]interface{}{
+			"description": "Reference genome chromosome identifier (e.g. 17 or X)",
 			"search": map[string]interface{}{
-				"queryable": "internal",
+				"canNegate": false,
+				"operations": []string{
+					"eq",
+				},
+				"order":     1,
+				"queryable": "all",
+				"required":  true,
+				"type":      "single",
+			},
+			"type": "string",
+		},
+		"start": map[string]interface{}{
+			"description": "1-indexed start location of the variant on the chromosome.",
+			"search": map[string]interface{}{
+				"canNegate": false,
+				"operations": []string{
+					"eq",
+					"lt",
+					"le",
+					"gt",
+					"ge",
+				},
+				"order":     2,
+				"queryable": "all",
+				"required":  true,
+				"type":      "unlimited",
+			},
+			"type": "integer",
+		},
+		"end": map[string]interface{}{
+			"description": "1-indexed end location (exclusive) of the variant on the chromosome, in terms of the number of bases in the reference sequence for the variant.",
+			"search": map[string]interface{}{
+				"canNegate": true,
+				"operations": []string{
+					"eq",
+					"lt",
+					"le",
+					"gt",
+					"ge",
+				},
+				"order":     3,
+				"queryable": "all",
 				"required":  false,
 				"type":      "unlimited",
-				"order":     8,
 			},
+			"type": "integer",
 		},
 	},
 }
@@ -166,7 +128,10 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 	"id":          "variant:variant_call", // TODO: Real ID
 	"type":        "object",
 	"description": "An object representing a called instance of a variant.",
-	"required":    []string{"sample_id", "genotype_bases"},
+	"required": []string{
+		"sample_id",
+		"genotype_type",
+	},
 	"properties": map[string]interface{}{
 		"sample_id": map[string]interface{}{
 			"type":        "string",
@@ -180,87 +145,28 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 				"order":      0,
 			},
 		},
-		"genotype_bases": map[string]interface{}{
-			"type":        "array",
-			"description": "Variant call genotype.",
-			"items": map[string]interface{}{
-				"type":        []string{"string", "null"},
-				"description": "Variant call bases on a chromosome.",
-				"search": map[string]interface{}{
-					"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-					"queryable":  "all",
-					"canNegate":  true,
-					"required":   false,
-					"type":       "single",
-					"order":      0,
-				},
-			},
-			// TODO: Is this search block really needed
-			"search": map[string]interface{}{
-				"required": false,
-				"type":     "unlimited",
-				"order":    1,
-			},
-		},
 		"genotype_type": map[string]interface{}{
-			"type":        "string",
 			"description": "Variant call genotype type.",
-			"enum": []c.GenotypeQuery{
-				// No call
-				gq.UNCALLED,
-
-				// Haploid
-				gq.REFERENCE,
-				gq.ALTERNATE,
-
-				// Diploid or higher
-				gq.HOMOZYGOUS_REFERENCE,
-				gq.HETEROZYGOUS,
-				gq.HOMOZYGOUS_ALTERNATE,
+			"enum": []string{
+				"MISSING",
+				"MISSING_UPSTREAM_DELETION",
+				"REFERENCE",
+				"ALTERNATE",
+				"HOMOZYGOUS_REFERENCE",
+				"HETEROZYGOUS",
+				"HOMOZYGOUS_ALTERNATE",
 			},
 			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-				"queryable":  "all",
-				"canNegate":  true,
-				"required":   true, // TODO: Shouldn't be "required" here; but should show up by default anyway
-				"type":       "single",
-				"order":      2.0,
+				"canNegate": true,
+				"operations": []string{
+					"eq",
+				},
+				"order":     2.0,
+				"queryable": "all",
+				"required":  true,
+				"type":      "single",
 			},
-		},
-		"phased": map[string]interface{}{
-			"type":        "boolean",
-			"description": "Whether the called genotype is phased.",
-			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-				"queryable":  "all",
-				"canNegate":  true,
-				"required":   false,
-				"type":       "single",
-				"order":      3,
-			},
-		},
-		"phase_set": map[string]interface{}{
-			"type":        []string{"number", "null"},
-			"description": "Genotype phase set, if any.",
-			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ},
-				"queryable":  "internal",
-				"canNegate":  true,
-				"required":   false,
-				"type":       "single",
-				"order":      4,
-			},
-		},
-		"read_depth": map[string]interface{}{
-			"type":        []string{"integer", "null"},
-			"description": "Read depth at this position for this sample.",
-			"search": map[string]interface{}{
-				"operations": []c.SearchOperation{so.SEARCH_OP_EQ, so.SEARCH_OP_GT, so.SEARCH_OP_GE, so.SEARCH_OP_LT, so.SEARCH_OP_LE},
-				"queryable":  "all",
-				"canNegate":  true,
-				"required":   false,
-				"order":      5,
-			},
+			"type": "string",
 		},
 	},
 }
