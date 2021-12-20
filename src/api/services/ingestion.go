@@ -383,6 +383,9 @@ func (i *IngestionService) ProcessVcf(
 			tmpVariant["fileId"] = drsFileId
 			tmpVariant["assemblyId"] = assemblyId
 
+			// skip this call if need be
+			skipThisCall := false
+
 			var rowWg sync.WaitGroup
 			rowWg.Add(len(rowComponents))
 
@@ -406,6 +409,10 @@ func (i *IngestionService) ProcessVcf(
 								tmpVariant[key] = value
 								tmpVariantMapMutex.Unlock()
 							} else {
+								// TODO: skip this call
+								skipThisCall = true
+
+								// redundant?
 								tmpVariantMapMutex.Lock()
 								tmpVariant[key] = "err"
 								tmpVariantMapMutex.Unlock()
@@ -489,6 +496,12 @@ func (i *IngestionService) ProcessVcf(
 			}
 
 			rowWg.Wait()
+
+			if skipThisCall {
+				// This variant call has been deemed unnecessary to ingest
+				defer fileWg.Done()
+				return
+			}
 
 			// --- TODO: prep formats + samples
 			var samples []*models.Sample
@@ -636,7 +649,8 @@ func (i *IngestionService) ProcessVcf(
 				}
 			} else {
 				// This variant call has been deemed unnecessary to ingest
-				fileWg.Done()
+				defer fileWg.Done()
+				return
 			}
 		}(line, drsFileId, &_fileWG)
 	}
