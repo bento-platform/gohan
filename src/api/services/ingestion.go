@@ -174,8 +174,8 @@ func (i *IngestionService) Init() {
 						},
 					)
 					if err != nil {
-						defer wg.Done()
 						fmt.Printf("Unexpected error: %s", err)
+						wg.Done()
 					}
 				}
 			}
@@ -225,8 +225,8 @@ func (i *IngestionService) Init() {
 						},
 					)
 					if err != nil {
-						defer wg.Done()
 						fmt.Printf("Unexpected error: %s", err)
+						wg.Done()
 					}
 				}
 			}
@@ -657,7 +657,6 @@ func (i *IngestionService) ProcessVcf(
 
 	// allowing all lines to be queued up and waited for
 	for i := 0; i < lineProcessingConcurrencyLevel; i++ {
-		fmt.Printf("Adding a extra line (%d/%d)!\n", i, lineProcessingConcurrencyLevel)
 		lineProcessingQueue <- true
 	}
 

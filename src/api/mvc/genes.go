@@ -26,6 +26,13 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func GenesIngestionStats(c echo.Context) error {
+	fmt.Printf("[%s] - GenesIngestionStats hit!\n", time.Now())
+	ingestionService := c.(*contexts.GohanContext).IngestionService
+
+	return c.JSON(http.StatusOK, ingestionService.GeneIngestionBulkIndexer.Stats())
+}
+
 func GenesIngest(c echo.Context) error {
 	fmt.Printf("[%s] - GenesIngest hit!\n", time.Now())
 	// trigger global ingestion background process

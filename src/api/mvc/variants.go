@@ -32,6 +32,13 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func VariantsIngestionStats(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsIngestionStats hit!\n", time.Now())
+	ingestionService := c.(*contexts.GohanContext).IngestionService
+
+	return c.JSON(http.StatusOK, ingestionService.IngestionBulkIndexer.Stats())
+}
+
 func VariantsGetByVariantId(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsGetByVariantId hit!\n", time.Now())
 	// retrieve variant Ids from query parameter (comma separated)
