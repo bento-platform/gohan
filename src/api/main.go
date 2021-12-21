@@ -169,6 +169,7 @@ func main() {
 		// middleware
 		gam.MandateAssemblyIdAttribute)
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
+	e.GET("/variants/ingestion/stats", mvc.VariantsIngestionStats)
 
 	// -- Genes
 	e.GET("/genes/overview", mvc.GetGenesOverview)
@@ -177,6 +178,7 @@ func main() {
 		gam.ValidateOptionalChromosomeAttribute)
 	e.GET("/genes/ingestion/requests", mvc.GetAllGeneIngestionRequests)
 	e.GET("/genes/ingestion/run", mvc.GenesIngest)
+	e.GET("/genes/ingestion/stats", mvc.VariantsIngestionStats)
 
 	// -- Workflows
 	e.GET("/workflows", mvc.WorkflowsGet)
