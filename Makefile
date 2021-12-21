@@ -114,7 +114,7 @@ stop-%:
 
 
 # Clean up
-clean-all: clean-api clean-api-alpine clean-gateway clean-drs
+clean-all: clean-api clean-gateway clean-drs
 
 clean-gateway:
 	docker rm ${GOHAN_GATEWAY_CONTAINER_NAME} --force; \
