@@ -17,6 +17,8 @@ type BentoV2CompatibleVariantResponseDataModel struct {
 	GenotypeType string `json:"genotype_type"`
 }
 
+// --
+
 type VariantsResponseDTO struct {
 	Status  int                        `json:"status"`
 	Message string                     `json:"message"`
@@ -28,6 +30,8 @@ type VariantResponseDataModel struct {
 	Count     int         `json:"count"`
 	Results   interface{} `json:"results"` // i.e.: []Variant or []string
 }
+
+// -- --
 
 type GenesResponseDTO struct {
 	Status  int    `json:"status"`
