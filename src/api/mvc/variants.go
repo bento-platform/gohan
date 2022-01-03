@@ -32,6 +32,13 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+func VariantsIngestionStats(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsIngestionStats hit!\n", time.Now())
+	ingestionService := c.(*contexts.GohanContext).IngestionService
+
+	return c.JSON(http.StatusOK, ingestionService.IngestionBulkIndexer.Stats())
+}
+
 func VariantsGetByVariantId(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsGetByVariantId hit!\n", time.Now())
 	// retrieve variant Ids from query parameter (comma separated)
@@ -226,11 +233,13 @@ func VariantsIngest(c echo.Context) error {
 				// free up a spot in the queue
 				defer func() { <-ingestionService.ConcurrentFileIngestionQueue }()
 
+				fmt.Printf("Begin running %s !\n", gzippedFileName)
 				reqStat.State = ingest.Running
 				ingestionService.IngestRequestChan <- reqStat
 
 				// ---	 decompress vcf.gz
 
+				fmt.Printf("Decompressing %s !\n", gzippedFileName)
 				gzippedFilePath := fmt.Sprintf("%s%s", vcfPath, gzippedFileName)
 				r, err := os.Open(gzippedFilePath)
 				if err != nil {
@@ -286,6 +295,7 @@ func VariantsIngest(c echo.Context) error {
 				// -----
 
 				// --- tabix generation
+				fmt.Printf("Generating Tabix %s !\n", tmpDestinationFileName)
 				tabixFileDir, tabixFileName, tabixErr := ingestionService.GenerateTabix(tmpDestinationFileName)
 				if tabixErr != nil {
 					msg := "Something went wrong: Tabix problem " + gzippedFileName
@@ -300,6 +310,7 @@ func VariantsIngest(c echo.Context) error {
 				tabixFileNameWithRelativePath := fmt.Sprintf("%s%s", partialTmpDir, tabixFileName)
 
 				// ---   push compressed to DRS
+				fmt.Printf("Uploading %s to DRS !\n", gzippedFileName)
 				drsFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
 				if drsFileId == "" {
 					msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
@@ -313,6 +324,7 @@ func VariantsIngest(c echo.Context) error {
 				}
 
 				// -- push tabix to DRS
+				fmt.Printf("Uploading %s to DRS !\n", tabixFileNameWithRelativePath)
 				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
 				if drsTabixFileId == "" {
 					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileNameWithRelativePath
@@ -326,6 +338,7 @@ func VariantsIngest(c echo.Context) error {
 				}
 
 				// ---   remove temporary files now that they have been ingested successfully into DRS
+				fmt.Printf("Removing %s !\n", tmpDestinationFileName)
 				if tmpFileRemovalErr := os.Remove(tmpDestinationFileName); tmpFileRemovalErr != nil {
 					msg := fmt.Sprintf("Something went wrong: trying to remove temporary file at %s : %s\n", tmpDestinationFileName, tmpFileRemovalErr)
 					fmt.Println(msg)
@@ -337,6 +350,7 @@ func VariantsIngest(c echo.Context) error {
 					return
 				}
 				tmpTabixFilePath := fmt.Sprintf("%s%s", tabixFileDir, tabixFileName)
+				fmt.Printf("Removing %s !\n", tmpTabixFilePath)
 				if tmpTabixFileRemovalErr := os.Remove(tmpTabixFilePath); tmpTabixFileRemovalErr != nil {
 					msg := fmt.Sprintf("Something went wrong: trying to remove temporary file at %s : %s\n", tmpTabixFilePath, tmpTabixFileRemovalErr)
 					fmt.Println(msg)
@@ -374,6 +388,7 @@ func VariantsIngest(c echo.Context) error {
 				}
 
 				// ---   extract gzip compressed vcf file
+				fmt.Printf("Extracting %s !\n", gzippedFilePath)
 				vcfFilePath := ingestionService.ExtractVcfGz(gzippedFilePath, r, vcfTmpPath)
 				if vcfFilePath == "" {
 					msg := "Something went wrong: filepath is empty for " + gzippedFileName
@@ -388,9 +403,11 @@ func VariantsIngest(c echo.Context) error {
 				defer r.Close()
 
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
+				fmt.Printf("Begin processing %s !\n", vcfFilePath)
 				ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
 
 				// ---   delete the temporary vcf file
+				fmt.Printf("Removing temporary file %s !\n", vcfFilePath)
 				os.Remove(vcfFilePath)
 
 				// ---   delete full tmp path and all contents

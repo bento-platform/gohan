@@ -50,10 +50,6 @@ type (
 	}
 )
 
-const (
-	defaultBulkIndexingCap int = 10000 // TODO: make parameterizable
-)
-
 func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *IngestionService {
 
 	iz := &IngestionService{
@@ -62,15 +58,15 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		IngestRequestMap:               map[string]*ingest.VariantIngestRequest{},
 		GeneIngestRequestChan:          make(chan *ingest.GeneIngestRequest),
 		GeneIngestRequestMap:           map[string]*ingest.GeneIngestRequest{},
-		IngestionBulkIndexingCapacity:  defaultBulkIndexingCap,
-		IngestionBulkIndexingQueue:     make(chan *structs.IngestionQueueStructure, defaultBulkIndexingCap),
+		IngestionBulkIndexingCapacity:  cfg.Api.BulkIndexingCap,
+		IngestionBulkIndexingQueue:     make(chan *structs.IngestionQueueStructure, cfg.Api.BulkIndexingCap),
 		GeneIngestionBulkIndexingQueue: make(chan *structs.GeneIngestionQueueStructure, 10),
 		ConcurrentFileIngestionQueue:   make(chan bool, cfg.Api.FileProcessingConcurrencyLevel),
 		ElasticsearchClient:            es,
 	}
 
 	//see: https://www.elastic.co/blog/why-am-i-seeing-bulk-rejections-in-my-elasticsearch-cluster
-	var numWorkers = defaultBulkIndexingCap / 100
+	var numWorkers = iz.IngestionBulkIndexingCapacity / 100
 	//the lower the denominator (the number of documents per bulk upload). the higher
 	//the chances of 100% successful upload, though the longer it may take (negligible)
 
@@ -174,8 +170,8 @@ func (i *IngestionService) Init() {
 						},
 					)
 					if err != nil {
-						defer wg.Done()
 						fmt.Printf("Unexpected error: %s", err)
+						wg.Done()
 					}
 				}
 			}
@@ -225,8 +221,8 @@ func (i *IngestionService) Init() {
 						},
 					)
 					if err != nil {
-						defer wg.Done()
 						fmt.Printf("Unexpected error: %s", err)
+						wg.Done()
 					}
 				}
 			}
@@ -383,6 +379,9 @@ func (i *IngestionService) ProcessVcf(
 			tmpVariant["fileId"] = drsFileId
 			tmpVariant["assemblyId"] = assemblyId
 
+			// skip this call if need be
+			skipThisCall := false
+
 			var rowWg sync.WaitGroup
 			rowWg.Add(len(rowComponents))
 
@@ -406,6 +405,10 @@ func (i *IngestionService) ProcessVcf(
 								tmpVariant[key] = value
 								tmpVariantMapMutex.Unlock()
 							} else {
+								// TODO: skip this call
+								skipThisCall = true
+
+								// redundant?
 								tmpVariantMapMutex.Lock()
 								tmpVariant[key] = "err"
 								tmpVariantMapMutex.Unlock()
@@ -489,6 +492,12 @@ func (i *IngestionService) ProcessVcf(
 			}
 
 			rowWg.Wait()
+
+			if skipThisCall {
+				// This variant call has been deemed unnecessary to ingest
+				defer fileWg.Done()
+				return
+			}
 
 			// --- TODO: prep formats + samples
 			var samples []*models.Sample
@@ -636,7 +645,8 @@ func (i *IngestionService) ProcessVcf(
 				}
 			} else {
 				// This variant call has been deemed unnecessary to ingest
-				fileWg.Done()
+				defer fileWg.Done()
+				return
 			}
 		}(line, drsFileId, &_fileWG)
 	}
@@ -648,6 +658,7 @@ func (i *IngestionService) ProcessVcf(
 
 	// let all lines be queued up and processed
 	_fileWG.Wait()
+	fmt.Printf("File %s waited for and complete!\n", vcfFilePath)
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {

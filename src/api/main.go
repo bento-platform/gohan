@@ -35,6 +35,7 @@ func main() {
 
 		"\tVCF Directory Path : %s \n"+
 		"\tGTF Directory Path : %s \n"+
+		"\tBulk Indexing Cap : %d\n"+
 		"\tFile Processing Concurrency Level : %d\n"+
 		"\tLine Processing Concurrency Level : %d\n"+
 		"\tElasticsearch Url : %s \n"+
@@ -55,6 +56,7 @@ func main() {
 		cfg.Debug,
 		cfg.Api.VcfPath,
 		cfg.Api.GtfPath,
+		cfg.Api.BulkIndexingCap,
 		cfg.Api.FileProcessingConcurrencyLevel,
 		cfg.Api.LineProcessingConcurrencyLevel,
 		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,
@@ -169,6 +171,7 @@ func main() {
 		// middleware
 		gam.MandateAssemblyIdAttribute)
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
+	e.GET("/variants/ingestion/stats", mvc.VariantsIngestionStats)
 
 	// -- Genes
 	e.GET("/genes/overview", mvc.GetGenesOverview)
@@ -177,6 +180,7 @@ func main() {
 		gam.ValidateOptionalChromosomeAttribute)
 	e.GET("/genes/ingestion/requests", mvc.GetAllGeneIngestionRequests)
 	e.GET("/genes/ingestion/run", mvc.GenesIngest)
+	e.GET("/genes/ingestion/stats", mvc.VariantsIngestionStats)
 
 	// -- Workflows
 	e.GET("/workflows", mvc.WorkflowsGet)
