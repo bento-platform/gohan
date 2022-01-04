@@ -96,7 +96,7 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 func (i *IngestionService) Init() {
 	// safeguard to prevent multiple initilizations
 	if !i.Initialized {
-		// spin up a listener for ingest request updates
+		// spin up a listener for both variant and gene ingest request updates
 		go func() {
 			for {
 				select {
@@ -125,7 +125,7 @@ func (i *IngestionService) Init() {
 			}
 		}()
 
-		// spin up a listener for each bulk indexing
+		// spin up a listener for both variant and gene bulk indexing
 		go func() {
 			for {
 				select {
@@ -334,6 +334,8 @@ func (i *IngestionService) ProcessVcf(
 	var discoveredHeaders bool = false
 	var headers []string
 
+	// headerSampleIds := make(map[int]string)
+
 	var _fileWG sync.WaitGroup
 
 	// "line ingestion queue"
@@ -350,6 +352,16 @@ func (i *IngestionService) ProcessVcf(
 				if strings.Contains(line, "CHROM") {
 					// Split the string by tabs
 					headers = strings.Split(line, "\t")
+
+					// for id, header := range headers {
+					// 	// determine if header is a default VCF header
+					// 	// if it is not, assume it's a sampleId and keep
+					// 	// track of this using an id
+					// 	if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), models.VcfHeaders) {
+					// 		headerSampleIds[id-len(models.VcfHeaders)] = header
+					// 	}
+					// }
+
 					discoveredHeaders = true
 
 					fmt.Println("Found the headers: ", headers)
@@ -368,6 +380,18 @@ func (i *IngestionService) ProcessVcf(
 
 			// ----  break up line
 			rowComponents := strings.Split(line, "\t")
+
+			// ---- filter out homozygous reference calls
+			// TODO: extend to support multi-sampled calls as
+			// this current implementation will only preemptively
+			// skip this call when 'filterOutHomozygousReferences'
+			// is toggled on if there is only 1 sample in the call.
+			//
+			if filterOutHomozygousReferences &&
+				(rowComponents[len(headers)-1] == "0|0" || rowComponents[len(headers)-1] == "0/0") {
+				defer fileWg.Done()
+				return
+			}
 
 			// ----  process more...
 			var tmpSamples []map[string]interface{}
