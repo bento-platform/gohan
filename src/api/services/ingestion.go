@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Jeffail/gabs"
@@ -333,8 +334,9 @@ func (i *IngestionService) ProcessVcf(
 	scanner := bufio.NewScanner(f)
 	var discoveredHeaders bool = false
 	var headers []string
+	headerSampleIds := make(map[int]string)
 
-	// headerSampleIds := make(map[int]string)
+	skippedHomozygousReferencesCount := int32(0)
 
 	var _fileWG sync.WaitGroup
 
@@ -353,14 +355,14 @@ func (i *IngestionService) ProcessVcf(
 					// Split the string by tabs
 					headers = strings.Split(line, "\t")
 
-					// for id, header := range headers {
-					// 	// determine if header is a default VCF header
-					// 	// if it is not, assume it's a sampleId and keep
-					// 	// track of this using an id
-					// 	if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), models.VcfHeaders) {
-					// 		headerSampleIds[id-len(models.VcfHeaders)] = header
-					// 	}
-					// }
+					for id, header := range headers {
+						// determine if header is a default VCF header.
+						// if it is not, assume it's a sampleId and keep
+						// track of it with an id
+						if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), models.VcfHeaders) {
+							headerSampleIds[len(models.VcfHeaders)-id] = header
+						}
+					}
 
 					discoveredHeaders = true
 
@@ -380,18 +382,6 @@ func (i *IngestionService) ProcessVcf(
 
 			// ----  break up line
 			rowComponents := strings.Split(line, "\t")
-
-			// ---- filter out homozygous reference calls
-			// TODO: extend to support multi-sampled calls as
-			// this current implementation will only preemptively
-			// skip this call when 'filterOutHomozygousReferences'
-			// is toggled on if there is only 1 sample in the call.
-			//
-			if filterOutHomozygousReferences &&
-				(rowComponents[len(headers)-1] == "0|0" || rowComponents[len(headers)-1] == "0/0") {
-				defer fileWg.Done()
-				return
-			}
 
 			// ----  process more...
 			var tmpSamples []map[string]interface{}
@@ -429,7 +419,7 @@ func (i *IngestionService) ProcessVcf(
 								tmpVariant[key] = value
 								tmpVariantMapMutex.Unlock()
 							} else {
-								// TODO: skip this call
+								// skip this call
 								skipThisCall = true
 
 								// redundant?
@@ -503,13 +493,27 @@ func (i *IngestionService) ProcessVcf(
 							tmpVariantMapMutex.Unlock()
 						}
 					} else { // assume its a sampleId header
-						tmpSamplesMutex.Lock()
+						allValues := strings.Split(value, ":")
 
+						// ---- filter out homozygous reference calls
+						// support for multi-sampled calls
+						// assume first component of allValues is the genotype
+						genoTypeValue := allValues[0]
+						if filterOutHomozygousReferences && (genoTypeValue == "0|0" || genoTypeValue == "0/0") {
+							// skip adding this sample to the 'tmpSamples' list which
+							// then goes to be further processed into a variant document
+
+							// increase count of skipped calls
+							atomic.AddInt32(&skippedHomozygousReferencesCount, 1)
+
+							return
+						}
+
+						tmpSamplesMutex.Lock()
 						tmpSamples = append(tmpSamples, map[string]interface{}{
 							"key":    key,
-							"values": strings.Split(value, ":"),
+							"values": allValues,
 						})
-
 						tmpSamplesMutex.Unlock()
 					}
 				}(rowIndex, rowComponent, &rowWg)
@@ -637,14 +641,6 @@ func (i *IngestionService) ProcessVcf(
 				sample.Id = tmpKeyString
 				sample.Variation = *variation
 
-				// ---- filter out homozygous reference calls
-				// TODO: determine if this is the most optimal place
-				// 		 to perform this verification
-				if filterOutHomozygousReferences &&
-					sample.Variation.Genotype.Zygosity == z.HomozygousReference {
-					continue
-				}
-
 				samples = append(samples, sample)
 			}
 
@@ -653,6 +649,11 @@ func (i *IngestionService) ProcessVcf(
 			// references, and thus maybe all samples from the call
 			// [i.e. if this is a single-sample VCF])
 			if len(samples) > 0 {
+
+				// for multi-sample vcfs, add 1 to the waitgroup for
+				// each sample (minus 1 given the initial addition)
+				fileWg.Add(len(samples) - 1)
+
 				// Create a whole variant document for each sample found on this VCF line
 				// TODO: revisit this model as it is surely not storage efficient
 				for _, sample := range samples {
@@ -682,7 +683,8 @@ func (i *IngestionService) ProcessVcf(
 
 	// let all lines be queued up and processed
 	_fileWG.Wait()
-	fmt.Printf("File %s waited for and complete!\n", vcfFilePath)
+
+	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", vcfFilePath, skippedHomozygousReferencesCount)
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
