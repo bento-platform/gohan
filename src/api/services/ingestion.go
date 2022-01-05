@@ -76,7 +76,7 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
 		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 5MB ?)
-		FlushInterval: time.Second, // The periodic flush interval
+		// FlushInterval: time.Second, // The periodic flush interval
 	})
 	iz.IngestionBulkIndexer = bi
 
@@ -84,8 +84,8 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		Index:      "genes",
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
-		//FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
-		FlushInterval: 3 * time.Second, // The periodic flush interval
+		// FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
+		// FlushInterval: 3 * time.Second, // The periodic flush interval
 	})
 	iz.GeneIngestionBulkIndexer = gbi
 
