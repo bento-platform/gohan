@@ -361,8 +361,8 @@ func (i *IngestionService) ProcessVcf(
 						// determine if header is a default VCF header.
 						// if it is not, assume it's a sampleId and keep
 						// track of it with an id
-						if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), models.VcfHeaders) {
-							headerSampleIds[len(models.VcfHeaders)-id] = header
+						if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), constants.VcfHeaders) {
+							headerSampleIds[len(constants.VcfHeaders)-id] = header
 						}
 					}
 
@@ -408,7 +408,7 @@ func (i *IngestionService) ProcessVcf(
 					value := strings.TrimSpace(rc)
 
 					// if not a vcf header, assume it's a sampleId header
-					if utils.StringInSlice(key, models.VcfHeaders) {
+					if utils.StringInSlice(key, constants.VcfHeaders) {
 
 						// filter field type by column name
 						if key == "chrom" {

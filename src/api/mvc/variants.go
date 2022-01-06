@@ -28,9 +28,9 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/google/uuid"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/labstack/echo"
-	"github.com/mitchellh/mapstructure"
 )
 
 func VariantsIngestionStats(c echo.Context) error {
@@ -559,14 +559,16 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	// ---
 
 	// prepare response
-	var respDTO = make(map[string]interface{})
-	respDTO["DataType"] = "variant"
-
+	respDTO := dtos.VariantGetReponse{
+		Results: make([]dtos.VariantQueryResult, 0),
+	}
 	respDTOMux := sync.RWMutex{}
+	// var respDTO = make(map[string]interface{})
+	// respDTO["DataType"] = "variant"
 
 	// initialize length 0 to avoid nil response
-	tmpResults := make([]interface{}, 0)
-	tmpCalls := []dtos.BentoV2CompatibleVariantResponseCallsModel{}
+	tmpResults := []dtos.VariantQueryResult{}
+	// tmpCalls := []dtos.VariantCall{}
 
 	var errors []error
 	errorMux := sync.RWMutex{}
@@ -579,18 +581,19 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		go func(_id string) {
 			defer wg.Done()
 
-			var variantRespDataModel = make(map[string]interface{})
-			// variantRespDataModel := models.VariantResponseDataModel{}
+			variantResult := dtos.VariantQueryResult{
+				Calls: make([]dtos.VariantCall, 0),
+			}
+			// var variantRespDataModel = make(map[string]interface{})
+			// // variantRespDataModel := models.VariantResponseDataModel{}
 
 			var (
 				docs      map[string]interface{}
 				searchErr error
 			)
 			if isVariantIdQuery {
-				if !getSampleIdsOnly {
-					variantRespDataModel["VariantId"] = _id
-					fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
-				}
+				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+				variantResult.QueryId = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -601,9 +604,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					getSampleIdsOnly)
 			} else {
 				// implied sampleId query
-				variantRespDataModel["SampleId"] = _id
-
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
+				variantResult.QueryId = fmt.Sprintf("sampleId:%s", _id) // TODO: Refactor
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -620,60 +622,58 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 				return
 			}
 
-			// query for each id
+			// format query document results
+			docsHits := docs["hits"].(map[string]interface{})["hits"]
+			allDocHits := []map[string]interface{}{}
+			mapstructure.Decode(docsHits, &allDocHits)
 
-			if !getSampleIdsOnly {
-				docsHits := docs["hits"].(map[string]interface{})["hits"]
-				allDocHits := []map[string]interface{}{}
-				mapstructure.Decode(docsHits, &allDocHits)
+			// grab _source for each hit
+			var allSources []indexes.Variant
 
-				// grab _source for each hit
-				var allSources []indexes.Variant
+			for _, r := range allDocHits {
+				source := r["_source"].(map[string]interface{})
 
-				for _, r := range allDocHits {
-					source := r["_source"].(map[string]interface{})
+				// cast map[string]interface{} to struct
+				var resultingVariant indexes.Variant
+				mapstructure.Decode(source, &resultingVariant)
 
-					// cast map[string]interface{} to struct
-					var resultingVariant indexes.Variant
-					mapstructure.Decode(source, &resultingVariant)
-
-					// accumulate structs
-					allSources = append(allSources, resultingVariant)
-				}
-
-				fmt.Printf("Found %d docs!\n", len(allSources))
-
-				variantRespDataModel["Results"] = allSources
-
-				respDTOMux.Lock()
-				tmpResults = append(tmpResults, variantRespDataModel)
-				respDTOMux.Unlock()
-			} else {
-				// TODO: refactor this 'else' statement
-				docsBuckets := docs["aggregations"].(map[string]interface{})["sampleIds"].(map[string]interface{})["buckets"]
-				allDocBuckets := []map[string]interface{}{}
-				mapstructure.Decode(docsBuckets, &allDocBuckets)
-
-				for _, r := range allDocBuckets {
-					sampleId := r["key"].(string)
-
-					// cast map[string]interface{} to struct
-					simplifiedResponse := dtos.BentoV2CompatibleVariantResponseDataModel{
-						SampleId:     strings.ToUpper(sampleId),
-						GenotypeType: string(genotype),
-					}
-
-					call := dtos.BentoV2CompatibleVariantResponseCallsModel{}
-					call.AssemblyId = assemblyId
-					call.Chromosome = chromosome
-					call.Start = lowerBound
-					call.End = upperBound
-					call.Calls = append(call.Calls, simplifiedResponse)
-
-					// accumulate sample Id's
-					tmpCalls = append(tmpCalls, call)
-				}
+				// accumulate structs
+				allSources = append(allSources, resultingVariant)
 			}
+
+			fmt.Printf("Found %d docs!\n", len(allSources))
+
+			// -- map variant index models to appropriate variant result + call dto models
+			variantResult.AssemblyId = assemblyId
+			variantResult.Chromosome = chromosome
+			variantResult.Start = lowerBound
+			variantResult.End = upperBound
+
+			for _, source := range allSources {
+				variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
+					Chrom:  source.Chrom,
+					Pos:    source.Pos,
+					Id:     source.Id,
+					Ref:    source.Ref,
+					Alt:    source.Alt,
+					Format: source.Format,
+					Qual:   source.Qual,
+					Filter: source.Filter,
+
+					Info: source.Info,
+
+					SampleId:     source.Sample.Id,
+					GenotypeType: utils.ZygosityToString(source.Sample.Variation.Genotype.Zygosity),
+
+					AssemblyId: source.AssemblyId,
+				})
+
+			}
+			// --
+
+			respDTOMux.Lock()
+			tmpResults = append(tmpResults, variantResult)
+			respDTOMux.Unlock()
 
 		}(id)
 	}
@@ -681,33 +681,15 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	wg.Wait()
 
 	if len(errors) == 0 {
-		respDTO["Status"] = 200
-		respDTO["Message"] = "Success"
+		respDTO.Status = 200
+		respDTO.Message = "Success"
 	} else {
-		respDTO["Status"] = 500
-		respDTO["Message"] = "Something went wrong.. Please contact the administrator!"
+		respDTO.Status = 500
+		respDTO.Message = "Something went wrong.. Please contact the administrator!"
 	}
 
-	// cast generic map[string]interface{} to type
-	// depending on `getSampleIdsOnly`
-	if getSampleIdsOnly {
-		respDTO["Results"] = tmpCalls
-	} else {
-		respDTO["Data"] = tmpResults
-	}
-
-	// TODO: Refactor
-	if getSampleIdsOnly {
-		var dto dtos.BentoV2CompatibleVariantsResponseDTO
-		mapstructure.Decode(respDTO, &dto)
-
-		return c.JSON(http.StatusOK, dto)
-	} else {
-		var dto dtos.VariantsResponseDTO
-		mapstructure.Decode(respDTO, &dto)
-
-		return c.JSON(http.StatusOK, dto)
-	}
+	respDTO.Results = tmpResults
+	return c.JSON(http.StatusOK, respDTO)
 }
 
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
