@@ -8,6 +8,7 @@ type Config struct {
 		Port                           string `yaml:"port" envconfig:"GOHAN_API_INTERNAL_PORT"`
 		VcfPath                        string `yaml:"vcfPath" envconfig:"GOHAN_API_VCF_PATH"`
 		LocalVcfPath                   string `yaml:"localVcfPath" envconfig:"GOHAN_API_VCF_PATH"`
+		BulkIndexingCap                int    `yaml:"BulkIndexingCap" envconfig:"GOHAN_API_BULK_INDEXING_CAP"`
 		FileProcessingConcurrencyLevel int    `yaml:"fileProcessingConcurrencyLevel" envconfig:"GOHAN_API_FILE_PROC_CONC_LVL"`
 		LineProcessingConcurrencyLevel int    `yaml:"lineProcessingConcurrencyLevel" envconfig:"GOHAN_API_LINE_PROC_CONC_LVL"`
 		GtfPath                        string `yaml:"gtfPath" envconfig:"GOHAN_API_GTF_PATH"`

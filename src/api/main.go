@@ -35,6 +35,7 @@ func main() {
 
 		"\tVCF Directory Path : %s \n"+
 		"\tGTF Directory Path : %s \n"+
+		"\tBulk Indexing Cap : %d\n"+
 		"\tFile Processing Concurrency Level : %d\n"+
 		"\tLine Processing Concurrency Level : %d\n"+
 		"\tElasticsearch Url : %s \n"+
@@ -55,6 +56,7 @@ func main() {
 		cfg.Debug,
 		cfg.Api.VcfPath,
 		cfg.Api.GtfPath,
+		cfg.Api.BulkIndexingCap,
 		cfg.Api.FileProcessingConcurrencyLevel,
 		cfg.Api.LineProcessingConcurrencyLevel,
 		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,

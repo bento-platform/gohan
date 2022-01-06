@@ -128,7 +128,6 @@ func VariantsIngest(c echo.Context) error {
 	}
 
 	startTime := time.Now()
-
 	fmt.Printf("Ingest Start: %s\n", startTime)
 
 	// get vcf files
@@ -403,18 +402,19 @@ func VariantsIngest(c echo.Context) error {
 				defer r.Close()
 
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
-				fmt.Printf("Begin processing %s !\n", vcfFilePath)
+				beginProcessingTime := time.Now()
+				fmt.Printf("Begin processing %s at [%s]\n", vcfFilePath, beginProcessingTime)
 				ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(beginProcessingTime))
 
 				// ---   delete the temporary vcf file
 				fmt.Printf("Removing temporary file %s !\n", vcfFilePath)
 				os.Remove(vcfFilePath)
+				fmt.Printf("Removal done!")
 
 				// ---   delete full tmp path and all contents
 				// 		 (WARNING : Only do this when running over a single file)
 				//os.RemoveAll(vcfTmpPath)
-
-				fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(startTime))
 
 				reqStat.State = ingest.Done
 				ingestionService.IngestRequestChan <- reqStat

@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Jeffail/gabs"
@@ -50,10 +51,6 @@ type (
 	}
 )
 
-const (
-	defaultBulkIndexingCap int = 10000 // TODO: make parameterizable
-)
-
 func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *IngestionService {
 
 	iz := &IngestionService{
@@ -62,15 +59,15 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		IngestRequestMap:               map[string]*ingest.VariantIngestRequest{},
 		GeneIngestRequestChan:          make(chan *ingest.GeneIngestRequest),
 		GeneIngestRequestMap:           map[string]*ingest.GeneIngestRequest{},
-		IngestionBulkIndexingCapacity:  defaultBulkIndexingCap,
-		IngestionBulkIndexingQueue:     make(chan *structs.IngestionQueueStructure, defaultBulkIndexingCap),
+		IngestionBulkIndexingCapacity:  cfg.Api.BulkIndexingCap,
+		IngestionBulkIndexingQueue:     make(chan *structs.IngestionQueueStructure, cfg.Api.BulkIndexingCap),
 		GeneIngestionBulkIndexingQueue: make(chan *structs.GeneIngestionQueueStructure, 10),
 		ConcurrentFileIngestionQueue:   make(chan bool, cfg.Api.FileProcessingConcurrencyLevel),
 		ElasticsearchClient:            es,
 	}
 
 	//see: https://www.elastic.co/blog/why-am-i-seeing-bulk-rejections-in-my-elasticsearch-cluster
-	var numWorkers = defaultBulkIndexingCap / 100
+	var numWorkers = iz.IngestionBulkIndexingCapacity / 100
 	//the lower the denominator (the number of documents per bulk upload). the higher
 	//the chances of 100% successful upload, though the longer it may take (negligible)
 
@@ -79,7 +76,7 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
 		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 5MB ?)
-		FlushInterval: time.Second, // The periodic flush interval
+		// FlushInterval: time.Second, // The periodic flush interval
 	})
 	iz.IngestionBulkIndexer = bi
 
@@ -87,8 +84,8 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		Index:      "genes",
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
-		//FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
-		FlushInterval: 3 * time.Second, // The periodic flush interval
+		// FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
+		// FlushInterval: 3 * time.Second, // The periodic flush interval
 	})
 	iz.GeneIngestionBulkIndexer = gbi
 
@@ -100,7 +97,7 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 func (i *IngestionService) Init() {
 	// safeguard to prevent multiple initilizations
 	if !i.Initialized {
-		// spin up a listener for ingest request updates
+		// spin up a listener for both variant and gene ingest request updates
 		go func() {
 			for {
 				select {
@@ -129,7 +126,7 @@ func (i *IngestionService) Init() {
 			}
 		}()
 
-		// spin up a listener for each bulk indexing
+		// spin up a listener for both variant and gene bulk indexing
 		go func() {
 			for {
 				select {
@@ -337,6 +334,9 @@ func (i *IngestionService) ProcessVcf(
 	scanner := bufio.NewScanner(f)
 	var discoveredHeaders bool = false
 	var headers []string
+	headerSampleIds := make(map[int]string)
+
+	skippedHomozygousReferencesCount := int32(0)
 
 	var _fileWG sync.WaitGroup
 
@@ -354,6 +354,16 @@ func (i *IngestionService) ProcessVcf(
 				if strings.Contains(line, "CHROM") {
 					// Split the string by tabs
 					headers = strings.Split(line, "\t")
+
+					for id, header := range headers {
+						// determine if header is a default VCF header.
+						// if it is not, assume it's a sampleId and keep
+						// track of it with an id
+						if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), models.VcfHeaders) {
+							headerSampleIds[len(models.VcfHeaders)-id] = header
+						}
+					}
+
 					discoveredHeaders = true
 
 					fmt.Println("Found the headers: ", headers)
@@ -409,7 +419,7 @@ func (i *IngestionService) ProcessVcf(
 								tmpVariant[key] = value
 								tmpVariantMapMutex.Unlock()
 							} else {
-								// TODO: skip this call
+								// skip this call
 								skipThisCall = true
 
 								// redundant?
@@ -483,13 +493,27 @@ func (i *IngestionService) ProcessVcf(
 							tmpVariantMapMutex.Unlock()
 						}
 					} else { // assume its a sampleId header
-						tmpSamplesMutex.Lock()
+						allValues := strings.Split(value, ":")
 
+						// ---- filter out homozygous reference calls
+						// support for multi-sampled calls
+						// assume first component of allValues is the genotype
+						genoTypeValue := allValues[0]
+						if filterOutHomozygousReferences && (genoTypeValue == "0|0" || genoTypeValue == "0/0") {
+							// skip adding this sample to the 'tmpSamples' list which
+							// then goes to be further processed into a variant document
+
+							// increase count of skipped calls
+							atomic.AddInt32(&skippedHomozygousReferencesCount, 1)
+
+							return
+						}
+
+						tmpSamplesMutex.Lock()
 						tmpSamples = append(tmpSamples, map[string]interface{}{
 							"key":    key,
-							"values": strings.Split(value, ":"),
+							"values": allValues,
 						})
-
 						tmpSamplesMutex.Unlock()
 					}
 				}(rowIndex, rowComponent, &rowWg)
@@ -617,14 +641,6 @@ func (i *IngestionService) ProcessVcf(
 				sample.Id = tmpKeyString
 				sample.Variation = *variation
 
-				// ---- filter out homozygous reference calls
-				// TODO: determine if this is the most optimal place
-				// 		 to perform this verification
-				if filterOutHomozygousReferences &&
-					sample.Variation.Genotype.Zygosity == z.HomozygousReference {
-					continue
-				}
-
 				samples = append(samples, sample)
 			}
 
@@ -633,6 +649,11 @@ func (i *IngestionService) ProcessVcf(
 			// references, and thus maybe all samples from the call
 			// [i.e. if this is a single-sample VCF])
 			if len(samples) > 0 {
+
+				// for multi-sample vcfs, add 1 to the waitgroup for
+				// each sample (minus 1 given the initial addition)
+				fileWg.Add(len(samples) - 1)
+
 				// Create a whole variant document for each sample found on this VCF line
 				// TODO: revisit this model as it is surely not storage efficient
 				for _, sample := range samples {
@@ -662,7 +683,8 @@ func (i *IngestionService) ProcessVcf(
 
 	// let all lines be queued up and processed
 	_fileWG.Wait()
-	fmt.Printf("File %s waited for and complete!\n", vcfFilePath)
+
+	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", vcfFilePath, skippedHomozygousReferencesCount)
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
