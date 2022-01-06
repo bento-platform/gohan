@@ -12,22 +12,28 @@ type VariantReponse struct {
 }
 type VariantGetReponse struct {
 	VariantReponse
-	Results []VariantQueryResult `json:"results"`
+	Results []VariantGetResult `json:"results"`
 }
 type VariantCountReponse struct {
 	VariantReponse
-	Count int `json:"count"`
+	Results []VariantCountResult `json:"results"`
 }
 
-type VariantQueryResult struct {
-	QueryId    string               `json:"queryId"`
+type VariantResult struct {
+	Query      string               `json:"query"`
 	AssemblyId constants.AssemblyId `json:"assembly_id"`
+	Chromosome string               `json:"chromosome"`
+	Start      int                  `json:"start"`
+	End        int                  `json:"end"`
+}
 
+type VariantGetResult struct {
+	VariantResult
 	Calls []VariantCall `json:"calls"`
-
-	Chromosome string `json:"chromosome"`
-	Start      int    `json:"start"`
-	End        int    `json:"end"`
+}
+type VariantCountResult struct {
+	VariantResult
+	Count int `json:"count"`
 }
 
 type VariantCall struct {

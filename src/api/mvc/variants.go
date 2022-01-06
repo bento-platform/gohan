@@ -560,15 +560,9 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	// prepare response
 	respDTO := dtos.VariantGetReponse{
-		Results: make([]dtos.VariantQueryResult, 0),
+		Results: make([]dtos.VariantGetResult, 0),
 	}
 	respDTOMux := sync.RWMutex{}
-	// var respDTO = make(map[string]interface{})
-	// respDTO["DataType"] = "variant"
-
-	// initialize length 0 to avoid nil response
-	tmpResults := []dtos.VariantQueryResult{}
-	// tmpCalls := []dtos.VariantCall{}
 
 	var errors []error
 	errorMux := sync.RWMutex{}
@@ -581,11 +575,9 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		go func(_id string) {
 			defer wg.Done()
 
-			variantResult := dtos.VariantQueryResult{
+			variantResult := dtos.VariantGetResult{
 				Calls: make([]dtos.VariantCall, 0),
 			}
-			// var variantRespDataModel = make(map[string]interface{})
-			// // variantRespDataModel := models.VariantResponseDataModel{}
 
 			var (
 				docs      map[string]interface{}
@@ -593,7 +585,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			)
 			if isVariantIdQuery {
 				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
-				variantResult.QueryId = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
+				variantResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -605,7 +597,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			} else {
 				// implied sampleId query
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
-				variantResult.QueryId = fmt.Sprintf("sampleId:%s", _id) // TODO: Refactor
+				variantResult.Query = fmt.Sprintf("sampleId:%s", _id) // TODO: Refactor
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -672,7 +664,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			// --
 
 			respDTOMux.Lock()
-			tmpResults = append(tmpResults, variantResult)
+			respDTO.Results = append(respDTO.Results, variantResult)
 			respDTOMux.Unlock()
 
 		}(id)
@@ -688,7 +680,6 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		respDTO.Message = "Something went wrong.. Please contact the administrator!"
 	}
 
-	respDTO.Results = tmpResults
 	return c.JSON(http.StatusOK, respDTO)
 }
 
@@ -697,7 +688,9 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
-	respDTO := dtos.VariantsResponseDTO{}
+	respDTO := dtos.VariantCountReponse{
+		Results: make([]dtos.VariantCountResult, 0),
+	}
 	respDTOMux := sync.RWMutex{}
 
 	var errors []error
@@ -710,16 +703,15 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 		go func(_id string) {
 			defer wg.Done()
 
-			variantRespDataModel := dtos.VariantResponseDataModel{}
+			countResult := dtos.VariantCountResult{}
 
 			var (
 				docs       map[string]interface{}
 				countError error
 			)
 			if isVariantIdQuery {
-				variantRespDataModel.VariantId = _id
-
 				fmt.Printf("Executing Count-Variants for VariantId %s\n", _id)
+				countResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
 
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -727,9 +719,8 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 					reference, alternative, genotype, assemblyId)
 			} else {
 				// implied sampleId query
-				variantRespDataModel.SampleId = _id
-
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
+				countResult.Query = fmt.Sprintf("sampleId:%s", _id) // TODO: Refactor
 
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -743,11 +734,15 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				errorMux.Unlock()
 				return
 			}
+			countResult.AssemblyId = assemblyId
+			countResult.Chromosome = chromosome
+			countResult.Start = lowerBound
+			countResult.End = upperBound
 
-			variantRespDataModel.Count = int(docs["count"].(float64))
+			countResult.Count = int(docs["count"].(float64))
 
 			respDTOMux.Lock()
-			respDTO.Data = append(respDTO.Data, variantRespDataModel)
+			respDTO.Results = append(respDTO.Results, countResult)
 			respDTOMux.Unlock()
 
 		}(id)
