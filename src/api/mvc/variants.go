@@ -26,6 +26,8 @@ import (
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
 
+	"api/models/constants/zygosity"
+
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
@@ -655,7 +657,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					Info: source.Info,
 
 					SampleId:     source.Sample.Id,
-					GenotypeType: utils.ZygosityToString(source.Sample.Variation.Genotype.Zygosity),
+					GenotypeType: zygosity.ZygosityToString(source.Sample.Variation.Genotype.Zygosity),
 
 					AssemblyId: source.AssemblyId,
 				})

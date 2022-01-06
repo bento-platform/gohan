@@ -5,7 +5,7 @@ import (
 	"api/models/indexes"
 )
 
-// ---- PROTOTYPING
+// ---- Variants
 type VariantReponse struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
@@ -55,22 +55,7 @@ type VariantCall struct {
 	AssemblyId constants.AssemblyId `json:"assemblyId"` // redundant ?
 }
 
-// ----
-
-type VariantsResponseDTO struct {
-	Status  int                        `json:"status"`
-	Message string                     `json:"message"`
-	Data    []VariantResponseDataModel `json:"data"`
-}
-type VariantResponseDataModel struct {
-	VariantId string      `json:"variantId"`
-	SampleId  string      `json:"sampleId"`
-	Count     int         `json:"count"`
-	Results   interface{} `json:"results"` // i.e.: []Variant or []string
-}
-
-// -- --
-
+// -- Genes
 type GenesResponseDTO struct {
 	Status  int            `json:"status"`
 	Message string         `json:"message"`
