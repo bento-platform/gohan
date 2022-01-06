@@ -2,10 +2,10 @@ package mvc
 
 import (
 	"api/contexts"
-	"api/models"
 	"api/models/constants"
 	assemblyId "api/models/constants/assembly-id"
 	"api/models/constants/chromosome"
+	"api/models/dtos"
 	"api/models/ingest"
 	"api/models/ingest/structs"
 	esRepo "api/repositories/elasticsearch"
@@ -21,6 +21,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"api/models/indexes"
 
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
@@ -268,7 +270,7 @@ func GenesIngest(c echo.Context) error {
 							return
 						}
 
-						discoveredGene := &models.Gene{
+						discoveredGene := &indexes.Gene{
 							Name:       geneName,
 							Chrom:      chromosomeClean,
 							Start:      start,
@@ -370,13 +372,13 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	mapstructure.Decode(docsHits, &allDocHits)
 
 	// grab _source for each hit
-	var allSources []models.Gene
+	var allSources []indexes.Gene
 
 	for _, r := range allDocHits {
 		source := r["_source"].(map[string]interface{})
 
 		// cast map[string]interface{} to struct
-		var resultingVariant models.Gene
+		var resultingVariant indexes.Gene
 		mapstructure.Decode(source, &resultingVariant)
 
 		// accumulate structs
@@ -385,7 +387,7 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 
 	fmt.Printf("Found %d docs!\n", len(allSources))
 
-	geneResponseDTO := models.GenesResponseDTO{
+	geneResponseDTO := dtos.GenesResponseDTO{
 		Term:    term,
 		Count:   len(allSources),
 		Results: allSources,

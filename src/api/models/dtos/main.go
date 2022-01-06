@@ -1,6 +1,9 @@
-package models
+package dtos
 
-import "api/models/constants"
+import (
+	"api/models/constants"
+	"api/models/indexes"
+)
 
 type BentoV2CompatibleVariantsResponseDTO struct {
 	Results []BentoV2CompatibleVariantResponseCallsModel `json:"results"`
@@ -34,9 +37,9 @@ type VariantResponseDataModel struct {
 // -- --
 
 type GenesResponseDTO struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
-	Term    string `json:"term"`
-	Count   int    `json:"count"`
-	Results []Gene `json:"results"` // []Gene
+	Status  int            `json:"status"`
+	Message string         `json:"message"`
+	Term    string         `json:"term"`
+	Count   int            `json:"count"`
+	Results []indexes.Gene `json:"results"` // []Gene
 }

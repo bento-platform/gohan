@@ -1,7 +1,7 @@
 package api
 
 import (
-	"api/models"
+	"api/models/dtos"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -68,7 +68,7 @@ func TestCanHandleIngestAllLocalVcfs(_t *testing.T) {
 			respBodyString := string(respBody)
 
 			//	-- convert to json and check for error
-			var respDto models.VariantsResponseDTO
+			var respDto dtos.VariantsResponseDTO
 			jsonUnmarshallingError := json.Unmarshal([]byte(respBodyString), &respDto)
 			assert.Nil(_t, jsonUnmarshallingError)
 

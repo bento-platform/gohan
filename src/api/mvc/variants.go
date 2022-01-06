@@ -16,11 +16,12 @@ import (
 	"time"
 
 	"api/contexts"
-	"api/models"
 	"api/models/constants"
 	a "api/models/constants/assembly-id"
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
+	"api/models/dtos"
+	"api/models/indexes"
 	"api/models/ingest"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
@@ -565,7 +566,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	// initialize length 0 to avoid nil response
 	tmpResults := make([]interface{}, 0)
-	tmpCalls := []models.BentoV2CompatibleVariantResponseCallsModel{}
+	tmpCalls := []dtos.BentoV2CompatibleVariantResponseCallsModel{}
 
 	var errors []error
 	errorMux := sync.RWMutex{}
@@ -627,13 +628,13 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 				mapstructure.Decode(docsHits, &allDocHits)
 
 				// grab _source for each hit
-				var allSources []models.Variant
+				var allSources []indexes.Variant
 
 				for _, r := range allDocHits {
 					source := r["_source"].(map[string]interface{})
 
 					// cast map[string]interface{} to struct
-					var resultingVariant models.Variant
+					var resultingVariant indexes.Variant
 					mapstructure.Decode(source, &resultingVariant)
 
 					// accumulate structs
@@ -657,12 +658,12 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					sampleId := r["key"].(string)
 
 					// cast map[string]interface{} to struct
-					simplifiedResponse := models.BentoV2CompatibleVariantResponseDataModel{
+					simplifiedResponse := dtos.BentoV2CompatibleVariantResponseDataModel{
 						SampleId:     strings.ToUpper(sampleId),
 						GenotypeType: string(genotype),
 					}
 
-					call := models.BentoV2CompatibleVariantResponseCallsModel{}
+					call := dtos.BentoV2CompatibleVariantResponseCallsModel{}
 					call.AssemblyId = assemblyId
 					call.Chromosome = chromosome
 					call.Start = lowerBound
@@ -697,12 +698,12 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 	// TODO: Refactor
 	if getSampleIdsOnly {
-		var dto models.BentoV2CompatibleVariantsResponseDTO
+		var dto dtos.BentoV2CompatibleVariantsResponseDTO
 		mapstructure.Decode(respDTO, &dto)
 
 		return c.JSON(http.StatusOK, dto)
 	} else {
-		var dto models.VariantsResponseDTO
+		var dto dtos.VariantsResponseDTO
 		mapstructure.Decode(respDTO, &dto)
 
 		return c.JSON(http.StatusOK, dto)
@@ -714,7 +715,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
-	respDTO := models.VariantsResponseDTO{}
+	respDTO := dtos.VariantsResponseDTO{}
 	respDTOMux := sync.RWMutex{}
 
 	var errors []error
@@ -727,7 +728,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 		go func(_id string) {
 			defer wg.Done()
 
-			variantRespDataModel := models.VariantResponseDataModel{}
+			variantRespDataModel := dtos.VariantResponseDataModel{}
 
 			var (
 				docs       map[string]interface{}

@@ -5,6 +5,8 @@ import (
 	c "api/models/constants"
 	a "api/models/constants/assembly-id"
 	"api/models/constants/chromosome"
+	"api/models/dtos"
+	"api/models/indexes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -37,12 +39,12 @@ func TestCanGetGenesByAssemblyIdAndChromosome(t *testing.T) {
 	// assert the dto response slice is plentiful
 	assert.NotNil(t, allDtoResponses)
 
-	From(allDtoResponses).ForEachT(func(dto models.GenesResponseDTO) {
+	From(allDtoResponses).ForEachT(func(dto dtos.GenesResponseDTO) {
 		// ensure there are results in the response
 		assert.NotNil(t, dto.Results)
 
 		// check the resulting data
-		From(dto.Results).ForEachT(func(gene models.Gene) {
+		From(dto.Results).ForEachT(func(gene indexes.Gene) {
 			// ensure the gene is legit
 			assert.NotNil(t, gene.Name)
 			assert.NotNil(t, gene.AssemblyId)
@@ -52,7 +54,7 @@ func TestCanGetGenesByAssemblyIdAndChromosome(t *testing.T) {
 	})
 }
 
-func getAllDtosOfVariousCombinationsOfGenesAndAssemblyIDs(_t *testing.T) []models.GenesResponseDTO {
+func getAllDtosOfVariousCombinationsOfGenesAndAssemblyIDs(_t *testing.T) []dtos.GenesResponseDTO {
 	cfg := common.InitConfig()
 
 	// retrieve the overview
@@ -64,7 +66,7 @@ func getAllDtosOfVariousCombinationsOfGenesAndAssemblyIDs(_t *testing.T) []model
 
 	// initialize a common slice in which to
 	// accumulate al responses asynchronously
-	allDtoResponses := []models.GenesResponseDTO{}
+	allDtoResponses := []dtos.GenesResponseDTO{}
 	allDtoResponsesMux := sync.RWMutex{}
 
 	var combWg sync.WaitGroup
@@ -143,7 +145,7 @@ func getGenesOverview(_t *testing.T, _cfg *models.Config) map[string]interface{}
 	return overviewRespJson
 }
 
-func buildQueryAndMakeGetGenesCall(chromosome string, term string, assemblyId c.AssemblyId, _t *testing.T, _cfg *models.Config) models.GenesResponseDTO {
+func buildQueryAndMakeGetGenesCall(chromosome string, term string, assemblyId c.AssemblyId, _t *testing.T, _cfg *models.Config) dtos.GenesResponseDTO {
 
 	queryString := fmt.Sprintf("?chromosome=%s&assemblyId=%s", chromosome, assemblyId)
 
@@ -152,7 +154,7 @@ func buildQueryAndMakeGetGenesCall(chromosome string, term string, assemblyId c.
 	return getGetGenesCall(url, _t)
 }
 
-func getGetGenesCall(url string, _t *testing.T) models.GenesResponseDTO {
+func getGetGenesCall(url string, _t *testing.T) dtos.GenesResponseDTO {
 	fmt.Printf("Calling %s\n", url)
 	request, _ := http.NewRequest("GET", url, nil)
 
@@ -174,7 +176,7 @@ func getGetGenesCall(url string, _t *testing.T) models.GenesResponseDTO {
 	respBodyString := string(respBody)
 
 	//	-- convert to json and check for error
-	var respDto models.GenesResponseDTO
+	var respDto dtos.GenesResponseDTO
 	jsonUnmarshallingError := json.Unmarshal([]byte(respBodyString), &respDto)
 	assert.Nil(_t, jsonUnmarshallingError)
 
