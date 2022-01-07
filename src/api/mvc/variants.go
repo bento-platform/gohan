@@ -643,6 +643,11 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 				for _, r := range allDocBuckets {
 					sampleId := r["key"].(string)
 
+					// TEMP : re-capitalize sampleIds retrieved from elasticsearch at response time
+					// TODO: touch up elasticsearch ingestion/parsing settings
+					// to not automatically force all sampleIds to lowercase when indexing
+					sampleId = strings.ToUpper(sampleId)
+
 					// accumulate sample Id's
 					variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
 						SampleId:     sampleId,
@@ -672,6 +677,11 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 				fmt.Printf("Found %d docs!\n", len(allSources))
 
 				for _, source := range allSources {
+					// TEMP : re-capitalize sampleIds retrieved from elasticsearch at response time
+					// TODO: touch up elasticsearch ingestion/parsing settings
+					// to not automatically force all sampleIds to lowercase when indexing
+					sampleId := strings.ToUpper(source.Sample.Id)
+
 					variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
 						Chrom:  source.Chrom,
 						Pos:    source.Pos,
@@ -684,7 +694,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 						Info: source.Info,
 
-						SampleId:     source.Sample.Id,
+						SampleId:     sampleId,
 						GenotypeType: zygosity.ZygosityToString(source.Sample.Variation.Genotype.Zygosity),
 
 						AssemblyId: source.AssemblyId,
