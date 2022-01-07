@@ -1,5 +1,7 @@
 package constants
 
+var VcfHeaders = []string{"chrom", "pos", "id", "ref", "alt", "qual", "filter", "info", "format"}
+
 /*
 	Defines a set of base level
 	constants and enums to be used

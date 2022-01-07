@@ -28,6 +28,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"api/models/indexes"
+
 	"github.com/Jeffail/gabs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esutil"
@@ -359,8 +361,8 @@ func (i *IngestionService) ProcessVcf(
 						// determine if header is a default VCF header.
 						// if it is not, assume it's a sampleId and keep
 						// track of it with an id
-						if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), models.VcfHeaders) {
-							headerSampleIds[len(models.VcfHeaders)-id] = header
+						if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), constants.VcfHeaders) {
+							headerSampleIds[len(constants.VcfHeaders)-id] = header
 						}
 					}
 
@@ -406,7 +408,7 @@ func (i *IngestionService) ProcessVcf(
 					value := strings.TrimSpace(rc)
 
 					// if not a vcf header, assume it's a sampleId header
-					if utils.StringInSlice(key, models.VcfHeaders) {
+					if utils.StringInSlice(key, constants.VcfHeaders) {
 
 						// filter field type by column name
 						if key == "chrom" {
@@ -461,7 +463,7 @@ func (i *IngestionService) ProcessVcf(
 							tmpVariant[key] = value
 							tmpVariantMapMutex.Unlock()
 						} else if key == "info" {
-							var allInfos []*models.Info
+							var allInfos []*indexes.Info
 
 							// Split all alleles by semi-colon
 							semiColonSeparations := strings.Split(value, ";")
@@ -471,12 +473,12 @@ func (i *IngestionService) ProcessVcf(
 								equalitySeparations := strings.Split(scSep, "=")
 
 								if len(equalitySeparations) == 2 {
-									allInfos = append(allInfos, &models.Info{
+									allInfos = append(allInfos, &indexes.Info{
 										Id:    equalitySeparations[0],
 										Value: equalitySeparations[1],
 									})
 								} else { // len(equalitySeparations) == 1
-									allInfos = append(allInfos, &models.Info{
+									allInfos = append(allInfos, &indexes.Info{
 										Id:    "",
 										Value: equalitySeparations[0],
 									})
@@ -528,7 +530,7 @@ func (i *IngestionService) ProcessVcf(
 			}
 
 			// --- TODO: prep formats + samples
-			var samples []*models.Sample
+			var samples []*indexes.Sample
 
 			// ---- get genotype stuff
 			var (
@@ -558,8 +560,8 @@ func (i *IngestionService) ProcessVcf(
 			}
 
 			for _, ts := range tmpSamples {
-				sample := &models.Sample{}
-				variation := &models.Variation{}
+				sample := &indexes.Sample{}
+				variation := &indexes.Variation{}
 
 				tmpKeyString := ts["key"].(string)
 				tmpValueStrings := ts["values"].([]string)
@@ -610,7 +612,7 @@ func (i *IngestionService) ProcessVcf(
 							}
 						}
 
-						variation.Genotype = models.Genotype{
+						variation.Genotype = indexes.Genotype{
 							Phased:   phased,
 							Zygosity: zyg,
 						}
@@ -659,7 +661,7 @@ func (i *IngestionService) ProcessVcf(
 				for _, sample := range samples {
 					tmpVariant["sample"] = sample
 					// ---	 push to a bulk "queue"
-					var resultingVariant models.Variant
+					var resultingVariant indexes.Variant
 					mapstructure.Decode(tmpVariant, &resultingVariant)
 
 					// pass variant (along with a waitgroup) to the channel
