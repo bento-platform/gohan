@@ -7,8 +7,8 @@ import (
 
 // ---- Variants
 type VariantReponse struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
+	Status  int    `json:"status,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 type VariantGetReponse struct {
 	VariantReponse
@@ -20,7 +20,7 @@ type VariantCountReponse struct {
 }
 
 type VariantResult struct {
-	Query      string               `json:"query"`
+	Query      string               `json:"query,omitempty"`
 	AssemblyId constants.AssemblyId `json:"assembly_id"`
 	Chromosome string               `json:"chromosome"`
 	Start      int                  `json:"start"`
@@ -37,22 +37,22 @@ type VariantCountResult struct {
 }
 
 type VariantCall struct {
-	Chrom  string   `json:"chrom"`
-	Pos    int      `json:"pos"`
-	Id     string   `json:"id"`
-	Ref    []string `json:"ref"`
-	Alt    []string `json:"alt"`
-	Format []string `json:"format"`
-	Qual   int      `json:"qual"`
-	Filter string   `json:"filter"`
+	Chrom  string   `json:"chrom,omitempty"`
+	Pos    int      `json:"pos,omitempty"`
+	Id     string   `json:"id,omitempty"`
+	Ref    []string `json:"ref,omitempty"`
+	Alt    []string `json:"alt,omitempty"`
+	Format []string `json:"format,omitempty"`
+	Qual   int      `json:"qual,omitempty"`
+	Filter string   `json:"filter,omitempty"`
 
-	Info []indexes.Info `json:"info"` // TODO; refactor?
+	Info []indexes.Info `json:"info,omitempty"` // TODO; refactor?
 
 	SampleId     string `json:"sample_id"`
 	GenotypeType string `json:"genotype_type"`
 	// TODO: GenotypeProbability, PhredScaleLikelyhood ?
 
-	AssemblyId constants.AssemblyId `json:"assemblyId"` // redundant ?
+	AssemblyId constants.AssemblyId `json:"assemblyId,omitempty"`
 }
 
 // -- Genes

@@ -587,7 +587,13 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			)
 			if isVariantIdQuery {
 				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
-				variantResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
+
+				// only set query string if
+				// 'getSampleIdsOnly' is false
+				// (current support for bentoV2 + bento_federation_service integration)
+				if !getSampleIdsOnly {
+					variantResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
+				}
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -599,7 +605,13 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 			} else {
 				// implied sampleId query
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
-				variantResult.Query = fmt.Sprintf("sampleId:%s", _id) // TODO: Refactor
+
+				// only set query string if
+				// 'getSampleIdsOnly' is false
+				// (current support for bentoV2 + bento_federation_service integration)
+				if !getSampleIdsOnly {
+					variantResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
+				}
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -616,52 +628,68 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 				return
 			}
 
-			// format query document results
-			docsHits := docs["hits"].(map[string]interface{})["hits"]
-			allDocHits := []map[string]interface{}{}
-			mapstructure.Decode(docsHits, &allDocHits)
-
-			// grab _source for each hit
-			var allSources []indexes.Variant
-
-			for _, r := range allDocHits {
-				source := r["_source"].(map[string]interface{})
-
-				// cast map[string]interface{} to struct
-				var resultingVariant indexes.Variant
-				mapstructure.Decode(source, &resultingVariant)
-
-				// accumulate structs
-				allSources = append(allSources, resultingVariant)
-			}
-
-			fmt.Printf("Found %d docs!\n", len(allSources))
-
 			// -- map variant index models to appropriate variant result + call dto models
 			variantResult.AssemblyId = assemblyId
 			variantResult.Chromosome = chromosome
 			variantResult.Start = lowerBound
 			variantResult.End = upperBound
 
-			for _, source := range allSources {
-				variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
-					Chrom:  source.Chrom,
-					Pos:    source.Pos,
-					Id:     source.Id,
-					Ref:    source.Ref,
-					Alt:    source.Alt,
-					Format: source.Format,
-					Qual:   source.Qual,
-					Filter: source.Filter,
+			if getSampleIdsOnly {
+				// gather data from "aggregations"
+				docsBuckets := docs["aggregations"].(map[string]interface{})["sampleIds"].(map[string]interface{})["buckets"]
+				allDocBuckets := []map[string]interface{}{}
+				mapstructure.Decode(docsBuckets, &allDocBuckets)
 
-					Info: source.Info,
+				for _, r := range allDocBuckets {
+					sampleId := r["key"].(string)
 
-					SampleId:     source.Sample.Id,
-					GenotypeType: zygosity.ZygosityToString(source.Sample.Variation.Genotype.Zygosity),
+					// accumulate sample Id's
+					variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
+						SampleId:     sampleId,
+						GenotypeType: string(genotype),
+					})
+				}
+			} else {
+				// gather data from "hits"
+				docsHits := docs["hits"].(map[string]interface{})["hits"]
+				allDocHits := []map[string]interface{}{}
+				mapstructure.Decode(docsHits, &allDocHits)
 
-					AssemblyId: source.AssemblyId,
-				})
+				// grab _source for each hit
+				var allSources []indexes.Variant
 
+				for _, r := range allDocHits {
+					source := r["_source"].(map[string]interface{})
+
+					// cast map[string]interface{} to struct
+					var resultingVariant indexes.Variant
+					mapstructure.Decode(source, &resultingVariant)
+
+					// accumulate structs
+					allSources = append(allSources, resultingVariant)
+				}
+
+				fmt.Printf("Found %d docs!\n", len(allSources))
+
+				for _, source := range allSources {
+					variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
+						Chrom:  source.Chrom,
+						Pos:    source.Pos,
+						Id:     source.Id,
+						Ref:    source.Ref,
+						Alt:    source.Alt,
+						Format: source.Format,
+						Qual:   source.Qual,
+						Filter: source.Filter,
+
+						Info: source.Info,
+
+						SampleId:     source.Sample.Id,
+						GenotypeType: zygosity.ZygosityToString(source.Sample.Variation.Genotype.Zygosity),
+
+						AssemblyId: source.AssemblyId,
+					})
+				}
 			}
 			// --
 
@@ -675,8 +703,13 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	wg.Wait()
 
 	if len(errors) == 0 {
-		respDTO.Status = 200
-		respDTO.Message = "Success"
+		// only set status and message if
+		// 'getSampleIdsOnly' is false
+		// (current support for bentoV2 + bento_federation_service integration)
+		if !getSampleIdsOnly {
+			respDTO.Status = 200
+			respDTO.Message = "Success"
+		}
 	} else {
 		respDTO.Status = 500
 		respDTO.Message = "Something went wrong.. Please contact the administrator!"
