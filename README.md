@@ -204,7 +204,7 @@ Response
 Requests
 > &nbsp;&nbsp;**GET** `/variants/get/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, M )`
+>   - chromosome : **string** `( 1-23, X, Y, MT )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele ( "A" | "C" | "G" | "T"  or some combination thereof )`
@@ -214,10 +214,11 @@ Requests
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
 >   - includeInfoInResultSet : **boolean** `(true | false)`
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
+>   - getSampleIdsOnly : **bool**  *`(optional) -  default: false  `*
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, M )`
+>   - chromosome : **string** `( 1-23, X, Y, MT )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -227,7 +228,7 @@ Requests
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, M )`
+>   - chromosome : **string** `( 1-23, X, Y, MT )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -240,7 +241,7 @@ Requests
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
 > &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, M )`
+>   - chromosome : **string** `( 1-23, X, Y, MT )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -257,14 +258,18 @@ Generalized Response Body Structure
 >{
 >     "status":  `number` (200 - 500),
 >     "message": `string` ("Success" | "Error"),
->     "data": [
+>     "results": [
 >         {
->             "variantId":  `string`,
->             "sampleId":  `string`,
->             "count":  `number`,
->             "results": [
+>             "query":  `string`,       // reflective of the type of id queried for, i.e 'variantId:abc123', or 'sampleId:HG0001
+>             "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),    // reflective of the assembly id queried for
+>             "count":  `number`,   // this field is only present when performing a COUNT query
+>             "start":  `number`,   // reflective of the provided lowerBound parameter, 0 if none
+>             "end":  `number`,     // reflective of the provided upperBound parameter, 0 if none
+>             "chromosome":  `string`,       // reflective of the chromosome queried for
+>             "calls": [            // this field is only present when performing a GET query
 >                 {
->                    "filter": `string`,
+>                    "id": `string`, // variantId
+>                    "chrom":  `string`,
 >                    "pos": `number`,
 >                    "ref": `[]string`,  // list of alleles
 >                    "alt": `[]string`,  // list of alleles
@@ -277,21 +282,9 @@ Generalized Response Body Structure
 >                    ],
 >                    "format":`string`,
 >                    "qual": `number`,
->                    "id": `string`,
->                    "sample": {
->                        "id": `string`,
->                        "variation": {
->                            "genotype": {
->                                "phased": `boolean`,
->                                "alleleLeft": `number`,
->                                "alleleRight": `number`,
->                                "zygosity": `number` (0 : "Unknown" | 1 : "Heterozygous" | 2 : "HomozygousReference" | 3 : "HomozygousAlternate")
->                            },
->                            "genotypeProbability": `[]float` | null,
->                            "phredScaleLikelyhood": `[]float` | null,
->                        }
->                    },
->                    "fileId": `string` (UUID),
+>                    "filter": `string`,
+>                    "sampleId": `string`,
+>                    "genotype_type": `string ( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`,
 >                    "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),
 >                 },
 >                 ...
