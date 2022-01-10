@@ -242,7 +242,14 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 decompress vcf.gz
 
 				fmt.Printf("Decompressing %s !\n", gzippedFileName)
-				gzippedFilePath := fmt.Sprintf("%s%s", vcfPath, gzippedFileName)
+				var separator string
+				if strings.HasPrefix(gzippedFileName, "/") {
+					separator = ""
+				} else {
+					separator = "/"
+				}
+
+				gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, separator, gzippedFileName)
 				r, err := os.Open(gzippedFilePath)
 				if err != nil {
 					msg := fmt.Sprintf("error opening %s: %s\n", gzippedFileName, err)
@@ -259,7 +266,7 @@ func VariantsIngest(c echo.Context) error {
 				// 	     such that DRS can load the file into memory to process rather than receiving
 				//       the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind
 				// -----
-				tmpDestinationFileName := fmt.Sprintf("%s%s", cfg.Api.BridgeDirectory, gzippedFileName)
+				tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Api.BridgeDirectory, separator, gzippedFileName)
 
 				// prepare directory inside bridge directory
 				partialTmpDir, _ := path.Split(gzippedFileName)
