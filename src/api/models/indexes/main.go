@@ -1,10 +1,8 @@
-package models
+package indexes
 
 import (
 	c "api/models/constants"
 )
-
-var VcfHeaders = []string{"chrom", "pos", "id", "ref", "alt", "qual", "filter", "info", "format"}
 
 type Variant struct {
 	Chrom  string   `json:"chrom"`

@@ -25,7 +25,10 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"api/models/indexes"
 
 	"github.com/Jeffail/gabs"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -75,7 +78,7 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
 		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 5MB ?)
-		FlushInterval: time.Second, // The periodic flush interval
+		// FlushInterval: time.Second, // The periodic flush interval
 	})
 	iz.IngestionBulkIndexer = bi
 
@@ -83,8 +86,8 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		Index:      "genes",
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
-		//FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
-		FlushInterval: 3 * time.Second, // The periodic flush interval
+		// FlushBytes: int(64), // The flush threshold in bytes (default: 5MB ?)
+		// FlushInterval: 3 * time.Second, // The periodic flush interval
 	})
 	iz.GeneIngestionBulkIndexer = gbi
 
@@ -96,7 +99,7 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 func (i *IngestionService) Init() {
 	// safeguard to prevent multiple initilizations
 	if !i.Initialized {
-		// spin up a listener for ingest request updates
+		// spin up a listener for both variant and gene ingest request updates
 		go func() {
 			for {
 				select {
@@ -125,7 +128,7 @@ func (i *IngestionService) Init() {
 			}
 		}()
 
-		// spin up a listener for each bulk indexing
+		// spin up a listener for both variant and gene bulk indexing
 		go func() {
 			for {
 				select {
@@ -333,6 +336,9 @@ func (i *IngestionService) ProcessVcf(
 	scanner := bufio.NewScanner(f)
 	var discoveredHeaders bool = false
 	var headers []string
+	headerSampleIds := make(map[int]string)
+
+	skippedHomozygousReferencesCount := int32(0)
 
 	var _fileWG sync.WaitGroup
 
@@ -350,6 +356,16 @@ func (i *IngestionService) ProcessVcf(
 				if strings.Contains(line, "CHROM") {
 					// Split the string by tabs
 					headers = strings.Split(line, "\t")
+
+					for id, header := range headers {
+						// determine if header is a default VCF header.
+						// if it is not, assume it's a sampleId and keep
+						// track of it with an id
+						if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), constants.VcfHeaders) {
+							headerSampleIds[len(constants.VcfHeaders)-id] = header
+						}
+					}
+
 					discoveredHeaders = true
 
 					fmt.Println("Found the headers: ", headers)
@@ -392,7 +408,7 @@ func (i *IngestionService) ProcessVcf(
 					value := strings.TrimSpace(rc)
 
 					// if not a vcf header, assume it's a sampleId header
-					if utils.StringInSlice(key, models.VcfHeaders) {
+					if utils.StringInSlice(key, constants.VcfHeaders) {
 
 						// filter field type by column name
 						if key == "chrom" {
@@ -405,7 +421,7 @@ func (i *IngestionService) ProcessVcf(
 								tmpVariant[key] = value
 								tmpVariantMapMutex.Unlock()
 							} else {
-								// TODO: skip this call
+								// skip this call
 								skipThisCall = true
 
 								// redundant?
@@ -447,7 +463,7 @@ func (i *IngestionService) ProcessVcf(
 							tmpVariant[key] = value
 							tmpVariantMapMutex.Unlock()
 						} else if key == "info" {
-							var allInfos []*models.Info
+							var allInfos []*indexes.Info
 
 							// Split all alleles by semi-colon
 							semiColonSeparations := strings.Split(value, ";")
@@ -457,12 +473,12 @@ func (i *IngestionService) ProcessVcf(
 								equalitySeparations := strings.Split(scSep, "=")
 
 								if len(equalitySeparations) == 2 {
-									allInfos = append(allInfos, &models.Info{
+									allInfos = append(allInfos, &indexes.Info{
 										Id:    equalitySeparations[0],
 										Value: equalitySeparations[1],
 									})
 								} else { // len(equalitySeparations) == 1
-									allInfos = append(allInfos, &models.Info{
+									allInfos = append(allInfos, &indexes.Info{
 										Id:    "",
 										Value: equalitySeparations[0],
 									})
@@ -479,13 +495,27 @@ func (i *IngestionService) ProcessVcf(
 							tmpVariantMapMutex.Unlock()
 						}
 					} else { // assume its a sampleId header
-						tmpSamplesMutex.Lock()
+						allValues := strings.Split(value, ":")
 
+						// ---- filter out homozygous reference calls
+						// support for multi-sampled calls
+						// assume first component of allValues is the genotype
+						genoTypeValue := allValues[0]
+						if filterOutHomozygousReferences && (genoTypeValue == "0|0" || genoTypeValue == "0/0") {
+							// skip adding this sample to the 'tmpSamples' list which
+							// then goes to be further processed into a variant document
+
+							// increase count of skipped calls
+							atomic.AddInt32(&skippedHomozygousReferencesCount, 1)
+
+							return
+						}
+
+						tmpSamplesMutex.Lock()
 						tmpSamples = append(tmpSamples, map[string]interface{}{
 							"key":    key,
-							"values": strings.Split(value, ":"),
+							"values": allValues,
 						})
-
 						tmpSamplesMutex.Unlock()
 					}
 				}(rowIndex, rowComponent, &rowWg)
@@ -500,7 +530,7 @@ func (i *IngestionService) ProcessVcf(
 			}
 
 			// --- TODO: prep formats + samples
-			var samples []*models.Sample
+			var samples []*indexes.Sample
 
 			// ---- get genotype stuff
 			var (
@@ -530,8 +560,8 @@ func (i *IngestionService) ProcessVcf(
 			}
 
 			for _, ts := range tmpSamples {
-				sample := &models.Sample{}
-				variation := &models.Variation{}
+				sample := &indexes.Sample{}
+				variation := &indexes.Variation{}
 
 				tmpKeyString := ts["key"].(string)
 				tmpValueStrings := ts["values"].([]string)
@@ -582,7 +612,7 @@ func (i *IngestionService) ProcessVcf(
 							}
 						}
 
-						variation.Genotype = models.Genotype{
+						variation.Genotype = indexes.Genotype{
 							Phased:   phased,
 							Zygosity: zyg,
 						}
@@ -613,14 +643,6 @@ func (i *IngestionService) ProcessVcf(
 				sample.Id = tmpKeyString
 				sample.Variation = *variation
 
-				// ---- filter out homozygous reference calls
-				// TODO: determine if this is the most optimal place
-				// 		 to perform this verification
-				if filterOutHomozygousReferences &&
-					sample.Variation.Genotype.Zygosity == z.HomozygousReference {
-					continue
-				}
-
 				samples = append(samples, sample)
 			}
 
@@ -629,12 +651,17 @@ func (i *IngestionService) ProcessVcf(
 			// references, and thus maybe all samples from the call
 			// [i.e. if this is a single-sample VCF])
 			if len(samples) > 0 {
+
+				// for multi-sample vcfs, add 1 to the waitgroup for
+				// each sample (minus 1 given the initial addition)
+				fileWg.Add(len(samples) - 1)
+
 				// Create a whole variant document for each sample found on this VCF line
 				// TODO: revisit this model as it is surely not storage efficient
 				for _, sample := range samples {
 					tmpVariant["sample"] = sample
 					// ---	 push to a bulk "queue"
-					var resultingVariant models.Variant
+					var resultingVariant indexes.Variant
 					mapstructure.Decode(tmpVariant, &resultingVariant)
 
 					// pass variant (along with a waitgroup) to the channel
@@ -658,7 +685,8 @@ func (i *IngestionService) ProcessVcf(
 
 	// let all lines be queued up and processed
 	_fileWG.Wait()
-	fmt.Printf("File %s waited for and complete!\n", vcfFilePath)
+
+	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", vcfFilePath, skippedHomozygousReferencesCount)
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {

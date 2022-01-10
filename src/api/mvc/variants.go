@@ -16,20 +16,23 @@ import (
 	"time"
 
 	"api/contexts"
-	"api/models"
 	"api/models/constants"
 	a "api/models/constants/assembly-id"
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
+	"api/models/dtos"
+	"api/models/indexes"
 	"api/models/ingest"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
 
+	"api/models/constants/zygosity"
+
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/google/uuid"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/labstack/echo"
-	"github.com/mitchellh/mapstructure"
 )
 
 func VariantsIngestionStats(c echo.Context) error {
@@ -128,7 +131,6 @@ func VariantsIngest(c echo.Context) error {
 	}
 
 	startTime := time.Now()
-
 	fmt.Printf("Ingest Start: %s\n", startTime)
 
 	// get vcf files
@@ -240,7 +242,14 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 decompress vcf.gz
 
 				fmt.Printf("Decompressing %s !\n", gzippedFileName)
-				gzippedFilePath := fmt.Sprintf("%s%s", vcfPath, gzippedFileName)
+				var separator string
+				if strings.HasPrefix(gzippedFileName, "/") {
+					separator = ""
+				} else {
+					separator = "/"
+				}
+
+				gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, separator, gzippedFileName)
 				r, err := os.Open(gzippedFilePath)
 				if err != nil {
 					msg := fmt.Sprintf("error opening %s: %s\n", gzippedFileName, err)
@@ -257,7 +266,7 @@ func VariantsIngest(c echo.Context) error {
 				// 	     such that DRS can load the file into memory to process rather than receiving
 				//       the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind
 				// -----
-				tmpDestinationFileName := fmt.Sprintf("%s%s", cfg.Api.BridgeDirectory, gzippedFileName)
+				tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Api.BridgeDirectory, separator, gzippedFileName)
 
 				// prepare directory inside bridge directory
 				partialTmpDir, _ := path.Split(gzippedFileName)
@@ -403,18 +412,19 @@ func VariantsIngest(c echo.Context) error {
 				defer r.Close()
 
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
-				fmt.Printf("Begin processing %s !\n", vcfFilePath)
+				beginProcessingTime := time.Now()
+				fmt.Printf("Begin processing %s at [%s]\n", vcfFilePath, beginProcessingTime)
 				ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(beginProcessingTime))
 
 				// ---   delete the temporary vcf file
 				fmt.Printf("Removing temporary file %s !\n", vcfFilePath)
 				os.Remove(vcfFilePath)
+				fmt.Printf("Removal done!")
 
 				// ---   delete full tmp path and all contents
 				// 		 (WARNING : Only do this when running over a single file)
 				//os.RemoveAll(vcfTmpPath)
-
-				fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(startTime))
 
 				reqStat.State = ingest.Done
 				ingestionService.IngestRequestChan <- reqStat
@@ -558,14 +568,10 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	// ---
 
 	// prepare response
-	var respDTO = make(map[string]interface{})
-	respDTO["DataType"] = "variant"
-
+	respDTO := dtos.VariantGetReponse{
+		Results: make([]dtos.VariantGetResult, 0),
+	}
 	respDTOMux := sync.RWMutex{}
-
-	// initialize length 0 to avoid nil response
-	tmpResults := make([]interface{}, 0)
-	tmpCalls := []models.BentoV2CompatibleVariantResponseCallsModel{}
 
 	var errors []error
 	errorMux := sync.RWMutex{}
@@ -578,17 +584,22 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 		go func(_id string) {
 			defer wg.Done()
 
-			var variantRespDataModel = make(map[string]interface{})
-			// variantRespDataModel := models.VariantResponseDataModel{}
+			variantResult := dtos.VariantGetResult{
+				Calls: make([]dtos.VariantCall, 0),
+			}
 
 			var (
 				docs      map[string]interface{}
 				searchErr error
 			)
 			if isVariantIdQuery {
+				fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+
+				// only set query string if
+				// 'getSampleIdsOnly' is false
+				// (current support for bentoV2 + bento_federation_service integration)
 				if !getSampleIdsOnly {
-					variantRespDataModel["VariantId"] = _id
-					fmt.Printf("Executing Get-Variants for VariantId %s\n", _id)
+					variantResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
 				}
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
@@ -600,9 +611,14 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					getSampleIdsOnly)
 			} else {
 				// implied sampleId query
-				variantRespDataModel["SampleId"] = _id
-
 				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
+
+				// only set query string if
+				// 'getSampleIdsOnly' is false
+				// (current support for bentoV2 + bento_federation_service integration)
+				if !getSampleIdsOnly {
+					variantResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
+				}
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -619,21 +635,46 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 				return
 			}
 
-			// query for each id
+			// -- map variant index models to appropriate variant result + call dto models
+			variantResult.AssemblyId = assemblyId
+			variantResult.Chromosome = chromosome
+			variantResult.Start = lowerBound
+			variantResult.End = upperBound
 
-			if !getSampleIdsOnly {
+			if getSampleIdsOnly {
+				// gather data from "aggregations"
+				docsBuckets := docs["aggregations"].(map[string]interface{})["sampleIds"].(map[string]interface{})["buckets"]
+				allDocBuckets := []map[string]interface{}{}
+				mapstructure.Decode(docsBuckets, &allDocBuckets)
+
+				for _, r := range allDocBuckets {
+					sampleId := r["key"].(string)
+
+					// TEMP : re-capitalize sampleIds retrieved from elasticsearch at response time
+					// TODO: touch up elasticsearch ingestion/parsing settings
+					// to not automatically force all sampleIds to lowercase when indexing
+					sampleId = strings.ToUpper(sampleId)
+
+					// accumulate sample Id's
+					variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
+						SampleId:     sampleId,
+						GenotypeType: string(genotype),
+					})
+				}
+			} else {
+				// gather data from "hits"
 				docsHits := docs["hits"].(map[string]interface{})["hits"]
 				allDocHits := []map[string]interface{}{}
 				mapstructure.Decode(docsHits, &allDocHits)
 
 				// grab _source for each hit
-				var allSources []models.Variant
+				var allSources []indexes.Variant
 
 				for _, r := range allDocHits {
 					source := r["_source"].(map[string]interface{})
 
 					// cast map[string]interface{} to struct
-					var resultingVariant models.Variant
+					var resultingVariant indexes.Variant
 					mapstructure.Decode(source, &resultingVariant)
 
 					// accumulate structs
@@ -642,37 +683,36 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 
 				fmt.Printf("Found %d docs!\n", len(allSources))
 
-				variantRespDataModel["Results"] = allSources
+				for _, source := range allSources {
+					// TEMP : re-capitalize sampleIds retrieved from elasticsearch at response time
+					// TODO: touch up elasticsearch ingestion/parsing settings
+					// to not automatically force all sampleIds to lowercase when indexing
+					sampleId := strings.ToUpper(source.Sample.Id)
 
-				respDTOMux.Lock()
-				tmpResults = append(tmpResults, variantRespDataModel)
-				respDTOMux.Unlock()
-			} else {
-				// TODO: refactor this 'else' statement
-				docsBuckets := docs["aggregations"].(map[string]interface{})["sampleIds"].(map[string]interface{})["buckets"]
-				allDocBuckets := []map[string]interface{}{}
-				mapstructure.Decode(docsBuckets, &allDocBuckets)
+					variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
+						Chrom:  source.Chrom,
+						Pos:    source.Pos,
+						Id:     source.Id,
+						Ref:    source.Ref,
+						Alt:    source.Alt,
+						Format: source.Format,
+						Qual:   source.Qual,
+						Filter: source.Filter,
 
-				for _, r := range allDocBuckets {
-					sampleId := r["key"].(string)
+						Info: source.Info,
 
-					// cast map[string]interface{} to struct
-					simplifiedResponse := models.BentoV2CompatibleVariantResponseDataModel{
-						SampleId:     strings.ToUpper(sampleId),
-						GenotypeType: string(genotype),
-					}
+						SampleId:     sampleId,
+						GenotypeType: zygosity.ZygosityToString(source.Sample.Variation.Genotype.Zygosity),
 
-					call := models.BentoV2CompatibleVariantResponseCallsModel{}
-					call.AssemblyId = assemblyId
-					call.Chromosome = chromosome
-					call.Start = lowerBound
-					call.End = upperBound
-					call.Calls = append(call.Calls, simplifiedResponse)
-
-					// accumulate sample Id's
-					tmpCalls = append(tmpCalls, call)
+						AssemblyId: source.AssemblyId,
+					})
 				}
 			}
+			// --
+
+			respDTOMux.Lock()
+			respDTO.Results = append(respDTO.Results, variantResult)
+			respDTOMux.Unlock()
 
 		}(id)
 	}
@@ -680,33 +720,19 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 	wg.Wait()
 
 	if len(errors) == 0 {
-		respDTO["Status"] = 200
-		respDTO["Message"] = "Success"
+		// only set status and message if
+		// 'getSampleIdsOnly' is false
+		// (current support for bentoV2 + bento_federation_service integration)
+		if !getSampleIdsOnly {
+			respDTO.Status = 200
+			respDTO.Message = "Success"
+		}
 	} else {
-		respDTO["Status"] = 500
-		respDTO["Message"] = "Something went wrong.. Please contact the administrator!"
+		respDTO.Status = 500
+		respDTO.Message = "Something went wrong.. Please contact the administrator!"
 	}
 
-	// cast generic map[string]interface{} to type
-	// depending on `getSampleIdsOnly`
-	if getSampleIdsOnly {
-		respDTO["Results"] = tmpCalls
-	} else {
-		respDTO["Data"] = tmpResults
-	}
-
-	// TODO: Refactor
-	if getSampleIdsOnly {
-		var dto models.BentoV2CompatibleVariantsResponseDTO
-		mapstructure.Decode(respDTO, &dto)
-
-		return c.JSON(http.StatusOK, dto)
-	} else {
-		var dto models.VariantsResponseDTO
-		mapstructure.Decode(respDTO, &dto)
-
-		return c.JSON(http.StatusOK, dto)
-	}
+	return c.JSON(http.StatusOK, respDTO)
 }
 
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
@@ -714,7 +740,9 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
 
-	respDTO := models.VariantsResponseDTO{}
+	respDTO := dtos.VariantCountReponse{
+		Results: make([]dtos.VariantCountResult, 0),
+	}
 	respDTOMux := sync.RWMutex{}
 
 	var errors []error
@@ -727,16 +755,15 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 		go func(_id string) {
 			defer wg.Done()
 
-			variantRespDataModel := models.VariantResponseDataModel{}
+			countResult := dtos.VariantCountResult{}
 
 			var (
 				docs       map[string]interface{}
 				countError error
 			)
 			if isVariantIdQuery {
-				variantRespDataModel.VariantId = _id
-
 				fmt.Printf("Executing Count-Variants for VariantId %s\n", _id)
+				countResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
 
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -744,9 +771,8 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 					reference, alternative, genotype, assemblyId)
 			} else {
 				// implied sampleId query
-				variantRespDataModel.SampleId = _id
-
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
+				countResult.Query = fmt.Sprintf("sampleId:%s", _id) // TODO: Refactor
 
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
@@ -760,11 +786,15 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				errorMux.Unlock()
 				return
 			}
+			countResult.AssemblyId = assemblyId
+			countResult.Chromosome = chromosome
+			countResult.Start = lowerBound
+			countResult.End = upperBound
 
-			variantRespDataModel.Count = int(docs["count"].(float64))
+			countResult.Count = int(docs["count"].(float64))
 
 			respDTOMux.Lock()
-			respDTO.Data = append(respDTO.Data, variantRespDataModel)
+			respDTO.Results = append(respDTO.Results, countResult)
 			respDTOMux.Unlock()
 
 		}(id)

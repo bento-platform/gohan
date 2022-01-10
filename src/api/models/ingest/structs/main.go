@@ -1,16 +1,16 @@
 package structs
 
 import (
-	"api/models"
+	"api/models/indexes"
 	"sync"
 )
 
 type IngestionQueueStructure struct {
-	Variant   *models.Variant
+	Variant   *indexes.Variant
 	WaitGroup *sync.WaitGroup
 }
 
 type GeneIngestionQueueStructure struct {
-	Gene      *models.Gene
+	Gene      *indexes.Gene
 	WaitGroup *sync.WaitGroup
 }
