@@ -110,7 +110,17 @@ func VariantsIngest(c echo.Context) error {
 			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
 		} else {
 			// remove DRS bridge directory base path from the requested filenames (if present)
-			fileNames[i] = strings.ReplaceAll(fileName, cfg.Drs.BridgeDirectory, "")
+			if strings.HasPrefix(fileName, cfg.Drs.BridgeDirectory) {
+				replaced := strings.Replace(fileName, cfg.Drs.BridgeDirectory, "", 1)
+
+				replacedDirectory, replacedFileName := path.Split(replaced)
+				// strip the leading '/' away
+				if replacedDirectory == "/" {
+					fileNames[i] = replacedFileName
+				} else {
+					fileNames[i] = replaced
+				}
+			}
 		}
 	}
 
