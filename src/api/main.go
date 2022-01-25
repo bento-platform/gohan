@@ -133,6 +133,7 @@ func main() {
 	e.GET("/data-types/variant/metadata_schema", mvc.GetVariantDataTypeMetadataSchema)
 
 	// -- TEMP (simulating bento_variants)
+	e.GET("/tables", mvc.FakeBentoTables)
 	e.GET("/tables/fake", mvc.FakeBentoTableSchema)
 	// --
 
