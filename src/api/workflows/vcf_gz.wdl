@@ -1,9 +1,11 @@
 workflow vcf_gz {
     String gohan_url
-    Array[File] vcf_gz_file_names
+    Array[File] vcf_gz_file_names # redundant
     Array[String] original_vcf_gz_file_paths
     String assembly_id
     String filter_out_homozygous_references
+    String temp_token
+    String temp_token_host
 
     # scatter(file_name in vcf_gz_file_names) {
     scatter(file_name in original_vcf_gz_file_paths) {
@@ -11,20 +13,36 @@ workflow vcf_gz {
             input: gohan_url = gohan_url,
                    vcf_gz_file_name = file_name,
                    assembly_id = assembly_id,
-                   filter_out_homozygous_references = filter_out_homozygous_references
+                   filter_out_homozygous_references = filter_out_homozygous_references,
+                   temp_token = temp_token,
+                   temp_token_host = temp_token_host
+
         }
     }
 }
 
 task vcf_gz_gohan {
     String gohan_url
-    # File vcf_gz_file_name
     String vcf_gz_file_name
     String assembly_id
     String filter_out_homozygous_references
+    String temp_token
+    String temp_token_host
 
     command {
-        RUN_RESPONSE=$(curl "${gohan_url}/variants/ingestion/run?fileNames=${vcf_gz_file_name}&assemblyId=${assembly_id}&filterOutHomozygousReferences=${filter_out_homozygous_references}" | sed 's/"/\"/g')
+        echo "Using temporary-token : ${temp_token}"
+
+        QUERY="fileNames=${vcf_gz_file_name}&assemblyId=${assembly_id}&filterOutHomozygousReferences=${filter_out_homozygous_references}"
+        
+        # TODO: refactor
+        # append temporary-token header if present
+        if [ "${temp_token}" == "" ]
+        then
+            RUN_RESPONSE=$(curl -vvv "${gohan_url}/private/variants/ingestion/run?$QUERY" -k | sed 's/"/\"/g')
+        else
+            RUN_RESPONSE=$(curl -vvv -H "Host: ${temp_token_host}" -H "X-TT: ${temp_token}" "${gohan_url}/private/variants/ingestion/run?$QUERY" -k | sed 's/"/\"/g')
+        fi
+        
         echo $RUN_RESPONSE 
 
         # reformat response string to include double quotes in the json object
@@ -41,8 +59,16 @@ task vcf_gz_gohan {
         # "while loop to ping '/variants/ingestion/requests' and wait for this file ingestion to complete or display an error..."
         while :
         do
+            # TODO: refactor
             # fetch run requests
-            REQUESTS=$(curl "${gohan_url}/variants/ingestion/requests")
+            # append temporary-token header if present
+            if [ "${temp_token}" == "" ]
+            then
+                REQUESTS=$(curl -vvv "${gohan_url}/private/variants/ingestion/requests" -k)
+            else
+                REQUESTS=$(curl -vvv -H "Host: ${temp_token_host}" -H "X-TT: ${temp_token}" "${gohan_url}/private/variants/ingestion/requests" -k)
+            fi
+
             echo $REQUESTS
             
             # reformat response string to include double quotes in the json object
@@ -71,6 +97,10 @@ task vcf_gz_gohan {
 
                 echo "File ${vcf_gz_file_name} with assembly id ${assembly_id} done processing $WITH_ERROR_MESSAGE" 
 
+                break
+            elif [ "$THIS_FILE_RESULT" == "" ]
+            then
+                echo "Something went wrong. Got invalid response from Gohan API : $REQUESTS" 
                 break
             else
                 echo "Waiting 5 seconds.."

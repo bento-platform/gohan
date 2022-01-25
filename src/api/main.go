@@ -167,11 +167,18 @@ func main() {
 		gam.MandateSampleIdsSingularAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 
+	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", mvc.VariantsIngest,
 		// middleware
 		gam.MandateAssemblyIdAttribute)
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
 	e.GET("/variants/ingestion/stats", mvc.VariantsIngestionStats)
+
+	e.GET("/private/variants/ingestion/run", mvc.VariantsIngest,
+		// middleware
+		gam.MandateAssemblyIdAttribute)
+	e.GET("/private/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
+	// --
 
 	// -- Genes
 	e.GET("/genes/overview", mvc.GetGenesOverview)
