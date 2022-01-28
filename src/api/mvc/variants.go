@@ -135,8 +135,8 @@ func VariantsIngest(c echo.Context) error {
 	if len(filterOutHomozygousReferencesQP) > 0 {
 		filterOutHomozygousReferences, fohrErr = strconv.ParseBool(filterOutHomozygousReferencesQP)
 		if fohrErr != nil {
-			// TODO: create a standard response object
-			log.Fatal(fohrErr)
+			fmt.Printf("Error parsing filterOutHomozygousReferences: %s, [%s] - defaulting to 'false'\n", filterOutHomozygousReferencesQP, fohrErr)
+			// defaults to false
 		}
 	}
 

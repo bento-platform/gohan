@@ -133,6 +133,7 @@ func main() {
 	e.GET("/data-types/variant/metadata_schema", mvc.GetVariantDataTypeMetadataSchema)
 
 	// -- TEMP (simulating bento_variants)
+	e.GET("/tables", mvc.FakeBentoTables)
 	e.GET("/tables/fake", mvc.FakeBentoTableSchema)
 	// --
 
@@ -167,11 +168,18 @@ func main() {
 		gam.MandateSampleIdsSingularAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 
+	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", mvc.VariantsIngest,
 		// middleware
 		gam.MandateAssemblyIdAttribute)
 	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
 	e.GET("/variants/ingestion/stats", mvc.VariantsIngestionStats)
+
+	e.GET("/private/variants/ingestion/run", mvc.VariantsIngest,
+		// middleware
+		gam.MandateAssemblyIdAttribute)
+	e.GET("/private/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
+	// --
 
 	// -- Genes
 	e.GET("/genes/overview", mvc.GetGenesOverview)
