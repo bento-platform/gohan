@@ -678,17 +678,22 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 				mapstructure.Decode(docsHits, &allDocHits)
 
 				// grab _source for each hit
-				var allSources []indexes.Variant
+				var allSources []interface{}
+				// var allSources []indexes.Variant
 
 				for _, r := range allDocHits {
 					source := r["_source"].(map[string]interface{})
+					docId := r["_id"].(string)
 
 					// cast map[string]interface{} to struct
 					var resultingVariant indexes.Variant
 					mapstructure.Decode(source, &resultingVariant)
 
 					// accumulate structs
-					allSources = append(allSources, resultingVariant)
+					allSources = append(allSources, map[string]interface{}{
+						"variant":    resultingVariant,
+						"documentId": docId,
+					})
 				}
 
 				fmt.Printf("Found %d docs!\n", len(allSources))
@@ -697,24 +702,28 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					// TEMP : re-capitalize sampleIds retrieved from elasticsearch at response time
 					// TODO: touch up elasticsearch ingestion/parsing settings
 					// to not automatically force all sampleIds to lowercase when indexing
-					sampleId := strings.ToUpper(source.Sample.Id)
+					variant := source.(map[string]interface{})["variant"].(indexes.Variant)
+					docId := source.(map[string]interface{})["documentId"].(string)
+
+					sampleId := strings.ToUpper(variant.Sample.Id)
 
 					variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
-						Chrom:  source.Chrom,
-						Pos:    source.Pos,
-						Id:     source.Id,
-						Ref:    source.Ref,
-						Alt:    source.Alt,
-						Format: source.Format,
-						Qual:   source.Qual,
-						Filter: source.Filter,
+						Chrom:  variant.Chrom,
+						Pos:    variant.Pos,
+						Id:     variant.Id,
+						Ref:    variant.Ref,
+						Alt:    variant.Alt,
+						Format: variant.Format,
+						Qual:   variant.Qual,
+						Filter: variant.Filter,
 
-						Info: source.Info,
+						Info: variant.Info,
 
 						SampleId:     sampleId,
-						GenotypeType: zygosity.ZygosityToString(source.Sample.Variation.Genotype.Zygosity),
+						GenotypeType: zygosity.ZygosityToString(variant.Sample.Variation.Genotype.Zygosity),
 
-						AssemblyId: source.AssemblyId,
+						AssemblyId: variant.AssemblyId,
+						DocumentId: docId,
 					})
 				}
 			}

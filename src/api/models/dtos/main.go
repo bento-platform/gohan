@@ -53,6 +53,7 @@ type VariantCall struct {
 	// TODO: GenotypeProbability, PhredScaleLikelyhood ?
 
 	AssemblyId constants.AssemblyId `json:"assemblyId,omitempty"`
+	DocumentId string               `json:"documentId,omitempty"`
 }
 
 // -- Genes
