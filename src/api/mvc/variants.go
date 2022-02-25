@@ -51,9 +51,8 @@ func VariantsGetByVariantId(c echo.Context) error {
 		variantIds = []string{"*"}
 	}
 
-	return executeGetByIds(c, variantIds, true)
+	return executeGetByIds(c, variantIds, true, false)
 }
-
 func VariantsGetBySampleId(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsGetBySampleId hit!\n", time.Now())
 	// retrieve sample Ids from query parameter (comma separated)
@@ -63,7 +62,18 @@ func VariantsGetBySampleId(c echo.Context) error {
 		sampleIds = []string{"*"}
 	}
 
-	return executeGetByIds(c, sampleIds, false)
+	return executeGetByIds(c, sampleIds, false, false)
+}
+func VariantsGetByDocumentId(c echo.Context) error {
+	fmt.Printf("[%s] - VariantsGetByDocumentId hit!\n", time.Now())
+	// retrieve document Ids from query parameter (comma separated)
+	docIds := strings.Split(c.QueryParam("ids"), ",")
+	if len(docIds[0]) == 0 {
+		// if no ids were provided, assume "wildcard" search
+		docIds = []string{"*"}
+	}
+
+	return executeGetByIds(c, docIds, false, true)
 }
 
 func VariantsCountByVariantId(c echo.Context) error {
@@ -78,7 +88,6 @@ func VariantsCountByVariantId(c echo.Context) error {
 
 	return executeCountByIds(c, singleVariantIdSlice, true)
 }
-
 func VariantsCountBySampleId(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsCountBySampleId hit!\n", time.Now())
 	// retrieve single sample id from query parameter and map to a list
@@ -528,7 +537,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 	return c.JSON(http.StatusOK, m)
 }
 
-func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
+func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
 	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
@@ -620,24 +629,34 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool) error 
 					includeInfoInResultSet, genotype, assemblyId,
 					getSampleIdsOnly)
 			} else {
-				// implied sampleId query
-				fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
 
-				// only set query string if
-				// 'getSampleIdsOnly' is false
-				// (current support for bentoV2 + bento_federation_service integration)
-				if !getSampleIdsOnly {
-					variantResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
+				if isDocumentIdQuery {
+					variantResult.Query = fmt.Sprintf("documentId:%s", _id) // TODO: Refactor
+
+					fmt.Printf("Executing Get-Samples for DocumentId %s\n", _id)
+					docs, searchErr = esRepo.GetDocumentsByDocumentId(cfg, es, _id)
+				} else {
+					// implied sampleId query
+					fmt.Printf("Executing Get-Samples for SampleId %s\n", _id)
+
+					// only set query string if
+					// 'getSampleIdsOnly' is false
+					// (current support for bentoV2 + bento_federation_service integration)
+					if !getSampleIdsOnly {
+						variantResult.Query = fmt.Sprintf("variantId:%s", _id) // TODO: Refactor
+					}
+
+					docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+						chromosome, lowerBound, upperBound,
+						"", _id, // note : "" is for variantId
+						reference, alternative,
+						size, sortByPosition,
+						includeInfoInResultSet, genotype, assemblyId,
+						false)
 				}
 
-				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
-					chromosome, lowerBound, upperBound,
-					"", _id, // note : "" is for variantId
-					reference, alternative,
-					size, sortByPosition,
-					includeInfoInResultSet, genotype, assemblyId,
-					false)
 			}
+
 			if searchErr != nil {
 				errorMux.Lock()
 				errors = append(errors, searchErr)

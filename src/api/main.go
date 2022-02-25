@@ -153,6 +153,7 @@ func main() {
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsPluralAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
+	e.GET("/variants/get/by/documentId", mvc.VariantsGetByDocumentId)
 
 	e.GET("/variants/count/by/variantId", mvc.VariantsCountByVariantId,
 		// middleware
