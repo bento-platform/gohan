@@ -20,16 +20,23 @@ RUN apk update && \
 # Install & build samtools from github repos (htslib needed first)
 RUN apk --update add ncurses-dev && \
     apk add git build-base xz-dev zlib-dev bzip2-dev curl-dev && \ 
+    \
+    git config --global url."https://".insteadOf git:// && \
     git clone git://github.com/samtools/htslib.git && \
+    \
     cd htslib && \
     git submodule update --init --recursive && \
+    \
     make && \
     make install && \
+    \
     cd .. && \
     git clone git://github.com/samtools/samtools.git && \
+    \
     cd samtools && \
     make && \
     make install && \
+    \
     cd .. && \
     rm -rf htslib samtools
     
