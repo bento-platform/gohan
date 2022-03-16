@@ -15,6 +15,6 @@ type (
 		echo.Context
 		Es7Client        *es7.Client
 		Config           *models.Config
-		IngestionService services.IngestionService
+		IngestionService *services.IngestionService
 	}
 )
