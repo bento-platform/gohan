@@ -94,7 +94,12 @@ func main() {
 	//		to be able to provide variables and global singletons
 	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cc := &contexts.GohanContext{c, es, &cfg, *iz}
+			cc := &contexts.GohanContext{
+				Context:          c,
+				Es7Client:        es,
+				Config:           &cfg,
+				IngestionService: iz,
+			}
 			return h(cc)
 		}
 	})
@@ -153,6 +158,7 @@ func main() {
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsPluralAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
+	e.GET("/variants/get/by/documentId", mvc.VariantsGetByDocumentId)
 
 	e.GET("/variants/count/by/variantId", mvc.VariantsCountByVariantId,
 		// middleware

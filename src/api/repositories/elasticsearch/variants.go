@@ -21,6 +21,81 @@ import (
 
 const variantsIndex = "variants"
 
+func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id string) (map[string]interface{}, error) {
+
+	// overall query structure
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"filter": []map[string]interface{}{{
+					"bool": map[string]interface{}{
+						"must": []map[string]interface{}{
+							{
+								"query_string": map[string]string{
+									"query": fmt.Sprintf("_id:%s", id),
+								},
+							},
+						},
+					}},
+				},
+			},
+		},
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	fmt.Printf("Query Start: %s\n", time.Now())
+
+	// TEMP: SECURITY RISK
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//
+	// Perform the search request.
+	res, searchErr := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex(variantsIndex),
+		es.Search.WithBody(&buf),
+		es.Search.WithTrackTotalHits(true),
+		es.Search.WithPretty(),
+	)
+	if searchErr != nil {
+		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
+	}
+
+	defer res.Body.Close()
+
+	resultString := res.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Declared an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
+	}
+
+	fmt.Printf("Query End: %s\n", time.Now())
+
+	return result, nil
+}
+
 func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
