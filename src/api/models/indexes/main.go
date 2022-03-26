@@ -49,3 +49,12 @@ type Gene struct {
 	End        int          `json:"end"`
 	AssemblyId c.AssemblyId `json:"assemblyId"`
 }
+
+type Table struct {
+	Id          string                 `json:"id"` // TODO: UUID ?
+	Name        string                 `json:"name"`
+	DataType    string                 `json:"data_type"`
+	AssemblyIds []string               `json:"assembly_ids"`
+	Metadata    map[string]interface{} `json:"metadata"` // TODO: type-safety?
+	Schema      map[string]interface{} `json:"schema"`
+}

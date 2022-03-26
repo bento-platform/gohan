@@ -33,9 +33,9 @@ func GetVariantDataTypeMetadataSchema(c echo.Context) error {
 	return c.JSON(http.StatusOK, schemas.VARIANT_TABLE_METADATA_SCHEMA)
 }
 
-func FakeBentoTables(c echo.Context) error {
-	return c.JSON(http.StatusOK, []string{})
-}
+// func FakeBentoTables(c echo.Context) error {
+// 	return c.JSON(http.StatusOK, []string{})
+// }
 
 func FakeBentoTableSchema(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
