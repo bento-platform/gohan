@@ -3,9 +3,11 @@ package mvc
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
+	"api/models/dtos"
 	"api/models/indexes"
 	esRepo "api/repositories/elasticsearch"
 
@@ -16,12 +18,44 @@ import (
 func CreateTable(c echo.Context) error {
 	fmt.Printf("[%s] - CreateTable hit!\n", time.Now())
 
-	// TODO: elaborate
+	decoder := json.NewDecoder(c.Request().Body)
+	var t dtos.CreateTableRequestDto
+	err := decoder.Decode(&t)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"error": err,
+		})
+	}
+
+	log.Println("Incoming:")
+	log.Println(t)
+
+	// TODO: improve verification
+	if t.Name == "" {
+		return c.JSON(http.StatusBadRequest, dtos.CreateTableResponseDto{
+			Error: "'name' cannot be empty",
+		})
+	} else if t.Dataset == "" {
+		return c.JSON(http.StatusBadRequest, dtos.CreateTableResponseDto{
+			Error: "'dataset' cannot be empty",
+		})
+	} else if t.DataType == "" {
+		return c.JSON(http.StatusBadRequest, dtos.CreateTableResponseDto{
+			Error: "'data_type' cannot be empty",
+		})
+	}
+
+	// TODO: avoid creating duplicate tables with the same name
+	// TODO: ensure dataset is a valid identifier (uuid ?)
+	// TODO: ensure data_type is valid ('variant', etc..)
 
 	// call repository
-	esRepo.CreateTable(c)
+	esRepo.CreateTable(c, t)
 
-	return c.JSON(http.StatusOK, make(map[string]interface{}))
+	return c.JSON(http.StatusOK, dtos.CreateTableResponseDto{
+		Message: "Success",
+		// TODO: return new table
+	})
 }
 
 func GetTables(c echo.Context) error {

@@ -3,6 +3,7 @@ package elasticsearch
 import (
 	"api/contexts"
 	"api/models"
+	"api/models/dtos"
 	"api/models/indexes"
 	"api/models/schemas"
 	"bytes"
@@ -24,27 +25,36 @@ import (
 
 const tablesIndex = "tables"
 
-func CreateTable(c echo.Context) { //(map[string]interface{}, error)
+func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) { //(map[string]interface{}, error)
 
 	es := c.(*contexts.GohanContext).Es7Client
+	now := time.Now()
+
+	// TODO: improve checks and balances..
+
+	// merge inbound metadata if any
+	defaultMeta := map[string]interface{}{
+		"created_at": now,
+		"updated_at": now,
+		"name":       t.Name,
+	}
+
+	defaultAssemblyIds := []string{
+		"GRCh38",
+		"GRCh37",
+		"NCBI36",
+		"Other",
+	}
 
 	// Create struct instance of the Elasticsearch fields struct object
 	docStruct := indexes.Table{
-		Id:       uuid.New().String(),
-		DataType: "variant",
-		Name:     "Fake Table", // TODO: provide table name parameter
-		AssemblyIds: []string{
-			"GRCh38",
-			"GRCh37",
-			"NCBI36",
-			"Other",
-		},
-		Metadata: map[string]interface{}{
-			"created_at": time.Now(),
-			"updated_at": time.Now(),
-			"name":       "Fake Table", // TODO: provide table name parameter
-		},
-		Schema: schemas.VARIANT_SCHEMA,
+		Id:          uuid.New().String(),
+		Name:        t.Name,
+		DataType:    t.DataType,
+		Dataset:     t.Dataset,
+		AssemblyIds: defaultAssemblyIds,
+		Metadata:    defaultMeta,
+		Schema:      schemas.VARIANT_SCHEMA,
 	}
 
 	fmt.Println("\ndocStruct:", docStruct)

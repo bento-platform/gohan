@@ -64,3 +64,15 @@ type GenesResponseDTO struct {
 	Count   int            `json:"count"`
 	Results []indexes.Gene `json:"results"` // []Gene
 }
+
+// -- Tables
+type CreateTableRequestDto struct {
+	Name     string                 `json:"name"`
+	DataType string                 `json:"data_type"`
+	Dataset  string                 `json:"dataset"`
+	Metadata map[string]interface{} `json:"metadata"` // TODO: type-safety?
+}
+type CreateTableResponseDto struct {
+	Message string `json:"message,omitempty"`
+	Error   string `json:"name,omitempty"`
+}

@@ -54,6 +54,7 @@ type Table struct {
 	Id          string                 `json:"id"` // TODO: UUID ?
 	Name        string                 `json:"name"`
 	DataType    string                 `json:"data_type"`
+	Dataset     string                 `json:"dataset"`
 	AssemblyIds []string               `json:"assembly_ids"`
 	Metadata    map[string]interface{} `json:"metadata"` // TODO: type-safety?
 	Schema      map[string]interface{} `json:"schema"`

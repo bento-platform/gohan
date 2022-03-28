@@ -143,7 +143,7 @@ func main() {
 	// --
 
 	e.GET("/tables", mvc.GetTables)
-	e.GET("/tables/create", mvc.CreateTable) // TODO: rename ?
+	e.POST("/tables", mvc.CreateTable)
 	e.GET("/tables/:id", mvc.GetTables)
 
 	// -- Variants
