@@ -130,11 +130,8 @@ func GetTables(c echo.Context) error {
 		source := r["_source"]
 		byteSlice, _ := json.Marshal(source)
 
-		// docId := r["_id"].(string)
-
-		// cast map[string]interface{} to struct
+		// cast map[string]interface{} to table
 		var resultingTable indexes.Table
-		// mapstructure.Decode(source, &resultingTable)
 		if err := json.Unmarshal(byteSlice, &resultingTable); err != nil {
 			fmt.Println("failed to unmarshal:", err)
 		}

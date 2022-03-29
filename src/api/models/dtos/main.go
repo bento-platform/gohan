@@ -73,7 +73,10 @@ type CreateTableRequestDto struct {
 	Metadata map[string]interface{} `json:"metadata"` // TODO: type-safety?
 }
 type CreateTableResponseDto struct {
+	// --- testing: combine dto with an index model
+	//     - makes for a clean 'single-layer' json response object
 	indexes.Table
+
 	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
 }

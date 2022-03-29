@@ -136,7 +136,7 @@ func GetTables(c echo.Context, tableId string, dataType string) (map[string]inte
 			},
 		})
 	}
-	// if `must` remains an empty array, this will effecetively act as a "wildcard" query
+	// if `filter` remains an empty array, this will effecetively act as a "wildcard" query
 
 	var buf bytes.Buffer
 	query := map[string]interface{}{
