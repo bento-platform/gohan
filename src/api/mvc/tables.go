@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"time"
 
+	"api/models/constants"
 	"api/models/dtos"
 	"api/models/indexes"
 	esRepo "api/repositories/elasticsearch"
+	"api/utils"
 
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
@@ -45,6 +47,15 @@ func CreateTable(c echo.Context) error {
 		})
 	}
 
+	// ensure data_type is valid ('variant', etc..)
+	if !utils.StringInSlice(t.DataType, constants.ValidTableDataTypes) {
+		return c.JSON(http.StatusBadRequest, dtos.CreateTableResponseDto{
+			Error: fmt.Sprintf("Invalid data_type: %s -- Must be one of the following: %s", t.DataType, constants.ValidTableDataTypes),
+		})
+	}
+
+	// TODO: ensure dataset is a valid identifier (uuid ?)
+
 	// avoid creating duplicate tables with the same name
 	existingTables, error := esRepo.GetTablesByName(c, t.Name)
 	if error != nil {
@@ -54,11 +65,9 @@ func CreateTable(c echo.Context) error {
 	}
 	if len(existingTables) > 0 {
 		return c.JSON(http.StatusBadRequest, dtos.CreateTableResponseDto{
-			Error: fmt.Sprintf("A table with the 'name' '%s' already exists", t.Name),
+			Error: fmt.Sprintf("A table with the name '%s' already exists", t.Name),
 		})
 	}
-	// TODO: ensure dataset is a valid identifier (uuid ?)
-	// TODO: ensure data_type is valid ('variant', etc..)
 
 	// call repository
 	table, error := esRepo.CreateTable(c, t)
