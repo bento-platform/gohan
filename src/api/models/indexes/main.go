@@ -51,11 +51,11 @@ type Gene struct {
 }
 
 type Table struct {
-	Id          string                 `json:"id"` // TODO: UUID ?
-	Name        string                 `json:"name"`
-	DataType    string                 `json:"data_type"`
-	Dataset     string                 `json:"dataset"`
-	AssemblyIds []string               `json:"assembly_ids"`
-	Metadata    map[string]interface{} `json:"metadata"` // TODO: type-safety?
-	Schema      map[string]interface{} `json:"schema"`
+	Id          string                 `json:"id,omitempty"` // TODO: UUID ?
+	Name        string                 `json:"name,omitempty"`
+	DataType    string                 `json:"data_type,omitempty"`
+	Dataset     string                 `json:"dataset,omitempty"`
+	AssemblyIds []string               `json:"assembly_ids,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"` // TODO: type-safety?
+	Schema      map[string]interface{} `json:"schema,omitempty"`
 }

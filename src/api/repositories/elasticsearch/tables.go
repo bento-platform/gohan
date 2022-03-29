@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -21,11 +22,12 @@ import (
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/google/uuid"
 	"github.com/labstack/echo"
+	"github.com/mitchellh/mapstructure"
 )
 
 const tablesIndex = "tables"
 
-func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) { //(map[string]interface{}, error)
+func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) (indexes.Table, error) {
 
 	es := c.(*contexts.GohanContext).Es7Client
 	now := time.Now()
@@ -64,7 +66,7 @@ func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) { //(map[string]i
 	b, err := json.Marshal(docStruct)
 	if err != nil {
 		fmt.Println("json.Marshal ERROR:", err)
-		return // nil, err
+		return docStruct, err
 	}
 
 	// Instantiate a request object
@@ -78,12 +80,15 @@ func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) { //(map[string]i
 	// Return an API response object from request
 	res, err := req.Do(c.Request().Context(), es)
 	if err != nil {
-		log.Fatalf("IndexRequest ERROR: %s", err)
+		fmt.Printf("IndexRequest ERROR: %s\n", err)
+		return docStruct, err
 	}
 	defer res.Body.Close()
 
 	if res.IsError() {
-		log.Printf("%s ERROR", res.Status())
+		msg := fmt.Sprintf("%s ERROR", res.Status())
+		fmt.Println(msg)
+		return docStruct, errors.New(msg)
 	} else {
 
 		// Deserialize the response into a map.
@@ -97,11 +102,11 @@ func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) { //(map[string]i
 			fmt.Println("Result:", resMap["result"])
 			fmt.Println("Version:", int(resMap["_version"].(float64)))
 			fmt.Println("resMap:", resMap)
-			fmt.Println("\n")
+			fmt.Println()
 		}
 	}
 
-	// TODO: return new table object
+	return docStruct, nil
 }
 
 func GetTables(c echo.Context, tableId string, dataType string) (map[string]interface{}, error) {
@@ -184,6 +189,107 @@ func GetTables(c echo.Context, tableId string, dataType string) (map[string]inte
 	fmt.Printf("Query End: %s\n", time.Now())
 
 	return result, nil
+}
+
+func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) {
+
+	cfg := c.(*contexts.GohanContext).Config
+	es := c.(*contexts.GohanContext).Es7Client
+
+	allTables := make([]indexes.Table, 0)
+
+	// overall query structure
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"filter": []map[string]interface{}{{
+					"term": map[string]interface{}{
+						"name.keyword": tableName,
+					},
+				}},
+			},
+		},
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", err)
+		return allTables, err
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	fmt.Printf("Query Start: %s\n", time.Now())
+
+	// TEMP: SECURITY RISK
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//
+	// Perform the search request.
+	res, searchErr := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex(tablesIndex),
+		es.Search.WithBody(&buf),
+		es.Search.WithTrackTotalHits(true),
+		es.Search.WithPretty(),
+	)
+	if searchErr != nil {
+		fmt.Printf("Error getting response: %s\n", searchErr)
+		return allTables, searchErr
+	}
+
+	defer res.Body.Close()
+
+	resultString := res.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// TODO: improve stability
+	// - check for 404 Not Found : assume index simply doesnt exist, return 0 results
+	if strings.Contains(resultString[0:15], "Not Found") {
+		return allTables, nil
+	}
+
+	// Declared an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return allTables, umErr
+	}
+
+	fmt.Printf("Query End: %s\n", time.Now())
+
+	// gather data from "hits"
+	docsHits := result["hits"].(map[string]interface{})["hits"]
+	allDocHits := []map[string]interface{}{}
+	mapstructure.Decode(docsHits, &allDocHits)
+
+	// grab _source for each hit
+
+	for _, r := range allDocHits {
+		source := r["_source"]
+		byteSlice, _ := json.Marshal(source)
+
+		// cast map[string]interface{} a table
+		var resultingTable indexes.Table
+		if err := json.Unmarshal(byteSlice, &resultingTable); err != nil {
+			fmt.Println("failed to unmarshal:", err)
+		}
+
+		// accumulate structs
+		allTables = append(allTables, resultingTable)
+	}
+
+	return allTables, nil
 }
 
 func DeleteTableById(cfg *models.Config, es *elasticsearch.Client) { //(map[string]interface{}, error)

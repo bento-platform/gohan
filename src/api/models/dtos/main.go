@@ -73,6 +73,7 @@ type CreateTableRequestDto struct {
 	Metadata map[string]interface{} `json:"metadata"` // TODO: type-safety?
 }
 type CreateTableResponseDto struct {
+	indexes.Table
 	Message string `json:"message,omitempty"`
-	Error   string `json:"name,omitempty"`
+	Error   string `json:"error,omitempty"`
 }

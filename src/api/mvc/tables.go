@@ -45,16 +45,32 @@ func CreateTable(c echo.Context) error {
 		})
 	}
 
-	// TODO: avoid creating duplicate tables with the same name
+	// avoid creating duplicate tables with the same name
+	existingTables, error := esRepo.GetTablesByName(c, t.Name)
+	if error != nil {
+		return c.JSON(http.StatusInternalServerError, dtos.CreateTableResponseDto{
+			Error: error.Error(),
+		})
+	}
+	if len(existingTables) > 0 {
+		return c.JSON(http.StatusBadRequest, dtos.CreateTableResponseDto{
+			Error: fmt.Sprintf("A table with the 'name' '%s' already exists", t.Name),
+		})
+	}
 	// TODO: ensure dataset is a valid identifier (uuid ?)
 	// TODO: ensure data_type is valid ('variant', etc..)
 
 	// call repository
-	esRepo.CreateTable(c, t)
+	table, error := esRepo.CreateTable(c, t)
+	if error != nil {
+		return c.JSON(http.StatusInternalServerError, dtos.CreateTableResponseDto{
+			Error: error.Error(),
+		})
+	}
 
 	return c.JSON(http.StatusOK, dtos.CreateTableResponseDto{
 		Message: "Success",
-		// TODO: return new table
+		Table:   table,
 	})
 }
 
