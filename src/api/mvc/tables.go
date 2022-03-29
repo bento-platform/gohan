@@ -91,20 +91,27 @@ func GetTables(c echo.Context) error {
 
 	// obtain dataTypes from query parameter
 	dataType := c.QueryParam("data-type")
-	// can be any string -- expects "" by default
 
 	// at least one of these parameters must be present
 	if tableId == "" && dataType == "" {
+		// TODO: homogenize response model
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"code": 400,
 			"errors": []map[string]interface{}{
 				{
-					"message": "Invalid or missing data type (specified ID: [])",
+					"message": "Missing both id and data type - please provide at least one of them",
 				},
 			},
 			"message":   "Bad Request",
 			"timestamp": time.Now(),
 		})
+	} else if dataType != "" {
+		// ensure data_type is valid ('variant', etc..)
+		if !utils.StringInSlice(dataType, constants.ValidTableDataTypes) {
+			return c.JSON(http.StatusBadRequest, dtos.CreateTableResponseDto{
+				Error: fmt.Sprintf("Invalid data_type: %s -- Must be one of the following: %s", dataType, constants.ValidTableDataTypes),
+			})
+		}
 	}
 
 	// call repository

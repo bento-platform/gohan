@@ -119,19 +119,20 @@ func GetTables(c echo.Context, tableId string, dataType string) (map[string]inte
 	//
 
 	// get table by "any combination of any applicable parameter" query structure
-	must := make([]map[string]interface{}, 0)
+	filter := make([]map[string]interface{}, 0)
 
 	if tableId != "" {
-		must = append(must, map[string]interface{}{
-			"query_string": map[string]string{
-				"query": fmt.Sprintf("id:%s", tableId),
+
+		filter = append(filter, map[string]interface{}{
+			"term": map[string]string{
+				"id.keyword": tableId,
 			},
 		})
 	}
 	if dataType != "" {
-		must = append(must, map[string]interface{}{
-			"query_string": map[string]string{
-				"query": fmt.Sprintf("data_type:%s", dataType),
+		filter = append(filter, map[string]interface{}{
+			"term": map[string]string{
+				"data_type.keyword": dataType,
 			},
 		})
 	}
@@ -141,11 +142,7 @@ func GetTables(c echo.Context, tableId string, dataType string) (map[string]inte
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
-				"filter": []map[string]interface{}{{
-					"bool": map[string]interface{}{
-						"must": must,
-					},
-				}},
+				"filter": filter,
 			},
 		},
 	}
