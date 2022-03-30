@@ -22,18 +22,22 @@ export HOST_USER_GID=$(shell id -g)
 
 # initialize services
 init:
-	# Gateway: 
+	@# Gateway: 
 	@# - DRS Authentication
 	@htpasswd -cb gateway/drs.htpasswd ${GOHAN_DRS_BASIC_AUTH_USERNAME} ${GOHAN_DRS_BASIC_AUTH_PASSWORD} 
 	
 	@echo
 	
-	# Authorization:
+	@# Authorization:
 	@# - API OPA policies 
 	@echo Configuring authorzation policies
 	@envsubst < ./etc/api.policy.rego.tpl > ./authorization/api.policy.rego
 	
 	@$(MAKE) init-data-dirs
+
+	@# Go Module Vendor
+	@cd src/api && go mod vendor && \
+	cd ../tests && go mod vendor
 
 
 init-data-dirs:

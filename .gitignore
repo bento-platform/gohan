@@ -54,3 +54,6 @@ bin/*
 # ignore .gtf files
 */*.gtf*
 */*/*.gtf*
+
+# ignore vendor
+vendor/
