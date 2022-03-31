@@ -47,15 +47,18 @@ init-data-dirs:
 	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
 		chmod -R 770 ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
+	\
 	# drs: \
 	mkdir -p ${GOHAN_DRS_DATA_DIR} && \
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR} && \
 		chmod -R 770 ${GOHAN_DRS_DATA_DIR} && \
+	\
 	# elasticsearch: \
 	mkdir -p ${GOHAN_ES_DATA_DIR} && \
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR} && \
 		chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
-	chmod -R 770 ./data && \
+	chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
+	\
 	# tmp: \
 	# (setup for when gohan needs to preprocess vcf's at ingestion time): \
 	mkdir -p ${GOHAN_API_VCF_PATH}/tmp && \
