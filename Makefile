@@ -65,6 +65,10 @@ init-data-dirs:
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_VCF_PATH}/tmp && \
 		chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp && \
 	chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp && \
+	mkdir -p ${GOHAN_API_GTF_PATH} && \
+			chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_GTF_PATH} && \
+			chmod -R 770 ${GOHAN_API_GTF_PATH}/ && \
+	chmod -R 770 ${GOHAN_API_GTF_PATH}/tmp && \
 	echo ".. done!"
 
 
