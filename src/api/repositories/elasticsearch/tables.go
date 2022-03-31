@@ -6,6 +6,7 @@ import (
 	"api/models/dtos"
 	"api/models/indexes"
 	"api/models/schemas"
+	"api/utils"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -177,7 +178,12 @@ func GetTables(c echo.Context, tableId string, dataType string) (map[string]inte
 
 	// Unmarshal or Decode the JSON to the interface.
 	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
 		return nil, umErr
@@ -257,7 +263,12 @@ func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) 
 
 	// Unmarshal or Decode the JSON to the interface.
 	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
 		return allTables, umErr

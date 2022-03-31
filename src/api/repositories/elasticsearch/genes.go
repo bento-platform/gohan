@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"api/models"
 	"api/models/constants"
 	assemblyId "api/models/constants/assembly-id"
+	"api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
 )
@@ -88,7 +90,12 @@ func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) (map[
 
 	// Unmarshal or Decode the JSON to the interface.
 	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
 		return nil, umErr
@@ -197,7 +204,12 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 
 	// Unmarshal or Decode the JSON to the empty interface.
 	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
 		return nil, umErr
@@ -255,7 +267,12 @@ func DeleteGenesByAssemblyId(cfg *models.Config, es *elasticsearch.Client, assId
 
 	// Unmarshal or Decode the JSON to the empty interface.
 	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
 		return nil, umErr
