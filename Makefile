@@ -34,11 +34,12 @@ init:
 	@envsubst < ./etc/api.policy.rego.tpl > ./authorization/api.policy.rego
 	
 	@$(MAKE) init-data-dirs
+	@$(MAKE) init-vendor
 
-	@# Go Module Vendor
+init-vendor:
+	@echo "Initializing Go Module Vendor"
 	@cd src/api && go mod vendor && \
-	cd ../tests && go mod vendor
-
+	 cd ../tests && go mod vendor
 
 init-data-dirs:
 	@echo "Initializing data directories.." && \
