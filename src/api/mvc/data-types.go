@@ -9,10 +9,11 @@ import (
 )
 
 var variantDataTypeJson = map[string]interface{}{
-	"id":              "variant",
-	"schema":          schemas.VARIANT_SCHEMA,
-	"metadata_schema": schemas.VARIANT_TABLE_METADATA_SCHEMA,
+	"id":     "variant",
+	"schema": schemas.VARIANT_SCHEMA,
 }
+
+// "metadata_schema": schemas.VARIANT_TABLE_METADATA_SCHEMA,
 
 func GetDataTypes(c echo.Context) error {
 	// Data types are basically stand-ins for schema blocks
