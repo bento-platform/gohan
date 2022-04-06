@@ -86,7 +86,7 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
 	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
@@ -314,7 +314,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
 	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get variants by id : got '%s'", bracketString)
@@ -512,7 +512,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
 	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to count variants by id : got '%s'", bracketString)
@@ -586,7 +586,7 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
 	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get buckets by keyword: got '%s'", bracketString)

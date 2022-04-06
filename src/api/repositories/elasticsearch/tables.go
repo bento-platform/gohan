@@ -175,7 +175,7 @@ func GetTables(c echo.Context, tableId string, dataType string) (map[string]inte
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
 	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
@@ -260,7 +260,7 @@ func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) 
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
 	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
@@ -349,7 +349,7 @@ func DeleteTableById(c echo.Context, tableId string) (map[string]interface{}, er
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the empty interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
 	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
