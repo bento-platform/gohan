@@ -137,14 +137,12 @@ func main() {
 	e.GET("/data-types/variant/schema", mvc.GetVariantDataTypeSchema)
 	e.GET("/data-types/variant/metadata_schema", mvc.GetVariantDataTypeMetadataSchema)
 
-	// -- TEMP (simulating bento_variants)
-	// e.GET("/tables", mvc.FakeBentoTables)
-	// e.GET("/tables/fake", mvc.FakeBentoTableSchema)
-	// --
-
 	e.GET("/tables", mvc.GetTables)
 	e.POST("/tables", mvc.CreateTable)
 	e.GET("/tables/:id", mvc.GetTables)
+	e.DELETE("/tables/:id", mvc.DeleteTable)
+	// TODO:
+	// - Implement get table summary by id
 
 	// -- Variants
 	e.GET("/variants/overview", mvc.GetVariantsOverview)

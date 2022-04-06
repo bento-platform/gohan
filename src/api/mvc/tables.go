@@ -148,3 +148,75 @@ func GetTables(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, allSources)
 }
+
+func DeleteTable(c echo.Context) error {
+	fmt.Printf("[%s] - GetTables hit!\n", time.Now())
+
+	// obtain tableId from the path
+	tableId := c.Param("id")
+
+	// at least one of these parameters must be present
+	if tableId == "" {
+		fmt.Println("Missing table id")
+
+		// TODO: formalize response dto model
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"errors": []map[string]interface{}{
+				{
+					"message": "Missing table id - please try again",
+				},
+			},
+			"message":   "Bad Request",
+			"timestamp": time.Now(),
+		})
+	}
+
+	// call repository
+	results, deleteError := esRepo.DeleteTableById(c, tableId)
+	if deleteError != nil {
+		fmt.Printf("Failed to delete tables with ID %s\n", tableId)
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"code": 500,
+			"errors": []map[string]interface{}{
+				{
+					"message": "Something went wrong.. Please try again later!",
+				},
+			},
+			"message": "Internal Server Error", "timestamp": time.Now(),
+		})
+	}
+
+	// gather data from "deleted"
+	numDeleted := 0.0
+	docsHits := results["deleted"]
+	if docsHits != nil {
+		numDeleted = docsHits.(float64)
+	} else {
+		fmt.Printf("No Tables with ID '%s' were deleted\n", tableId)
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"code": 400,
+			"errors": []map[string]interface{}{
+				{
+					"message": fmt.Sprintf("Failed to delete tables with ID %s", tableId),
+				},
+			},
+			"message": "Bad Request", "timestamp": time.Now(),
+		})
+	}
+	if numDeleted == 0 {
+		fmt.Printf("No Tables with ID '%s' were deleted\n", tableId)
+		return c.JSON(http.StatusNotFound, map[string]interface{}{
+			"code": 404,
+			"errors": []map[string]interface{}{
+				{
+					"message": fmt.Sprintf("No table with ID %s", tableId),
+				},
+			},
+			"message": "Not Found", "timestamp": time.Now(),
+		})
+	}
+
+	fmt.Printf("Successfully Deleted Table(s) with ID '%s'\n", tableId)
+	return c.NoContent(204)
+}

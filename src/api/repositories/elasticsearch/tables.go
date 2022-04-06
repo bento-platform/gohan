@@ -2,7 +2,6 @@ package elasticsearch
 
 import (
 	"api/contexts"
-	"api/models"
 	"api/models/dtos"
 	"api/models/indexes"
 	"api/models/schemas"
@@ -20,7 +19,6 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/esapi"
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/google/uuid"
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
@@ -300,6 +298,68 @@ func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) 
 	return allTables, nil
 }
 
-func DeleteTableById(cfg *models.Config, es *elasticsearch.Client) { //(map[string]interface{}, error)
-	// TODO : implement
+func DeleteTableById(c echo.Context, tableId string) (map[string]interface{}, error) {
+
+	cfg := c.(*contexts.GohanContext).Config
+	es := c.(*contexts.GohanContext).Es7Client
+
+	// TEMP: SECURITY RISK
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	//
+
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"match": map[string]interface{}{
+				"id": tableId,
+			},
+		},
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	// Perform the delete request.
+	deleteRes, deleteErr := es.DeleteByQuery(
+		[]string{tablesIndex},
+		bytes.NewReader(buf.Bytes()),
+	)
+	if deleteErr != nil {
+		fmt.Printf("Error getting response: %s\n", deleteErr)
+		return nil, deleteErr
+	}
+
+	defer deleteRes.Body.Close()
+
+	resultString := deleteRes.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Prepare an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the empty interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
+		return nil, umErr
+	}
+
+	return result, nil
 }

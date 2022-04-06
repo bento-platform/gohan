@@ -22,7 +22,7 @@ const (
 	PostCreateTablePath             string = "%s/tables"
 )
 
-func TestVariantGetTables(t *testing.T) {
+func TestCanGetVariantTables(t *testing.T) {
 	cfg := common.InitConfig()
 
 	// get all available 'variant' tables
@@ -161,6 +161,10 @@ func TestCanGetAllTablesById(t *testing.T) {
 		assert.True(t, tablesRespJson.Id == tableId)
 	}
 }
+
+// TODO;
+// - Implement "can delete table by id" test
+// - Implement "can get summary by table id" test
 
 func getVariantTables(_t *testing.T, _cfg *models.Config) []indexes.Table {
 	url := fmt.Sprintf(GetVariantTablesPath, _cfg.Api.Url)
