@@ -17,10 +17,11 @@ import (
 )
 
 const (
-	GetVariantTablesPath               string = "%s/tables?data-type=variant"
-	GetTableByIdPathWithPlaceholder    string = "%s/tables/%s"
-	DeleteTableByIdPathWithPlaceholder string = "%s/tables/%s"
-	PostCreateTablePath                string = "%s/tables"
+	GetVariantTablesPath                   string = "%s/tables?data-type=variant"
+	GetTableByIdPathWithPlaceholder        string = "%s/tables/%s"
+	GetTableSummaryByIdPathWithPlaceholder string = "%s/tables/%s/summary"
+	DeleteTableByIdPathWithPlaceholder     string = "%s/tables/%s"
+	PostCreateTablePath                    string = "%s/tables"
 )
 
 func TestCanGetVariantTables(t *testing.T) {
@@ -119,6 +120,52 @@ func TestCanGetAllTablesById(t *testing.T) {
 	}
 }
 
+func TestCanGetAllTableSummariesById(t *testing.T) {
+	cfg := common.InitConfig()
+
+	allTableDtos := getVariantTables(t, cfg)
+	assert.NotNil(t, allTableDtos)
+	assert.True(t, len(allTableDtos) > 0)
+
+	for _, table := range allTableDtos {
+
+		tableId := table.Id
+		getTableSummaryByIdUrl := fmt.Sprintf(GetTableSummaryByIdPathWithPlaceholder, cfg.Api.Url, tableId)
+
+		// TODO: refactor
+		// ================
+		request, _ := http.NewRequest("GET", getTableSummaryByIdUrl, nil)
+
+		client := &http.Client{}
+		response, responseErr := client.Do(request)
+		assert.Nil(t, responseErr)
+
+		defer response.Body.Close()
+
+		// this test (at the time of writing) will only work if authorization is disabled
+		shouldBe := 200
+		assert.Equal(t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET %s Status: %s ; Should be %d", getTableSummaryByIdUrl, response.Status, shouldBe))
+
+		//	-- interpret array of available tables from response
+		tableSummaryRespBody, tableSummaryRespBodyErr := ioutil.ReadAll(response.Body)
+		assert.Nil(t, tableSummaryRespBodyErr)
+
+		//	--- transform body bytes to string
+		tableSummaryRespBodyString := string(tableSummaryRespBody)
+
+		//	-- check for json error
+		var tableSummary dtos.TableSummaryResponseDto
+		tableJsonUnmarshallingError := json.Unmarshal([]byte(tableSummaryRespBodyString), &tableSummary)
+		assert.Nil(t, tableJsonUnmarshallingError)
+
+		// ================
+
+		// -- ensure table summary is valid
+		assert.NotNil(t, tableSummary.Count)
+		assert.NotNil(t, tableSummary.DataTypeSpecific)
+	}
+}
+
 func TestCanDeleteTableById(t *testing.T) {
 	cfg := common.InitConfig()
 
@@ -144,9 +191,6 @@ func TestCanDeleteTableById(t *testing.T) {
 
 	// ================
 }
-
-// TODO;
-// - Implement "can get summary by table id" test
 
 func getVariantTables(_t *testing.T, _cfg *models.Config) []indexes.Table {
 	url := fmt.Sprintf(GetVariantTablesPath, _cfg.Api.Url)

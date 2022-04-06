@@ -80,3 +80,7 @@ type CreateTableResponseDto struct {
 	Message string `json:"message,omitempty"`
 	Error   string `json:"error,omitempty"`
 }
+type TableSummaryResponseDto struct {
+	Count            int                    `json:"count"`
+	DataTypeSpecific map[string]interface{} `json:"data_type_specific"` // TODO: type-safety?
+}

@@ -255,10 +255,9 @@ func GetTableSummary(c echo.Context) error {
 
 	fmt.Printf("Successfully Obtained Table ID '%s' Summary \n", tableId)
 
-	// TODO: formalize response object
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"count":              int(totalVariantsCount),
-		"data_type_specific": map[string]interface{}{},
+	return c.JSON(http.StatusOK, &dtos.TableSummaryResponseDto{
+		Count:            int(totalVariantsCount),
+		DataTypeSpecific: map[string]interface{}{},
 	})
 }
 
