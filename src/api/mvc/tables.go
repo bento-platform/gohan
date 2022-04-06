@@ -149,11 +149,126 @@ func GetTables(c echo.Context) error {
 	return c.JSON(http.StatusOK, allSources)
 }
 
-func DeleteTable(c echo.Context) error {
-	fmt.Printf("[%s] - GetTables hit!\n", time.Now())
+func GetTableSummary(c echo.Context) error {
+	fmt.Printf("[%s] - GetTableSummary hit!\n", time.Now())
 
 	// obtain tableId from the path
 	tableId := c.Param("id")
+
+	// at least one of these parameters must be present
+	if tableId == "" {
+		fmt.Println("Missing table id")
+
+		// TODO: formalize response dto model
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"code": 400,
+			"errors": []map[string]interface{}{
+				{
+					"message": "Missing table id - please try again",
+				},
+			},
+			"message":   "Bad Request",
+			"timestamp": time.Now(),
+		})
+	}
+
+	// call repository
+	// - get the table by id
+	results, getTablesError := esRepo.GetTables(c, tableId, "")
+	if getTablesError != nil {
+		fmt.Printf("Failed to get tables with ID %s\n", tableId)
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"code": 500,
+			"errors": []map[string]interface{}{
+				{
+					"message": "Something went wrong.. Please try again later!",
+				},
+			},
+			"message": "Internal Server Error", "timestamp": time.Now(),
+		})
+	}
+
+	// gather data from "hits"
+	docsHits := results["hits"].(map[string]interface{})["hits"]
+	if docsHits == nil {
+		fmt.Printf("No Tables with ID '%s' were deleted\n", tableId)
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"code": 400,
+			"errors": []map[string]interface{}{
+				{
+					"message": fmt.Sprintf("Table with ID %s not found", tableId),
+				},
+			},
+			"message": "Bad Request", "timestamp": time.Now(),
+		})
+	}
+
+	// obtain hits (expecting 1)
+	allDocHits := []map[string]interface{}{}
+	mapstructure.Decode(docsHits, &allDocHits)
+
+	// grab _source for each hit
+	allSources := make([]interface{}, 0)
+	// var allSources []indexes.Variant
+
+	for _, r := range allDocHits {
+		source := r["_source"]
+		byteSlice, _ := json.Marshal(source)
+
+		// cast map[string]interface{} to table
+		var resultingTable indexes.Table
+		if err := json.Unmarshal(byteSlice, &resultingTable); err != nil {
+			fmt.Println("failed to unmarshal:", err)
+		}
+
+		// accumulate structs
+		allSources = append(allSources, resultingTable)
+	}
+
+	if len(allSources) == 0 {
+		fmt.Printf("No Variants associated with table ID '%s'\n", tableId)
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"code": 400,
+			"errors": []map[string]interface{}{
+				{
+					"message": fmt.Sprintf("Failed to get table summary with ID %s", tableId),
+				},
+			},
+			"message": "Bad Request", "timestamp": time.Now(),
+		})
+	}
+
+	// TODO: obtain table id from the one expected hit
+	// and search for variants associated with it
+
+	// TODO: refactor
+	// -- testing
+	// --- use variants overview as source for variant counts
+	variantsOverview := obtainVariantsOverview(c)
+	variantsOverviewMap := variantsOverview["variantIDs"].(map[string]interface{})
+	totalVariantsCount := 0.0
+	// Iterate over all keys
+	for _, val := range variantsOverviewMap {
+		totalVariantsCount += val.(float64)
+	}
+	// --
+
+	fmt.Printf("Successfully Obtained Table ID '%s' Summary \n", tableId)
+
+	// TODO: formalize response object
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"count":     int(totalVariantsCount),
+		"data_type": map[string]interface{}{},
+	})
+}
+
+func DeleteTable(c echo.Context) error {
+	fmt.Printf("[%s] - DeleteTable hit!\n", time.Now())
+
+	// obtain tableId from the path
+	tableId := c.Param("id")
+
+	// TODO: implement delete variants associated with this table id ?
 
 	// at least one of these parameters must be present
 	if tableId == "" {

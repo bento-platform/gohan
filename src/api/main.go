@@ -141,8 +141,7 @@ func main() {
 	e.POST("/tables", mvc.CreateTable)
 	e.GET("/tables/:id", mvc.GetTables)
 	e.DELETE("/tables/:id", mvc.DeleteTable)
-	// TODO:
-	// - Implement get table summary by id
+	e.GET("/tables/:id/summary", mvc.GetTableSummary)
 
 	// -- Variants
 	e.GET("/variants/overview", mvc.GetVariantsOverview)
