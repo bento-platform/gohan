@@ -119,6 +119,26 @@ func TestCanGetAllTablesById(t *testing.T) {
 		assert.True(t, tablesRespJson.Id == tableId)
 	}
 }
+func TestCannotGetTablesWithInvalidIds(t *testing.T) {
+	cfg := common.InitConfig()
+
+	// test with an empty id, and a random string
+	// both cases should result in a 400 bad request
+	for _, invalidTableId := range []string{"", utils.RandomString(32)} {
+		getTableSummaryByIdUrl := fmt.Sprintf(GetTableSummaryByIdPathWithPlaceholder, cfg.Api.Url, invalidTableId)
+
+		request, _ := http.NewRequest("GET", getTableSummaryByIdUrl, nil)
+
+		client := &http.Client{}
+		response, responseErr := client.Do(request)
+		assert.Nil(t, responseErr)
+
+		defer response.Body.Close()
+
+		shouldBe := 400
+		assert.Equal(t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET %s Status: %s ; Should be %d", getTableSummaryByIdUrl, response.Status, shouldBe))
+	}
+}
 
 func TestCanGetAllTableSummariesById(t *testing.T) {
 	cfg := common.InitConfig()

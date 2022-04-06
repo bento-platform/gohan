@@ -160,7 +160,7 @@ func GetTableSummary(c echo.Context) error {
 		fmt.Println("Missing table id")
 
 		// TODO: formalize response dto model
-		return c.JSON(http.StatusOK, map[string]interface{}{
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"code": 400,
 			"errors": []map[string]interface{}{
 				{
