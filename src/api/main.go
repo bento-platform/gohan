@@ -137,6 +137,7 @@ func main() {
 	e.GET("/data-types/variant/schema", mvc.GetVariantDataTypeSchema)
 	e.GET("/data-types/variant/metadata_schema", mvc.GetVariantDataTypeMetadataSchema)
 
+	// -- Tables
 	e.GET("/tables", mvc.GetTables)
 	e.POST("/tables", mvc.CreateTable)
 	e.GET("/tables/:id", mvc.GetTables)

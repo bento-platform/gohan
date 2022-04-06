@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	GetVariantTablesPath            string = "%s/tables?data-type=variant"
-	GetTableByIdPathWithPlaceholder string = "%s/tables/%s"
-	PostCreateTablePath             string = "%s/tables"
+	GetVariantTablesPath               string = "%s/tables?data-type=variant"
+	GetTableByIdPathWithPlaceholder    string = "%s/tables/%s"
+	DeleteTableByIdPathWithPlaceholder string = "%s/tables/%s"
+	PostCreateTablePath                string = "%s/tables"
 )
 
 func TestCanGetVariantTables(t *testing.T) {
@@ -33,52 +34,8 @@ func TestCanGetVariantTables(t *testing.T) {
 func TestCanCreateTable(t *testing.T) {
 	cfg := common.InitConfig()
 
-	// prepare request
-	postCreateTableUrl := fmt.Sprintf(PostCreateTablePath, cfg.Api.Url)
-	data := dtos.CreateTableRequestDto{
-		Name:     utils.RandomString(32),   // random table name
-		DataType: "variant",                // set variant data_type
-		Dataset:  utils.RandomString(32),   // random dataset name
-		Metadata: map[string]interface{}{}, // TODO : expand ?
-	}
-	dataBytes, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
-	dataString := string(dataBytes)
-
-	r, _ := http.NewRequest("POST", postCreateTableUrl, bytes.NewBufferString(dataString))
-	r.Header.Add("Content-Type", "application/json")
-
-	// perform request
-	client := &http.Client{}
-	resp, err := client.Do(r)
-	if err != nil {
-		fmt.Printf("Table Creation error: %s\n", err)
-	}
-	defer resp.Body.Close()
-
-	fmt.Printf("Table Creation status: %d\n", resp.StatusCode)
-
-	// obtain the newly created table
-	//	-- interpret create-table dto from response
-	createTableRespBody, createTableRespBodyErr := ioutil.ReadAll(resp.Body)
-	assert.Nil(t, createTableRespBodyErr)
-
-	//	--- transform body bytes to string
-	createTableRespBodyString := string(createTableRespBody)
-
-	//	-- check for json error
-	var createTablesRespJson dtos.CreateTableResponseDto
-	createTableJsonUnmarshallingError := json.Unmarshal([]byte(createTableRespBodyString), &createTablesRespJson)
-	assert.Nil(t, createTableJsonUnmarshallingError)
-
-	// -- ensure table was successfully created
-	assert.Empty(t, createTablesRespJson.Error)
-
-	assert.NotNil(t, createTablesRespJson.Table)
-	assert.NotNil(t, createTablesRespJson.Table.Id)
-	assert.NotEmpty(t, createTablesRespJson.Table.Id)
+	// create table
+	createTablesRespJson := createVariantTable(t, cfg)
 
 	// test get-by-id with newly created table
 	newTableId := createTablesRespJson.Id
@@ -88,7 +45,7 @@ func TestCanCreateTable(t *testing.T) {
 	// ================
 	request, _ := http.NewRequest("GET", getTableByIdUrl, nil)
 
-	client = &http.Client{}
+	client := &http.Client{}
 	response, responseErr := client.Do(request)
 	assert.Nil(t, responseErr)
 
@@ -162,8 +119,33 @@ func TestCanGetAllTablesById(t *testing.T) {
 	}
 }
 
+func TestCanDeleteTableById(t *testing.T) {
+	cfg := common.InitConfig()
+
+	// create table
+	createTablesRespJson := createVariantTable(t, cfg)
+
+	// test get-by-id with newly created table
+	newTableId := createTablesRespJson.Id
+	deleteTableByIdUrl := fmt.Sprintf(DeleteTableByIdPathWithPlaceholder, cfg.Api.Url, newTableId)
+
+	// TODO: refactor
+	// ================
+	request, _ := http.NewRequest("DELETE", deleteTableByIdUrl, nil)
+
+	client := &http.Client{}
+	response, responseErr := client.Do(request)
+	assert.Nil(t, responseErr)
+
+	defer response.Body.Close()
+
+	shouldBe := 204
+	assert.Equal(t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api DELETE %s Status: %s ; Should be %d", deleteTableByIdUrl, response.Status, shouldBe))
+
+	// ================
+}
+
 // TODO;
-// - Implement "can delete table by id" test
 // - Implement "can get summary by table id" test
 
 func getVariantTables(_t *testing.T, _cfg *models.Config) []indexes.Table {
@@ -193,4 +175,55 @@ func getVariantTables(_t *testing.T, _cfg *models.Config) []indexes.Table {
 	assert.Nil(_t, overviewJsonUnmarshallingError)
 
 	return tableDtos
+}
+
+func createVariantTable(_t *testing.T, _cfg *models.Config) dtos.CreateTableResponseDto {
+	// prepare request
+	postCreateTableUrl := fmt.Sprintf(PostCreateTablePath, _cfg.Api.Url)
+	data := dtos.CreateTableRequestDto{
+		Name:     utils.RandomString(32),   // random table name
+		DataType: "variant",                // set variant data_type
+		Dataset:  utils.RandomString(32),   // random dataset name
+		Metadata: map[string]interface{}{}, // TODO : expand ?
+	}
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	dataString := string(dataBytes)
+
+	r, _ := http.NewRequest("POST", postCreateTableUrl, bytes.NewBufferString(dataString))
+	r.Header.Add("Content-Type", "application/json")
+
+	// perform request
+	client := &http.Client{}
+	resp, err := client.Do(r)
+	if err != nil {
+		fmt.Printf("Table Creation error: %s\n", err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("Table Creation status: %d\n", resp.StatusCode)
+
+	// obtain the newly created table
+	//	-- interpret create-table dto from response
+	createTableRespBody, createTableRespBodyErr := ioutil.ReadAll(resp.Body)
+	assert.Nil(_t, createTableRespBodyErr)
+
+	//	--- transform body bytes to string
+	createTableRespBodyString := string(createTableRespBody)
+
+	//	-- check for json error
+	var createTablesRespJson dtos.CreateTableResponseDto
+	createTableJsonUnmarshallingError := json.Unmarshal([]byte(createTableRespBodyString), &createTablesRespJson)
+	assert.Nil(_t, createTableJsonUnmarshallingError)
+
+	// -- ensure table was successfully created
+	assert.Empty(_t, createTablesRespJson.Error)
+
+	assert.NotNil(_t, createTablesRespJson.Table)
+	assert.NotNil(_t, createTablesRespJson.Table.Id)
+	assert.NotEmpty(_t, createTablesRespJson.Table.Id)
+
+	return createTablesRespJson
 }
