@@ -257,8 +257,8 @@ func GetTableSummary(c echo.Context) error {
 
 	// TODO: formalize response object
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"count":     int(totalVariantsCount),
-		"data_type": map[string]interface{}{},
+		"count":              int(totalVariantsCount),
+		"data_type_specific": map[string]interface{}{},
 	})
 }
 
