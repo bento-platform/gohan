@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"api/contexts"
 	"api/models/constants"
 	"api/models/dtos"
 	"api/models/indexes"
@@ -152,10 +153,17 @@ func GetTables(c echo.Context) error {
 func GetTableSummary(c echo.Context) error {
 	fmt.Printf("[%s] - GetTableSummary hit!\n", time.Now())
 
+	cfg := c.(*contexts.GohanContext).Config
+
 	// obtain tableId from the path
 	tableId := c.Param("id")
+	// obtain other potentially relevant parameters from available query parameters
+	// (these should be empty, but utilizing this common function is convenient to set up
+	// the call to the variants index through the repository functions)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, _ = retrieveCommonElements(c)
+	// unused tableId from query parameter set to '_'
 
-	// at least one of these parameters must be present
+	// table id must be provided
 	if tableId == "" {
 		fmt.Println("Missing table id")
 
@@ -238,20 +246,30 @@ func GetTableSummary(c echo.Context) error {
 		})
 	}
 
-	// TODO: obtain table id from the one expected hit
+	// obtain table id from the one expected hit
 	// and search for variants associated with it
 
-	// TODO: refactor
-	// -- testing
-	// --- use variants overview as source for variant counts
-	variantsOverview := obtainVariantsOverview(c)
-	variantsOverviewMap := variantsOverview["variantIDs"].(map[string]interface{})
 	totalVariantsCount := 0.0
-	// Iterate over all keys
-	for _, val := range variantsOverviewMap {
-		totalVariantsCount += val.(float64)
+
+	docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+		chromosome, lowerBound, upperBound,
+		"", "", // note : both variantId and sampleId are deliberately set to ""
+		reference, alternative, genotype, assemblyId, tableId)
+
+	if countError != nil {
+		fmt.Printf("Failed to count variants with table ID %s\n", tableId)
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"code": 500,
+			"errors": []map[string]interface{}{
+				{
+					"message": "Something went wrong.. Please try again later!",
+				},
+			},
+			"message": "Internal Server Error", "timestamp": time.Now(),
+		})
 	}
-	// --
+
+	totalVariantsCount = docs["count"].(float64)
 
 	fmt.Printf("Successfully Obtained Table ID '%s' Summary \n", tableId)
 

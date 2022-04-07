@@ -13,6 +13,7 @@ import (
 
 	"api/models"
 	c "api/models/constants"
+	a "api/models/constants/assembly-id"
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
@@ -396,7 +397,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 		})
 	}
 
-	if assemblyId != "" {
+	if assemblyId != "" && assemblyId != a.Unknown {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": map[string]interface{}{
 				"assemblyId": map[string]interface{}{
