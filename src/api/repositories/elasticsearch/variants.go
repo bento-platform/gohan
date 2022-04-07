@@ -109,7 +109,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	reference string, alternative string,
 	size int, sortByPosition c.SortDirection,
 	includeInfoInResultSet bool,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId,
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string,
 	getSampleIdsOnly bool) (map[string]interface{}, error) {
 
 	// begin building the request body.
@@ -164,6 +164,16 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 			"match": map[string]interface{}{
 				"assemblyId": map[string]interface{}{
 					"query": assemblyId,
+				},
+			},
+		})
+	}
+
+	if tableId != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"tableId": map[string]interface{}{
+					"query": tableId,
 				},
 			},
 		})
@@ -335,7 +345,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -391,6 +401,16 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			"match": map[string]interface{}{
 				"assemblyId": map[string]interface{}{
 					"query": assemblyId,
+				},
+			},
+		})
+	}
+
+	if tableId != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": map[string]interface{}{
+				"tableId": map[string]interface{}{
+					"query": tableId,
 				},
 			},
 		})

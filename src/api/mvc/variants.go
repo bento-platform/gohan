@@ -480,7 +480,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, tableId = retrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
 	getSampleIdsOnlyQP := c.QueryParam("getSampleIdsOnly")
@@ -566,7 +566,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
 					size, sortByPosition,
-					includeInfoInResultSet, genotype, assemblyId,
+					includeInfoInResultSet, genotype, assemblyId, tableId,
 					getSampleIdsOnly)
 			} else {
 
@@ -591,7 +591,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 						"", _id, // note : "" is for variantId
 						reference, alternative,
 						size, sortByPosition,
-						includeInfoInResultSet, genotype, assemblyId,
+						includeInfoInResultSet, genotype, assemblyId, tableId,
 						false)
 				}
 
@@ -716,7 +716,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, tableId = retrieveCommonElements(c)
 
 	respDTO := dtos.VariantCountReponse{
 		Results: make([]dtos.VariantCountResult, 0),
@@ -746,7 +746,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
-					reference, alternative, genotype, assemblyId)
+					reference, alternative, genotype, assemblyId, tableId)
 			} else {
 				// implied sampleId query
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
@@ -755,7 +755,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
-					reference, alternative, genotype, assemblyId)
+					reference, alternative, genotype, assemblyId, tableId)
 			}
 
 			if countError != nil {
@@ -791,7 +791,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 	return c.JSON(http.StatusOK, respDTO)
 }
 
-func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, constants.GenotypeQuery, constants.AssemblyId) {
+func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, constants.GenotypeQuery, constants.AssemblyId, string) {
 	es := c.(*contexts.GohanContext).Es7Client
 
 	chromosome := c.QueryParam("chromosome")
@@ -842,7 +842,13 @@ func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 		assemblyId = a.CastToAssemblyId(assemblyIdQP)
 	}
 
-	return es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId
+	tableId := c.QueryParam("tableId")
+	if len(tableId) == 0 {
+		// if no tableId is provided, assume "wildcard" search
+		tableId = "*"
+	}
+
+	return es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, tableId
 }
 
 // -- helper functions
