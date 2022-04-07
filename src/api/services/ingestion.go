@@ -322,7 +322,7 @@ func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFi
 }
 
 func (i *IngestionService) ProcessVcf(
-	vcfFilePath string, drsFileId string,
+	vcfFilePath string, drsFileId string, tableId string,
 	assemblyId constants.AssemblyId, filterOutHomozygousReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
@@ -394,6 +394,7 @@ func (i *IngestionService) ProcessVcf(
 
 			tmpVariant["fileId"] = drsFileId
 			tmpVariant["assemblyId"] = assemblyId
+			tmpVariant["tableId"] = tableId
 
 			// skip this call if need be
 			skipThisCall := false

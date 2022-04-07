@@ -134,6 +134,8 @@ func VariantsIngest(c echo.Context) error {
 	}
 
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
+	tableId := c.QueryParam("tableId")
+	// TODO: validate table exists in elasticsearch
 
 	// -- optional filter
 	var (
@@ -433,7 +435,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
 				fmt.Printf("Begin processing %s at [%s]\n", vcfFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				ingestionService.ProcessVcf(vcfFilePath, drsFileId, tableId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
 				fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(beginProcessingTime))
 
 				// ---   delete the temporary vcf file
