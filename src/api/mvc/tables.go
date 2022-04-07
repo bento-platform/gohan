@@ -285,8 +285,6 @@ func DeleteTable(c echo.Context) error {
 	// obtain tableId from the path
 	tableId := c.Param("id")
 
-	// TODO: implement delete variants associated with this table id ?
-
 	// at least one of these parameters must be present
 	if tableId == "" {
 		fmt.Println("Missing table id")
@@ -349,6 +347,37 @@ func DeleteTable(c echo.Context) error {
 		})
 	}
 
-	fmt.Printf("Successfully Deleted Table(s) with ID '%s'\n", tableId)
+	// delete variants associated with this table id
+	deletedVariants, deleteVariantsError := esRepo.DeleteVariantsByTableId(c, tableId)
+	if deleteVariantsError != nil {
+		fmt.Printf("Failed to delete variants associated with table ID %s\n", tableId)
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"code": 500,
+			"errors": []map[string]interface{}{
+				{
+					"message": "Something went wrong.. Please try again later!",
+				},
+			},
+			"message": "Internal Server Error", "timestamp": time.Now(),
+		})
+	}
+	deletedVariantsResults := deletedVariants["deleted"]
+	numDeletedVariants := 0.0
+	if deletedVariantsResults != nil {
+		numDeletedVariants = deletedVariantsResults.(float64)
+	} else {
+		fmt.Printf("No Tables with ID '%s' were deleted\n", tableId)
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"code": 400,
+			"errors": []map[string]interface{}{
+				{
+					"message": fmt.Sprintf("Failed to delete tables with ID %s", tableId),
+				},
+			},
+			"message": "Bad Request", "timestamp": time.Now(),
+		})
+	}
+
+	fmt.Printf("Successfully Deleted Table(s) with ID '%s' with %f variants!\n", tableId, numDeletedVariants)
 	return c.NoContent(204)
 }
