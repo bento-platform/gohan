@@ -909,6 +909,10 @@ func obtainVariantsOverview(_c echo.Context) map[string]interface{} {
 	wg.Add(1)
 	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
 
+	// get distribution of assembly IDs
+	wg.Add(1)
+	go callGetBucketsByKeyword("tableIDs", "tableId.keyword", &wg)
+
 	wg.Wait()
 
 	return resultsMap
