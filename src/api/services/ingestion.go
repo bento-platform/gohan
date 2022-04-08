@@ -545,24 +545,30 @@ func (i *IngestionService) ProcessVcf(
 				phredScaleLikelyhoodPosition int  = 0
 			)
 
+			// error checking --
 			if tmpVariant == nil {
 				fmt.Printf("Something went wrong, but was caught:\ntmpVariant is nil for file with DRS fileId `%s` at line `%s`  \n\n", drsFileId, line)
 				return
 			}
-			for i, f := range tmpVariant["format"].([]string) {
-				// ----- check formats
-				switch f {
-				case "GT":
-					hasGenotype = true
-					genotypePosition = i
-				case "GP":
-					hasGenotypeProbability = true
-					genotypeProbabilityPosition = i
-				case "PL":
-					hasPhredScaleLikelyhood = true
-					phredScaleLikelyhoodPosition = i
+			if utils.KeyExists(tmpVariant, "format") {
+				for i, f := range tmpVariant["format"].([]string) {
+					// ----- check formats
+					switch f {
+					case "GT":
+						hasGenotype = true
+						genotypePosition = i
+					case "GP":
+						hasGenotypeProbability = true
+						genotypeProbabilityPosition = i
+					case "PL":
+						hasPhredScaleLikelyhood = true
+						phredScaleLikelyhoodPosition = i
+					}
 				}
+			} else {
+				fmt.Printf("Something went wrong, but was caught:\ntmpVariant[\"format\"] doesnt exist for file with DRS fileId `%s` at line `%s`  \n\n", drsFileId, line)
 			}
+			// --
 
 			for _, ts := range tmpSamples {
 				sample := &indexes.Sample{}
