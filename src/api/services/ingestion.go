@@ -545,6 +545,10 @@ func (i *IngestionService) ProcessVcf(
 				phredScaleLikelyhoodPosition int  = 0
 			)
 
+			if tmpVariant == nil {
+				fmt.Printf("Something went wrong, but was caught:\ntmpVariant is nil for file with DRS fileId `%s` at line `%s`  \n\n", drsFileId, line)
+				return
+			}
 			for i, f := range tmpVariant["format"].([]string) {
 				// ----- check formats
 				switch f {
