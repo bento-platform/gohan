@@ -369,6 +369,124 @@ Response
 <br />
 
 
+**`/tables`**
+
+<br />
+
+
+Request
+> &nbsp;&nbsp;**GET** `/tables`<br/>
+
+<br/>
+
+Response
+>```json  
+> [
+>   {
+> 	  "id":             `string`,
+>  	  "name":           `string`,
+> 	  "data_type":      `string`,
+> 	  "dataset":        `string`,
+> 	  "assembly_ids": `[]string`,
+> 	  "metadata":        {...},
+> 	  "schema":          {...},
+>   },
+>   ...
+> ]
+> ```
+
+<br />
+<br />
+
+
+Request
+> &nbsp;&nbsp;**POST** `/tables`<br/>
+>```json
+> {
+>    "name":           `string`,
+>    "data_type":      `string`,
+>    "dataset":        `string`,
+>    "metadata":        {...},
+> }
+> ```
+
+<br/>
+
+Response
+>```json
+> {
+>    "id":             `string`,
+>    "name":           `string`,
+>    "data_type":      `string`,
+>    "dataset":        `string`,
+>    "assembly_ids": `[]string`,
+>    "metadata":        {...},
+>    "schema":          {...},
+> }
+> ```
+
+
+<br />
+<br />
+
+
+Request
+> &nbsp;&nbsp;**GET** `/tables/:id`<br/>
+> &nbsp;&nbsp;&nbsp;path params: 
+>   - id : **string (UUID)** `(required)`
+
+<br/>
+
+Response
+>```json
+> {
+>    "id":             `string`,
+>    "name":           `string`,
+>    "data_type":      `string`,
+>    "dataset":        `string`,
+>    "assembly_ids": `[]string`,
+>    "metadata":        {...},
+>    "schema":          {...},
+> }
+> ```
+
+<br />
+<br />
+
+
+Request
+> &nbsp;&nbsp;**GET** `/tables/:id/summary`<br/>
+> &nbsp;&nbsp;&nbsp;path params: 
+>   - id : **string (UUID)** `(required)`
+
+<br/>
+
+Response
+>```json
+> {
+>    "count":               `int`,
+>    "data_type_specific":  {...},
+> }
+> ```
+
+<br />
+<br />
+
+
+Request
+> &nbsp;&nbsp;**DELETE** `/tables/:id`<br/>
+> &nbsp;&nbsp;&nbsp;path params: 
+>   - id : **string (UUID)** `(required)`
+
+<br/>
+
+Response
+
+`Status Code:` **204**
+
+<br />
+
+
 ## Releases
 
 ### **API :**
