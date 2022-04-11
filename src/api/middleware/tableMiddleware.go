@@ -1,11 +1,10 @@
 package middleware
 
 import (
-	"api/models/dtos"
+	"api/models/dtos/errors"
 	"api/utils"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo"
 )
@@ -19,16 +18,7 @@ func MandateTableIdAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 		tableId := c.QueryParam("tableId")
 		if len(tableId) == 0 {
 			// if no id was provided, or is invalid, return an error
-			return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-				Code:      400,
-				Message:   "Bad Request",
-				Timestamp: time.Now(),
-				Errors: []dtos.GeneralError{
-					{
-						Message: "Missing table id",
-					},
-				},
-			})
+			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("missing table id"))
 		}
 
 		// verify tableId is a valid UUID
@@ -37,16 +27,7 @@ func MandateTableIdAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 		if !utils.IsValidUUID(tableId) {
 			fmt.Printf("Invalid table id %s\n", tableId)
 
-			return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-				Code:      400,
-				Message:   "Bad Request",
-				Timestamp: time.Now(),
-				Errors: []dtos.GeneralError{
-					{
-						Message: fmt.Sprintf("Invalid table id %s - please provide a valid UUID", tableId),
-					},
-				},
-			})
+			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid table id %s - please provide a valid uuid", tableId)))
 		}
 
 		return next(c)

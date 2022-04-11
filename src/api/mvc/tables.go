@@ -10,6 +10,7 @@ import (
 	"api/contexts"
 	"api/models/constants"
 	"api/models/dtos"
+	"api/models/dtos/errors"
 	"api/models/indexes"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
@@ -95,29 +96,11 @@ func GetTables(c echo.Context) error {
 
 	// at least one of these parameters must be present
 	if tableId == "" && dataType == "" {
-		return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-			Code:      400,
-			Message:   "Bad Request",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: "Missing both id and data type - please provide at least one of them",
-				},
-			},
-		})
+		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("Missing both id and data type - please provide at least one of them"))
 	} else if dataType != "" {
 		// ensure data_type is valid ('variant', etc..)
 		if !utils.StringInSlice(dataType, constants.ValidTableDataTypes) {
-			return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-				Code:      400,
-				Message:   "Bad Request",
-				Timestamp: time.Now(),
-				Errors: []dtos.GeneralError{
-					{
-						Message: fmt.Sprintf("Invalid data_type: %s -- Must be one of the following: %s", dataType, constants.ValidTableDataTypes),
-					},
-				},
-			})
+			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("Invalid data_type: %s -- Must be one of the following: %s", dataType, constants.ValidTableDataTypes)))
 		}
 	}
 
@@ -171,17 +154,7 @@ func GetTableSummary(c echo.Context) error {
 	// table id must be provided
 	if tableId == "" {
 		fmt.Println("Missing table id")
-
-		return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-			Code:      400,
-			Message:   "Bad Request",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: "Missing table id - please try again",
-				},
-			},
-		})
+		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("Missing table id - please try again"))
 	}
 
 	// call repository
@@ -189,33 +162,14 @@ func GetTableSummary(c echo.Context) error {
 	results, getTablesError := esRepo.GetTables(c, tableId, "")
 	if getTablesError != nil {
 		fmt.Printf("Failed to get tables with ID %s\n", tableId)
-
-		return c.JSON(http.StatusInternalServerError, &dtos.GeneralErrorResponseDto{
-			Code:      500,
-			Message:   "Internal Server Error",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: "Something went wrong.. Please try again later!",
-				},
-			},
-		})
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
 	}
 
 	// gather data from "hits"
 	docsHits := results["hits"].(map[string]interface{})["hits"]
 	if docsHits == nil {
 		fmt.Printf("No Tables with ID '%s' were deleted\n", tableId)
-		return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-			Code:      400,
-			Message:   "Bad Request",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: fmt.Sprintf("Table with ID %s not found", tableId),
-				},
-			},
-		})
+		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("Table with ID %s not found", tableId)))
 	}
 
 	// obtain hits (expecting 1)
@@ -242,17 +196,7 @@ func GetTableSummary(c echo.Context) error {
 
 	if len(allSources) == 0 {
 		fmt.Printf("No Variants associated with table ID '%s'\n", tableId)
-
-		return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-			Code:      400,
-			Message:   "Bad Request",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: fmt.Sprintf("Failed to get table summary with ID %s", tableId),
-				},
-			},
-		})
+		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("Failed to get table summary with ID %s", tableId)))
 	}
 
 	// obtain table id from the one expected hit
@@ -267,16 +211,7 @@ func GetTableSummary(c echo.Context) error {
 
 	if countError != nil {
 		fmt.Printf("Failed to count variants with table ID %s\n", tableId)
-		return c.JSON(http.StatusInternalServerError, &dtos.GeneralErrorResponseDto{
-			Code:      500,
-			Message:   "Internal Server Error",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: "Something went wrong.. Please try again later!",
-				},
-			},
-		})
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
 	}
 
 	totalVariantsCount = docs["count"].(float64)
@@ -298,34 +233,14 @@ func DeleteTable(c echo.Context) error {
 	// at least one of these parameters must be present
 	if tableId == "" {
 		fmt.Println("Missing table id")
-
-		return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-			Code:      400,
-			Message:   "Bad Request",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: "Missing table id - please try again",
-				},
-			},
-		})
+		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("Missing table id - please try again"))
 	}
 
 	// call repository
 	results, deleteError := esRepo.DeleteTableById(c, tableId)
 	if deleteError != nil {
 		fmt.Printf("Failed to delete tables with ID %s\n", tableId)
-
-		return c.JSON(http.StatusInternalServerError, &dtos.GeneralErrorResponseDto{
-			Code:      500,
-			Message:   "Internal Server Error",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: "Something went wrong.. Please try again later!",
-				},
-			},
-		})
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
 	}
 
 	// gather data from "deleted"
@@ -335,47 +250,18 @@ func DeleteTable(c echo.Context) error {
 		numDeleted = docsHits.(float64)
 	} else {
 		fmt.Printf("No Tables with ID '%s' were deleted\n", tableId)
-
-		return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-			Code:      400,
-			Message:   "Bad Request",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: fmt.Sprintf("Failed to delete tables with ID %s", tableId),
-				},
-			},
-		})
+		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("Failed to delete tables with ID %s", tableId)))
 	}
 	if numDeleted == 0 {
 		fmt.Printf("No Tables with ID '%s' were deleted\n", tableId)
-		return c.JSON(http.StatusNotFound, &dtos.GeneralErrorResponseDto{
-			Code:      404,
-			Message:   "Not Found",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: fmt.Sprintf("No table with ID %s", tableId),
-				},
-			},
-		})
+		return c.JSON(http.StatusNotFound, errors.CreateSimpleNotFound(fmt.Sprintf("No table with ID %s", tableId)))
 	}
 
 	// delete variants associated with this table id
 	deletedVariants, deleteVariantsError := esRepo.DeleteVariantsByTableId(c, tableId)
 	if deleteVariantsError != nil {
 		fmt.Printf("Failed to delete variants associated with table ID %s\n", tableId)
-
-		return c.JSON(http.StatusInternalServerError, &dtos.GeneralErrorResponseDto{
-			Code:      500,
-			Message:   "Internal Server Error",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: "Something went wrong.. Please try again later!",
-				},
-			},
-		})
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
 	}
 	deletedVariantsResults := deletedVariants["deleted"]
 	numDeletedVariants := 0.0
@@ -384,17 +270,7 @@ func DeleteTable(c echo.Context) error {
 	} else {
 		msg := fmt.Sprintf("Failed to delete tables with ID %s", tableId)
 		fmt.Println(msg)
-
-		return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
-			Code:      400,
-			Message:   "Bad Request",
-			Timestamp: time.Now(),
-			Errors: []dtos.GeneralError{
-				{
-					Message: msg,
-				},
-			},
-		})
+		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(msg))
 	}
 
 	fmt.Printf("Successfully Deleted Table(s) with ID '%s' with %f variants!\n", tableId, numDeletedVariants)
