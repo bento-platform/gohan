@@ -131,7 +131,7 @@ func main() {
 		})
 	})
 
-	// -- Data-Type
+	// -- Data-Types
 	e.GET("/data-types", mvc.GetDataTypes)
 	e.GET("/data-types/variant", mvc.GetVariantDataType)
 	e.GET("/data-types/variant/schema", mvc.GetVariantDataTypeSchema)

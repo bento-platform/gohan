@@ -3,6 +3,7 @@ package dtos
 import (
 	"api/models/constants"
 	"api/models/indexes"
+	"time"
 )
 
 // ---- Variants
@@ -83,4 +84,15 @@ type CreateTableResponseDto struct {
 type TableSummaryResponseDto struct {
 	Count            int                    `json:"count"`
 	DataTypeSpecific map[string]interface{} `json:"data_type_specific"` // TODO: type-safety?
+}
+
+// -- Errors
+type GeneralErrorResponseDto struct {
+	Code      int            `json:"code,omitempty"`
+	Message   string         `json:"message,omitempty"`
+	Errors    []GeneralError `json:"errors,omitempty"`
+	Timestamp time.Time      `json:"timestamp,omitempty"`
+}
+type GeneralError struct {
+	Message string `json:"message,omitempty"`
 }

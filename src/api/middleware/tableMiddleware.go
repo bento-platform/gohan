@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"api/models/dtos"
 	"api/utils"
 	"fmt"
 	"net/http"
@@ -18,15 +19,15 @@ func MandateTableIdAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 		tableId := c.QueryParam("tableId")
 		if len(tableId) == 0 {
 			// if no id was provided, or is invalid, return an error
-			return echo.NewHTTPError(http.StatusBadRequest, map[string]interface{}{
-				"code": 400,
-				"errors": []map[string]interface{}{
+			return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
+				Code:      400,
+				Message:   "Bad Request",
+				Timestamp: time.Now(),
+				Errors: []dtos.GeneralError{
 					{
-						"message": "Missing table id",
+						Message: "Missing table id",
 					},
 				},
-				"message":   "Bad Request",
-				"timestamp": time.Now(),
 			})
 		}
 
@@ -36,16 +37,15 @@ func MandateTableIdAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 		if !utils.IsValidUUID(tableId) {
 			fmt.Printf("Invalid table id %s\n", tableId)
 
-			// TODO: formalize response dto model
-			return c.JSON(http.StatusBadRequest, map[string]interface{}{
-				"code": 400,
-				"errors": []map[string]interface{}{
+			return c.JSON(http.StatusBadRequest, &dtos.GeneralErrorResponseDto{
+				Code:      400,
+				Message:   "Bad Request",
+				Timestamp: time.Now(),
+				Errors: []dtos.GeneralError{
 					{
-						"message": fmt.Sprintf("Invalid table id %s - please provide a valid UUID", tableId),
+						Message: fmt.Sprintf("Invalid table id %s - please provide a valid UUID", tableId),
 					},
 				},
-				"message":   "Bad Request",
-				"timestamp": time.Now(),
 			})
 		}
 
