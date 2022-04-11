@@ -98,8 +98,12 @@ func TestCanGetVariantsWithoutInfoInResultset(t *testing.T) {
 
 	// assert that all responses from all combinations have no results
 	for _, dtoResponse := range allDtoResponses {
-		firstDataPointCalls := dtoResponse.Results[0].Calls
-		assert.Nil(t, firstDataPointCalls[0].Info)
+		if len(dtoResponse.Results) > 0 {
+			firstDataPointCalls := dtoResponse.Results[0].Calls
+			if len(firstDataPointCalls) > 0 {
+				assert.Nil(t, firstDataPointCalls[0].Info)
+			}
+		}
 	}
 }
 
