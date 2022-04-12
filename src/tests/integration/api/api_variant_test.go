@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"sync"
 	"testing"
@@ -483,13 +484,25 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 	// available samples, assemblys, and chromosomes
 	overviewCombinations := getOverviewResultCombinations(overviewJson["chromosomes"], overviewJson["sampleIDs"], overviewJson["assemblyIDs"])
 
+	// avoid overflow:
+	// - shuffle all combinations and take top x
+	x := 10
+	croppedCombinations := make([][]string, len(overviewCombinations))
+	perm := rand.Perm(len(overviewCombinations))
+	for i, v := range perm {
+		croppedCombinations[v] = overviewCombinations[i]
+	}
+	if len(croppedCombinations) > x {
+		croppedCombinations = croppedCombinations[:x]
+	}
+
 	// initialize a common slice in which to
 	// accumulate al responses asynchronously
 	allDtoResponses := []dtos.VariantGetReponse{}
 	allDtoResponsesMux := sync.RWMutex{}
 
 	var combWg sync.WaitGroup
-	for _, combination := range overviewCombinations {
+	for _, combination := range croppedCombinations {
 		combWg.Add(1)
 		go func(_wg *sync.WaitGroup, _combination []string) {
 			defer _wg.Done()
