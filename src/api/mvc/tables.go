@@ -106,6 +106,11 @@ func GetTables(c echo.Context) error {
 
 	// call repository
 	results, _ := esRepo.GetTables(c, tableId, dataType)
+	if results == nil {
+		// return empty result (assume there are no tables because the index doesn't exist)
+		return c.JSON(http.StatusOK, []map[string]interface{}{})
+	}
+	// TODO: handle _ error better
 
 	// gather data from "hits"
 	docsHits := results["hits"].(map[string]interface{})["hits"]
