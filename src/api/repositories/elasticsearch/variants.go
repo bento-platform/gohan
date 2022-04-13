@@ -62,9 +62,9 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
@@ -300,9 +300,9 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
@@ -509,9 +509,9 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Count(
 		es.Count.WithContext(context.Background()),
@@ -582,9 +582,9 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 		fmt.Println(myString)
 	}
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
@@ -631,9 +631,9 @@ func DeleteVariantsByTableId(c echo.Context, tableId string) (map[string]interfa
 	cfg := c.(*contexts.GohanContext).Config
 	es := c.(*contexts.GohanContext).Es7Client
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	var buf bytes.Buffer
 	query := map[string]interface{}{

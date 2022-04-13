@@ -113,9 +113,9 @@ func GetTables(c echo.Context, tableId string, dataType string) (map[string]inte
 	cfg := c.(*contexts.GohanContext).Config
 	es := c.(*contexts.GohanContext).Es7Client
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	// get table by "any combination of any applicable parameter" query structure
 	filter := make([]map[string]interface{}, 0)
@@ -227,9 +227,9 @@ func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) 
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
@@ -303,9 +303,9 @@ func DeleteTableById(c echo.Context, tableId string) (map[string]interface{}, er
 	cfg := c.(*contexts.GohanContext).Config
 	es := c.(*contexts.GohanContext).Es7Client
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	var buf bytes.Buffer
 	query := map[string]interface{}{

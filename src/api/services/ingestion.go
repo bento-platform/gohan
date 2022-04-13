@@ -265,10 +265,11 @@ func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string
 	return dir, file, nil
 }
 
-func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirectory string, gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
+
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	data := fmt.Sprintf("{\"path\": \"%s/%s\"}", drsBridgeDirectory, gzippedFileName)
 

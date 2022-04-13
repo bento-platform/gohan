@@ -60,11 +60,10 @@ func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) (map[
 		// view the outbound elasticsearch query
 		myString := string(buf.Bytes()[:])
 		fmt.Println(myString)
+
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
@@ -109,9 +108,9 @@ func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) (map[
 func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client,
 	chromosomeSearchTerm string, term string, assId constants.AssemblyId, size int) (map[string]interface{}, error) {
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	// Nomenclature Search Term
 	nomenclatureStringTerm := fmt.Sprintf("*%s*", term)
@@ -220,9 +219,9 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 
 func DeleteGenesByAssemblyId(cfg *models.Config, es *elasticsearch.Client, assId constants.AssemblyId) (map[string]interface{}, error) {
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	var buf bytes.Buffer
 	query := map[string]interface{}{

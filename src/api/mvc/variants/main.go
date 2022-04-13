@@ -339,7 +339,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// ---   push compressed to DRS
 				fmt.Printf("Uploading %s to DRS !\n", gzippedFileName)
-				drsFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
+				drsFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
 				if drsFileId == "" {
 					msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
 					fmt.Println(msg)
@@ -353,7 +353,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// -- push tabix to DRS
 				fmt.Printf("Uploading %s to DRS !\n", tabixFileNameWithRelativePath)
-				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
 				if drsTabixFileId == "" {
 					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileNameWithRelativePath
 					fmt.Println(msg)

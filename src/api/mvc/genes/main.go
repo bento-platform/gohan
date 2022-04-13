@@ -47,9 +47,10 @@ func GenesIngest(c echo.Context) error {
 
 		iz := c.(*contexts.GohanContext).IngestionService
 
-		// TEMP: SECURITY RISK
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		//
+		if cfg.Debug {
+			http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
+
 		assemblyIdMap := map[constants.AssemblyId]string{
 			assemblyId.GRCh38: "gencode.v38.annotation.gtf",
 			assemblyId.GRCh37: "gencode.v19.annotation.gtf",
