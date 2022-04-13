@@ -1,4 +1,4 @@
-package mvc
+package dataTypes
 
 import (
 	"net/http"

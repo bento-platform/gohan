@@ -1,4 +1,4 @@
-package mvc
+package tables
 
 import (
 	"encoding/json"
@@ -12,6 +12,7 @@ import (
 	"api/models/dtos"
 	"api/models/dtos/errors"
 	"api/models/indexes"
+	"api/mvc"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
 
@@ -153,7 +154,7 @@ func GetTableSummary(c echo.Context) error {
 	// obtain other potentially relevant parameters from available query parameters
 	// (these should be empty, but utilizing this common function is convenient to set up
 	// the call to the variants index through the repository functions)
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, _ = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, _ = mvc.RetrieveCommonElements(c)
 	// unused tableId from query parameter set to '_'
 
 	// table id must be provided

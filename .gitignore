@@ -7,7 +7,7 @@
 
 # Volume directories
 data/
-data-*/
+data-x/
 
 # vcfs
 */vcfs/*.txt

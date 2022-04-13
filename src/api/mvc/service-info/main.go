@@ -1,4 +1,4 @@
-package mvc
+package serviceInfo
 
 import (
 	serviceInfo "api/models/constants/service-info"

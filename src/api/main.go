@@ -5,7 +5,12 @@ import (
 	gam "api/middleware"
 	"api/models"
 	serviceInfo "api/models/constants/service-info"
-	"api/mvc"
+	dataTypesMvc "api/mvc/data-types"
+	genesMvc "api/mvc/genes"
+	serviceInfoMvc "api/mvc/service-info"
+	tablesMvc "api/mvc/tables"
+	variantsMvc "api/mvc/variants"
+	workflowsMvc "api/mvc/workflows"
 	"api/services"
 	"api/utils"
 	"strings"
@@ -115,46 +120,46 @@ func main() {
 	})
 
 	// -- Service Info
-	e.GET("/service-info", mvc.GetServiceInfo)
+	e.GET("/service-info", serviceInfoMvc.GetServiceInfo)
 
 	// -- Data-Types
-	e.GET("/data-types", mvc.GetDataTypes)
-	e.GET("/data-types/variant", mvc.GetVariantDataType)
-	e.GET("/data-types/variant/schema", mvc.GetVariantDataTypeSchema)
-	e.GET("/data-types/variant/metadata_schema", mvc.GetVariantDataTypeMetadataSchema)
+	e.GET("/data-types", dataTypesMvc.GetDataTypes)
+	e.GET("/data-types/variant", dataTypesMvc.GetVariantDataType)
+	e.GET("/data-types/variant/schema", dataTypesMvc.GetVariantDataTypeSchema)
+	e.GET("/data-types/variant/metadata_schema", dataTypesMvc.GetVariantDataTypeMetadataSchema)
 
 	// -- Tables
-	e.GET("/tables", mvc.GetTables)
-	e.POST("/tables", mvc.CreateTable)
-	e.GET("/tables/:id", mvc.GetTables)
-	e.DELETE("/tables/:id", mvc.DeleteTable)
-	e.GET("/tables/:id/summary", mvc.GetTableSummary)
+	e.GET("/tables", tablesMvc.GetTables)
+	e.POST("/tables", tablesMvc.CreateTable)
+	e.GET("/tables/:id", tablesMvc.GetTables)
+	e.DELETE("/tables/:id", tablesMvc.DeleteTable)
+	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary)
 
 	// -- Variants
-	e.GET("/variants/overview", mvc.GetVariantsOverview)
+	e.GET("/variants/overview", variantsMvc.GetVariantsOverview)
 
-	e.GET("/variants/get/by/variantId", mvc.VariantsGetByVariantId,
+	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
-	e.GET("/variants/get/by/sampleId", mvc.VariantsGetBySampleId,
+	e.GET("/variants/get/by/sampleId", variantsMvc.VariantsGetBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsPluralAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
-	e.GET("/variants/get/by/documentId", mvc.VariantsGetByDocumentId)
+	e.GET("/variants/get/by/documentId", variantsMvc.VariantsGetByDocumentId)
 
-	e.GET("/variants/count/by/variantId", mvc.VariantsCountByVariantId,
+	e.GET("/variants/count/by/variantId", variantsMvc.VariantsCountByVariantId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
-	e.GET("/variants/count/by/sampleId", mvc.VariantsCountBySampleId,
+	e.GET("/variants/count/by/sampleId", variantsMvc.VariantsCountBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
@@ -163,31 +168,31 @@ func main() {
 		gam.ValidatePotentialGenotypeQueryParameter)
 
 	// TODO: refactor (deduplicate) --
-	e.GET("/variants/ingestion/run", mvc.VariantsIngest,
+	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateTableIdAttribute)
-	e.GET("/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
-	e.GET("/variants/ingestion/stats", mvc.VariantsIngestionStats)
+	e.GET("/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
+	e.GET("/variants/ingestion/stats", variantsMvc.VariantsIngestionStats)
 
-	e.GET("/private/variants/ingestion/run", mvc.VariantsIngest,
+	e.GET("/private/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
 		gam.MandateAssemblyIdAttribute)
-	e.GET("/private/variants/ingestion/requests", mvc.GetAllVariantIngestionRequests)
+	e.GET("/private/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	// --
 
 	// -- Genes
-	e.GET("/genes/overview", mvc.GetGenesOverview)
-	e.GET("/genes/search", mvc.GenesGetByNomenclatureWildcard,
+	e.GET("/genes/overview", genesMvc.GetGenesOverview)
+	e.GET("/genes/search", genesMvc.GenesGetByNomenclatureWildcard,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute)
-	e.GET("/genes/ingestion/requests", mvc.GetAllGeneIngestionRequests)
-	e.GET("/genes/ingestion/run", mvc.GenesIngest)
-	e.GET("/genes/ingestion/stats", mvc.VariantsIngestionStats)
+	e.GET("/genes/ingestion/requests", genesMvc.GetAllGeneIngestionRequests)
+	e.GET("/genes/ingestion/run", genesMvc.GenesIngest)
+	e.GET("/genes/ingestion/stats", genesMvc.GenesIngestionStats)
 
 	// -- Workflows
-	e.GET("/workflows", mvc.WorkflowsGet)
-	e.GET("/workflows/:file", mvc.WorkflowsServeFile)
+	e.GET("/workflows", workflowsMvc.WorkflowsGet)
+	e.GET("/workflows/:file", workflowsMvc.WorkflowsServeFile)
 
 	// Run
 	e.Logger.Fatal(e.Start(":" + cfg.Api.Port))
