@@ -91,7 +91,7 @@ func main() {
 	}))
 
 	// -- Override handlers with "custom Gohan" context
-	//		to be able to provide variables and global singletons
+	//		to be able to optimally provide access to global variables/singletons
 	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cc := &contexts.GohanContext{
@@ -104,7 +104,7 @@ func main() {
 		}
 	})
 
-	// Global Middleware
+	// Global Middleware (optional)
 	e.Use(az.MandateAuthorizationTokensMiddleware)
 
 	// Begin MVC Routes
@@ -115,21 +115,7 @@ func main() {
 	})
 
 	// -- Service Info
-	e.GET("/service-info", func(c echo.Context) error {
-		// Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"id":          serviceInfo.SERVICE_ID,
-			"name":        serviceInfo.SERVICE_NAME,
-			"type":        serviceInfo.SERVICE_TYPE,
-			"description": serviceInfo.SERVICE_DESCRIPTION,
-			"organization": map[string]string{
-				"name": "C3G",
-				"url":  "http://c3g.ca",
-			},
-			"contactUrl": serviceInfo.SERVICE_CONTACT,
-			"version":    serviceInfo.SERVICE_VERSION,
-		})
-	})
+	e.GET("/service-info", mvc.GetServiceInfo)
 
 	// -- Data-Types
 	e.GET("/data-types", mvc.GetDataTypes)

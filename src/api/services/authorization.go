@@ -2,6 +2,7 @@ package services
 
 import (
 	"api/models"
+	e "api/models/dtos/errors"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -83,6 +84,7 @@ func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnTokenString s
 	}
 
 	//	- validate JWKS and AuthN token agains OPA
+	// TODO: formalize data structure as a dto
 	opaInputJson := map[string]interface{}{
 		"input": map[string]interface{}{
 			"authN_token": authnTokenString,
@@ -140,18 +142,20 @@ func (a *AuthzService) MandateAuthorizationTokensMiddleware(next echo.HandlerFun
 				return echo.NewHTTPError(http.StatusForbidden, missingHeadersErr.Error())
 			}
 
-			// TEMP
+			// TODO: avoid hardcoded custom header - make configurable
 			authnTokenHeader := "X-AUTHN-TOKEN"
 			authnToken := presentHeaders.Get(authnTokenHeader)
 
 			// check user permission
 			accessError := a.EnsureRepositoryAccessPermittedForUser(authnToken)
 			if accessError != nil {
-				return echo.NewHTTPError(http.StatusUnauthorized, accessError.Error())
+				return echo.NewHTTPError(http.StatusUnauthorized, e.CreateSimpleUnauthorized(accessError.Error()))
 			}
 		}
 
 		// access granted!
+
+		// pass context off to the next middleware handler
 		if err := next(c); err != nil {
 			c.Error(err)
 		}
