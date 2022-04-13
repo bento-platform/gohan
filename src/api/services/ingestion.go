@@ -99,59 +99,47 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 func (i *IngestionService) Init() {
 	// safeguard to prevent multiple initilizations
 	if !i.Initialized {
-		// spin up a listener for both variant and gene ingest request updates
+		// spin up a go routine acting as a listener for variant and
+		// gene ingest request updates, and variant and gene bulk indexing
 		go func() {
 			for {
 				select {
-				case newRequest := <-i.IngestRequestChan:
-					if newRequest.State == ingest.Queued {
-						fmt.Printf("Received new request for %s\n", newRequest.Filename)
+				case variantIngestionRequest := <-i.IngestRequestChan:
+					if variantIngestionRequest.State == ingest.Queued {
+						fmt.Printf("Queueing a new variant ingestion request for %s\n", variantIngestionRequest.Filename)
 					}
 
-					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
-					i.IngestRequestMap[newRequest.Id.String()] = newRequest
-				}
-			}
-		}()
+					variantIngestionRequest.UpdatedAt = time.Now().String()
+					i.IngestRequestMap[variantIngestionRequest.Id.String()] = variantIngestionRequest
 
-		go func() {
-			for {
-				select {
-				case newRequest := <-i.GeneIngestRequestChan:
-					if newRequest.State == ingest.Queued {
-						fmt.Printf("Received new request for %s\n", newRequest.Filename)
+				case geneIngestionRequest := <-i.GeneIngestRequestChan:
+					if geneIngestionRequest.State == ingest.Queued {
+						fmt.Printf("Queueing a new gene ingestion request for %s\n", geneIngestionRequest.Filename)
 					}
 
-					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
-					i.GeneIngestRequestMap[newRequest.Filename] = newRequest
-				}
-			}
-		}()
+					geneIngestionRequest.UpdatedAt = time.Now().String()
+					i.GeneIngestRequestMap[geneIngestionRequest.Filename] = geneIngestionRequest
 
-		// spin up a listener for both variant and gene bulk indexing
-		go func() {
-			for {
-				select {
-				case queuedItem := <-i.IngestionBulkIndexingQueue:
+				case queuedVariantItem := <-i.IngestionBulkIndexingQueue:
 
-					v := queuedItem.Variant
-					wg := queuedItem.WaitGroup
+					queuedVariant := queuedVariantItem.Variant
+					wg := queuedVariantItem.WaitGroup
 
 					// Prepare the data payload: encode article to JSON
-					data, err := json.Marshal(v)
-					if err != nil {
-						log.Fatalf("Cannot encode variant %s: %s\n", v.Id, err)
+					variantData, marshallErr := json.Marshal(queuedVariant)
+					if marshallErr != nil {
+						log.Fatalf("Cannot encode variant %s: %s\n", queuedVariant.Id, marshallErr)
 					}
 
 					// Add an item to the BulkIndexer
-					err = i.IngestionBulkIndexer.Add(
+					marshallErr = i.IngestionBulkIndexer.Add(
 						context.Background(),
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
 
 							// Body is an `io.Reader` with the payload
-							Body: bytes.NewReader(data),
+							Body: bytes.NewReader(variantData),
 
 							// OnSuccess is called for each successful operation
 							OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
@@ -172,37 +160,31 @@ func (i *IngestionService) Init() {
 							},
 						},
 					)
-					if err != nil {
-						fmt.Printf("Unexpected error: %s", err)
+					if marshallErr != nil {
+						fmt.Printf("Unexpected error: %s", marshallErr)
 						wg.Done()
 					}
-				}
-			}
-		}()
 
-		go func() {
-			for {
-				select {
-				case queuedItem := <-i.GeneIngestionBulkIndexingQueue:
+				case queuedGeneItem := <-i.GeneIngestionBulkIndexingQueue:
 
-					g := queuedItem.Gene
-					wg := queuedItem.WaitGroup
+					queuedGene := queuedGeneItem.Gene
+					wg := queuedGeneItem.WaitGroup
 
 					// Prepare the data payload: encode article to JSON
-					data, err := json.Marshal(g)
-					if err != nil {
-						log.Fatalf("Cannot encode gene %+v: %s\n", g, err)
+					geneData, marshallErr := json.Marshal(queuedGene)
+					if marshallErr != nil {
+						log.Fatalf("Cannot encode gene %+v: %s\n", queuedGene, marshallErr)
 					}
 
 					// Add an item to the BulkIndexer
-					err = i.GeneIngestionBulkIndexer.Add(
+					marshallErr = i.GeneIngestionBulkIndexer.Add(
 						context.Background(),
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
 
 							// Body is an `io.Reader` with the payload
-							Body: bytes.NewReader(data),
+							Body: bytes.NewReader(geneData),
 
 							// OnSuccess is called for each successful operation
 							OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
@@ -223,8 +205,8 @@ func (i *IngestionService) Init() {
 							},
 						},
 					)
-					if err != nil {
-						fmt.Printf("Unexpected error: %s", err)
+					if marshallErr != nil {
+						fmt.Printf("Unexpected error: %s", marshallErr)
 						wg.Done()
 					}
 				}
