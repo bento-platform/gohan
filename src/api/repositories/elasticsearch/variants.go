@@ -174,12 +174,9 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 	if tableId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"tableId": map[string]interface{}{
-					"query": tableId,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "tableId:" + tableId,
+			}})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}
@@ -411,12 +408,9 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 	if tableId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"tableId": map[string]interface{}{
-					"query": tableId,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "tableId:" + tableId,
+			}})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}
