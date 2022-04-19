@@ -306,6 +306,55 @@ func TestCanGetHeterozygousVariantsWithVariousAlternatives(t *testing.T) {
 	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, ratt.Alternative, specificValidation)
 }
 
+func TestCanGetVariantsWithWildcardAlternatives(t *testing.T) {
+	cfg := common.InitConfig()
+	allele := "ATTN" // example allele - TODO: render more sophisticated randomization
+	// TODO: improve variant call testing from being 1 call to many random ones
+	dtos := buildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", "", allele, t, cfg)
+	for _, dto := range dtos.Results {
+		for _, call := range dto.Calls {
+			// ensure, for each call, that at least
+			// 1 of the alt's present matches the allele
+			// queried for
+			atLeastOneValidAlt := false
+			for _, alt := range call.Alt {
+				fmt.Println(dto)
+				// TODO: improve: change from length check to "similarity check"
+				if len(allele) == len(alt) {
+					atLeastOneValidAlt = true
+					break
+				}
+			}
+			assert.True(t, atLeastOneValidAlt)
+		}
+	}
+
+}
+func TestCanGetVariantsWithWildcardReferences(t *testing.T) {
+	cfg := common.InitConfig()
+	allele := "ATTN" // example allele - TODO: render more sophisticated randomization
+	// TODO: improve variant call testing from being 1 call to many random ones
+	dtos := buildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", allele, "", t, cfg)
+	for _, dto := range dtos.Results {
+		for _, call := range dto.Calls {
+			// ensure, for each call, that at least
+			// 1 of the ref's present matches the allele
+			// queried for
+			atLeastOneValidRef := false
+			for _, ref := range call.Ref {
+				fmt.Println(dto)
+				// TODO: improve: change from length check to "similarity check"
+				if len(allele) == len(ref) {
+					atLeastOneValidRef = true
+					break
+				}
+			}
+			assert.True(t, atLeastOneValidRef)
+		}
+	}
+
+}
+
 // -- Common utility functions for api tests
 func executeReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
 	genotypeQuery c.GenotypeQuery, refAltTestType testConsts.ReferenceAlternativeTestType,
