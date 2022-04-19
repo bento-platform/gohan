@@ -207,7 +207,7 @@ Requests
 >   - chromosome : **string** `( 1-23, X, Y, MT )`
 >   - lowerBound : **number**
 >   - upperBound : **number**
->   - reference : **string** `an allele ( "A" | "C" | "G" | "T"  or some combination thereof )`
+>   - reference : **string** `an allele ( "A" | "C" | "G" | "T" | "N" or some combination thereof )`
 >   - alternative : **string** `an allele`
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
