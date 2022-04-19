@@ -7,6 +7,7 @@ import (
 	gq "api/models/constants/genotype-query"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/labstack/echo"
@@ -46,8 +47,15 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 	}
 
 	reference := c.QueryParam("reference")
-
 	alternative := c.QueryParam("alternative")
+
+	// both reference and alternative can have the
+	// single-wildcard character 'N', which adheres to
+	// the spec found at : https://droog.gs.washington.edu/parc/images/iupac.html
+
+	// swap all 'N's into '?'s for elasticsearch
+	reference = strings.Replace(reference, "N", "?", -1)
+	alternative = strings.Replace(alternative, "N", "?", -1)
 
 	genotype := gq.UNCALLED
 	genotypeQP := c.QueryParam("genotype")

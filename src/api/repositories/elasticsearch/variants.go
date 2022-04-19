@@ -144,22 +144,16 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 	if alternative != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"alt": map[string]interface{}{
-					"query": alternative,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "alt:" + alternative,
+			}})
 	}
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"ref": map[string]interface{}{
-					"query": reference,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "ref:" + reference,
+			}})
 	}
 
 	if assemblyId != "" {
@@ -378,22 +372,16 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 	if alternative != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"alt": map[string]interface{}{
-					"query": alternative,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "alt:" + alternative,
+			}})
 	}
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"ref": map[string]interface{}{
-					"query": reference,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "ref:" + reference,
+			}})
 	}
 
 	if assemblyId != "" && assemblyId != a.Unknown {
