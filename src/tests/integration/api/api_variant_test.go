@@ -316,16 +316,28 @@ func TestCanGetVariantsWithWildcardAlternatives(t *testing.T) {
 			// ensure, for each call, that at least
 			// 1 of the alt's present matches the allele
 			// queried for
-			atLeastOneValidAlt := false
-			for _, alt := range call.Alt {
-				fmt.Println(dto)
-				// TODO: improve: change from length check to "similarity check"
-				if len(allele) == len(alt) {
-					atLeastOneValidAlt = true
+			allNonWildcardCharactersMatch := true
+			// iterate over all 'alt's in the call
+			for _, alt := range call.Ref {
+				// iterate over all characters for each alt
+				for altIndex, altChar := range alt {
+					// ensure the index is within bounds (length of the allele)
+					// 'alt's are slices of strings, and not all 'alt's in these slices need to match
+					if altIndex <= len(allele) {
+						// obtain the character at the index for the iteration
+						alleleChar := []rune(allele)[altIndex]
+						if string(alleleChar) != "N" && altChar != alleleChar {
+							// if the non-wildcard characters don't match, test fails
+							allNonWildcardCharactersMatch = false
+							break
+						}
+					}
+				}
+				if !allNonWildcardCharactersMatch {
 					break
 				}
 			}
-			assert.True(t, atLeastOneValidAlt)
+			assert.True(t, allNonWildcardCharactersMatch)
 		}
 	}
 
@@ -340,19 +352,30 @@ func TestCanGetVariantsWithWildcardReferences(t *testing.T) {
 			// ensure, for each call, that at least
 			// 1 of the ref's present matches the allele
 			// queried for
-			atLeastOneValidRef := false
+			allNonWildcardCharactersMatch := true
+			// iterate over all 'ref's in the call
 			for _, ref := range call.Ref {
-				fmt.Println(dto)
-				// TODO: improve: change from length check to "similarity check"
-				if len(allele) == len(ref) {
-					atLeastOneValidRef = true
+				// iterate over all characters for each ref
+				for refIndex, refChar := range ref {
+					// ensure the index is within bounds (length of the allele)
+					// 'ref's are slices of strings, and not all 'ref's in these slices need to match
+					if refIndex <= len(allele) {
+						// obtain the character at the index for the iteration
+						alleleChar := []rune(allele)[refIndex]
+						if string(alleleChar) != "N" && refChar != alleleChar {
+							// if the non-wildcard characters don't match, test fails
+							allNonWildcardCharactersMatch = false
+							break
+						}
+					}
+				}
+				if !allNonWildcardCharactersMatch {
 					break
 				}
 			}
-			assert.True(t, atLeastOneValidRef)
+			assert.True(t, allNonWildcardCharactersMatch)
 		}
 	}
-
 }
 
 // -- Common utility functions for api tests
