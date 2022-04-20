@@ -318,7 +318,7 @@ func TestCanGetVariantsWithWildcardAlternatives(t *testing.T) {
 			// queried for
 			allNonWildcardCharactersMatch := true
 			// iterate over all 'alt's in the call
-			for _, alt := range call.Ref {
+			for _, alt := range call.Alt {
 				// iterate over all characters for each alt
 				for altIndex, altChar := range alt {
 					// ensure the index is within bounds (length of the allele)
