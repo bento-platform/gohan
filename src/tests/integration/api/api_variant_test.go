@@ -134,9 +134,14 @@ func TestCanGetVariantsWithInfoInResultset(t *testing.T) {
 		t.Skip("No infos returned! Skipping --")
 	}
 
-	for _, s := range accumulatedInfos {
-		assert.NotEmpty(t, s.Id)
-		assert.NotEmpty(t, s.Value)
+	for infoIndex, info := range accumulatedInfos {
+		// ensure the info is not nil
+		// - s.Id can be == ""
+		// - so can s.Value
+		assert.NotNil(t, info)
+		if info.Id == "" {
+			fmt.Printf("Note: Found empty info id at index %d with value %s \n", infoIndex, info.Value)
+		}
 	}
 }
 
