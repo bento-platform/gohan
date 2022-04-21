@@ -273,22 +273,35 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 
 	data := fmt.Sprintf("{\"path\": \"%s/%s\"}", drsBridgeDirectory, gzippedFileName)
 
-	r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
-	r.SetBasicAuth(drsUsername, drsPassword)
+	var (
+		drsResp *http.Response
+		drsErr  error
+	)
+	for {
+		r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
+		r.SetBasicAuth(drsUsername, drsPassword)
 
-	r.Header.Add("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(r)
-	if err != nil {
-		fmt.Printf("Upload to DRS error: %s\n", err)
-		return ""
-	} else {
-		fmt.Printf("Upload to DRS succeeded: %d\n", resp.StatusCode)
+		r.Header.Add("Content-Type", "application/json")
+		client := &http.Client{}
+		drsResp, drsErr = client.Do(r)
+		if drsErr != nil {
+			fmt.Printf("Upload to DRS error: %s\n", drsErr)
+			return ""
+		} else {
+			fmt.Printf("Upload to DRS succeeded: %d\n", drsResp.StatusCode)
+		}
+
+		// check for simple upload error (like db locked) and try again
+		if drsResp.StatusCode != 400 {
+			break
+		} else {
+			fmt.Printf("Got a %d status code on DRS Upload for '%s' \n", drsResp.StatusCode, data)
+		}
 	}
 
-	responsebody, bodyerr := ioutil.ReadAll(resp.Body)
+	responsebody, bodyerr := ioutil.ReadAll(drsResp.Body)
 	if bodyerr != nil {
-		log.Printf("Error reading body: %v", err)
+		log.Printf("Error reading body: %v", bodyerr)
 		return ""
 	}
 
