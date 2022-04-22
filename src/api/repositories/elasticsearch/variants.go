@@ -534,7 +534,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	return result, nil
 }
 
-func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) (map[string]interface{}, error) {
+func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch.Client, keyword string, tableId string) (map[string]interface{}, error) {
 	// begin building the request body.
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
@@ -550,6 +550,14 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 				},
 			},
 		},
+	}
+
+	if tableId != "" {
+		aggMap["query"] = map[string]interface{}{
+			"match": map[string]interface{}{
+				"tableId": tableId,
+			},
+		}
 	}
 
 	// encode the query

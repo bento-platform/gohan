@@ -201,7 +201,7 @@ func GetTableSummary(c echo.Context) error {
 	}
 
 	if len(allSources) == 0 {
-		fmt.Printf("No Variants associated with table ID '%s'\n", tableId)
+		fmt.Printf("Failed to get table summary with ID '%s'\n", tableId)
 		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("Failed to get table summary with ID %s", tableId)))
 	}
 
@@ -214,7 +214,6 @@ func GetTableSummary(c echo.Context) error {
 		chromosome, lowerBound, upperBound,
 		"", "", // note : both variantId and sampleId are deliberately set to ""
 		reference, alternative, genotype, assemblyId, tableId)
-
 	if countError != nil {
 		fmt.Printf("Failed to count variants with table ID %s\n", tableId)
 		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
@@ -222,11 +221,34 @@ func GetTableSummary(c echo.Context) error {
 
 	totalVariantsCount = docs["count"].(float64)
 
+	// obtain number of samples associated with this tableId
+	resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndTableId(cfg, es, "sample.id.keyword", tableId)
+	if bucketsError != nil {
+		fmt.Println(resultingBuckets)
+	}
+
+	// retrieve aggregations.items.buckets
+	// and count number of samples
+	bucketsMapped := []interface{}{}
+	if aggs, ok := resultingBuckets["aggregations"]; ok {
+		aggsMapped := aggs.(map[string]interface{})
+
+		if items, ok := aggsMapped["items"]; ok {
+			itemsMapped := items.(map[string]interface{})
+
+			if buckets := itemsMapped["buckets"]; ok {
+				bucketsMapped = buckets.([]interface{})
+			}
+		}
+	}
+
 	fmt.Printf("Successfully Obtained Table ID '%s' Summary \n", tableId)
 
 	return c.JSON(http.StatusOK, &dtos.TableSummaryResponseDto{
-		Count:            int(totalVariantsCount),
-		DataTypeSpecific: map[string]interface{}{},
+		Count: int(totalVariantsCount),
+		DataTypeSpecific: map[string]interface{}{
+			"samples": len(bucketsMapped),
+		},
 	})
 }
 

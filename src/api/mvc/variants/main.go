@@ -801,7 +801,7 @@ func obtainVariantsOverview(_c echo.Context) map[string]interface{} {
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
-		results, bucketsError := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
+		results, bucketsError := esRepo.GetVariantsBucketsByKeywordAndTableId(cfg, es, keyword, "")
 		if bucketsError != nil {
 			resultsMap[key] = map[string]interface{}{
 				"error": "Something went wrong. Please contact the administrator!",
