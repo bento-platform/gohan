@@ -285,6 +285,13 @@ func DeleteTable(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, errors.CreateSimpleNotFound(fmt.Sprintf("No table with ID %s", tableId)))
 	}
 
+	// TODO: spin the deletion of variants associated with
+	// the tableId requested off in a go routine if the table
+	// was successfully deleted and assume the deletion completes
+	// successfully in the background
+
+	// TODO: ensure that no variants exist without a valid tableId
+
 	// delete variants associated with this table id
 	deletedVariants, deleteVariantsError := esRepo.DeleteVariantsByTableId(c, tableId)
 	if deleteVariantsError != nil {
