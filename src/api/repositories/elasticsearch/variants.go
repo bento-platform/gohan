@@ -94,7 +94,7 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
 	}
-	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+
 	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
@@ -323,7 +323,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get variants by id : got '%s'", bracketString)
 	}
-	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+
 	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
@@ -522,7 +522,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to count variants by id : got '%s'", bracketString)
 	}
-	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+
 	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
@@ -672,7 +672,7 @@ func DeleteVariantsByTableId(c echo.Context, tableId string) (map[string]interfa
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
 	}
-	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+
 	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)

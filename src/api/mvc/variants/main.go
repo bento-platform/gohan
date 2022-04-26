@@ -811,13 +811,13 @@ func obtainVariantsOverview(_c echo.Context) map[string]interface{} {
 
 		// retrieve aggregations.items.buckets
 		bucketsMapped := []interface{}{}
-		if aggs, ok := results["aggregations"]; ok {
+		if aggs, aggsOk := results["aggregations"]; aggsOk {
 			aggsMapped := aggs.(map[string]interface{})
 
-			if items, ok := aggsMapped["items"]; ok {
+			if items, itemsOk := aggsMapped["items"]; itemsOk {
 				itemsMapped := items.(map[string]interface{})
 
-				if buckets := itemsMapped["buckets"]; ok {
+				if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
 					bucketsMapped = buckets.([]interface{})
 				}
 			}
@@ -853,7 +853,7 @@ func obtainVariantsOverview(_c echo.Context) map[string]interface{} {
 	wg.Add(1)
 	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
 
-	// get distribution of assembly IDs
+	// get distribution of table IDs
 	wg.Add(1)
 	go callGetBucketsByKeyword("tableIDs", "tableId.keyword", &wg)
 

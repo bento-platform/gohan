@@ -3,7 +3,6 @@ package tables
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -31,9 +30,6 @@ func CreateTable(c echo.Context) error {
 			"error": err,
 		})
 	}
-
-	log.Println("Incoming:")
-	log.Println(t)
 
 	// TODO: improve verification
 	if t.Name == "" {
@@ -174,7 +170,7 @@ func GetTableSummary(c echo.Context) error {
 	// gather data from "hits"
 	docsHits := results["hits"].(map[string]interface{})["hits"]
 	if docsHits == nil {
-		fmt.Printf("No Tables with ID '%s' were deleted\n", tableId)
+		fmt.Printf("No Tables with ID '%s' were found\n", tableId)
 		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("Table with ID %s not found", tableId)))
 	}
 
@@ -230,13 +226,13 @@ func GetTableSummary(c echo.Context) error {
 	// retrieve aggregations.items.buckets
 	// and count number of samples
 	bucketsMapped := []interface{}{}
-	if aggs, ok := resultingBuckets["aggregations"]; ok {
+	if aggs, aggsOk := resultingBuckets["aggregations"]; aggsOk {
 		aggsMapped := aggs.(map[string]interface{})
 
-		if items, ok := aggsMapped["items"]; ok {
+		if items, itemsOk := aggsMapped["items"]; itemsOk {
 			itemsMapped := items.(map[string]interface{})
 
-			if buckets := itemsMapped["buckets"]; ok {
+			if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
 				bucketsMapped = buckets.([]interface{})
 			}
 		}

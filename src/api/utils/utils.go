@@ -18,19 +18,19 @@ func StringInSlice(a string, list []string) bool {
 }
 
 func GetLeadingStringInBetweenSquareBrackets(str string) (bracketString string, theRestString string) {
+	// Assume that if the open bracket is not at index 0,
+	// it's an open bracket for an array of some sort within the string rather
+	// than a marker for a prepended status code (i.e. elasticsearch)
+	if len(str) > 0 && string(str[0]) != "[" {
+		return
+	}
+
 	var (
 		start = "["
 		end   = "]"
 	)
 	s := strings.Index(str, start)
 	if s == -1 {
-		return
-	}
-
-	// Assume that if the open bracket is not at index 0,
-	// it's an open bracket for an array of some sort within the string rather
-	// than a marker for a prepended status code (i.e. elasticsearch)
-	if s != 0 {
 		return
 	}
 
