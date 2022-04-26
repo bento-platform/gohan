@@ -3,6 +3,7 @@ package dtos
 import (
 	"api/models/constants"
 	"api/models/indexes"
+	"time"
 )
 
 // ---- Variants
@@ -63,4 +64,35 @@ type GenesResponseDTO struct {
 	Term    string         `json:"term"`
 	Count   int            `json:"count"`
 	Results []indexes.Gene `json:"results"` // []Gene
+}
+
+// -- Tables
+type CreateTableRequestDto struct {
+	Name     string                 `json:"name"`
+	DataType string                 `json:"data_type"`
+	Dataset  string                 `json:"dataset"`
+	Metadata map[string]interface{} `json:"metadata"` // TODO: type-safety?
+}
+type CreateTableResponseDto struct {
+	// --- testing: combine dto with an index model
+	//     - makes for a clean 'single-layer' json response object
+	indexes.Table
+
+	Message string `json:"message,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+type TableSummaryResponseDto struct {
+	Count            int                    `json:"count"`
+	DataTypeSpecific map[string]interface{} `json:"data_type_specific"` // TODO: type-safety?
+}
+
+// -- Errors
+type GeneralErrorResponseDto struct {
+	Code      int            `json:"code,omitempty"`
+	Message   string         `json:"message,omitempty"`
+	Errors    []GeneralError `json:"errors,omitempty"`
+	Timestamp time.Time      `json:"timestamp,omitempty"`
+}
+type GeneralError struct {
+	Message string `json:"message,omitempty"`
 }

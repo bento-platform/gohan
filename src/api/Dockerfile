@@ -21,8 +21,7 @@ RUN apk update && \
 RUN apk --update add ncurses-dev && \
     apk add git build-base xz-dev zlib-dev bzip2-dev curl-dev && \ 
     \
-    git config --global url."https://".insteadOf git:// && \
-    git clone git://github.com/samtools/htslib.git && \
+    git clone https://github.com/samtools/htslib.git && \
     \
     cd htslib && \
     git submodule update --init --recursive && \
@@ -31,7 +30,7 @@ RUN apk --update add ncurses-dev && \
     make install && \
     \
     cd .. && \
-    git clone git://github.com/samtools/samtools.git && \
+    git clone https://github.com/samtools/samtools.git && \
     \
     cd samtools && \
     make && \

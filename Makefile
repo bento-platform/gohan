@@ -22,19 +22,24 @@ export HOST_USER_GID=$(shell id -g)
 
 # initialize services
 init:
-	# Gateway: 
+	@# Gateway: 
 	@# - DRS Authentication
 	@htpasswd -cb gateway/drs.htpasswd ${GOHAN_DRS_BASIC_AUTH_USERNAME} ${GOHAN_DRS_BASIC_AUTH_PASSWORD} 
 	
 	@echo
 	
-	# Authorization:
+	@# Authorization:
 	@# - API OPA policies 
 	@echo Configuring authorzation policies
 	@envsubst < ./etc/api.policy.rego.tpl > ./authorization/api.policy.rego
 	
 	@$(MAKE) init-data-dirs
+	@$(MAKE) init-vendor
 
+init-vendor:
+	@echo "Initializing Go Module Vendor"
+	@cd src/api && go mod vendor && \
+	 cd ../tests && go mod vendor
 
 init-data-dirs:
 	@echo "Initializing data directories.." && \
@@ -42,21 +47,28 @@ init-data-dirs:
 	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
 		chmod -R 770 ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
+	\
 	# drs: \
 	mkdir -p ${GOHAN_DRS_DATA_DIR} && \
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR} && \
 		chmod -R 770 ${GOHAN_DRS_DATA_DIR} && \
+	\
 	# elasticsearch: \
 	mkdir -p ${GOHAN_ES_DATA_DIR} && \
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR} && \
 		chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
-	chmod -R 770 ./data && \
+	chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
+	\
 	# tmp: \
 	# (setup for when gohan needs to preprocess vcf's at ingestion time): \
 	mkdir -p ${GOHAN_API_VCF_PATH}/tmp && \
 		chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_VCF_PATH}/tmp && \
 		chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp && \
 	chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp && \
+	mkdir -p ${GOHAN_API_GTF_PATH} && \
+			chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_GTF_PATH} && \
+			chmod -R 770 ${GOHAN_API_GTF_PATH}/ && \
+	chmod -R 770 ${GOHAN_API_GTF_PATH}/tmp && \
 	echo ".. done!"
 
 

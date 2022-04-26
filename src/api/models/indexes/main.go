@@ -18,6 +18,7 @@ type Variant struct {
 	Sample Sample `json:"sample"`
 
 	FileId     string       `json:"fileId"`
+	TableId    string       `json:"tableId"`
 	AssemblyId c.AssemblyId `json:"assemblyId"`
 }
 
@@ -48,4 +49,14 @@ type Gene struct {
 	Start      int          `json:"start"`
 	End        int          `json:"end"`
 	AssemblyId c.AssemblyId `json:"assemblyId"`
+}
+
+type Table struct {
+	Id          string                 `json:"id,omitempty"` // TODO: UUID ?
+	Name        string                 `json:"name,omitempty"`
+	DataType    string                 `json:"data_type,omitempty"`
+	Dataset     string                 `json:"dataset,omitempty"`
+	AssemblyIds []string               `json:"assembly_ids,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"` // TODO: type-safety?
+	Schema      map[string]interface{} `json:"schema,omitempty"`
 }

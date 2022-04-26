@@ -8,15 +8,20 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
+	"api/contexts"
 	"api/models"
 	c "api/models/constants"
+	a "api/models/constants/assembly-id"
 	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	z "api/models/constants/zygosity"
+	"api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/labstack/echo"
 )
 
 const variantsIndex = "variants"
@@ -57,9 +62,9 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
@@ -84,8 +89,13 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
 		return nil, umErr
@@ -102,7 +112,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	reference string, alternative string,
 	size int, sortByPosition c.SortDirection,
 	includeInfoInResultSet bool,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId,
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string,
 	getSampleIdsOnly bool) (map[string]interface{}, error) {
 
 	// begin building the request body.
@@ -134,22 +144,16 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 	if alternative != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"alt": map[string]interface{}{
-					"query": alternative,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "alt:" + alternative,
+			}})
 	}
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"ref": map[string]interface{}{
-					"query": reference,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "ref:" + reference,
+			}})
 	}
 
 	if assemblyId != "" {
@@ -160,6 +164,13 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 				},
 			},
 		})
+	}
+
+	if tableId != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"query_string": map[string]interface{}{
+				"query": "tableId:" + tableId,
+			}})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}
@@ -280,9 +291,9 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
@@ -307,8 +318,13 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get variants by id : got '%s'", bracketString)
+	}
+
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
 		return nil, umErr
@@ -323,7 +339,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -356,25 +372,19 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 	if alternative != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"alt": map[string]interface{}{
-					"query": alternative,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "alt:" + alternative,
+			}})
 	}
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
-			"match": map[string]interface{}{
-				"ref": map[string]interface{}{
-					"query": reference,
-				},
-			},
-		})
+			"query_string": map[string]interface{}{
+				"query": "ref:" + reference,
+			}})
 	}
 
-	if assemblyId != "" {
+	if assemblyId != "" && assemblyId != a.Unknown {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": map[string]interface{}{
 				"assemblyId": map[string]interface{}{
@@ -382,6 +392,13 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 				},
 			},
 		})
+	}
+
+	if tableId != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"query_string": map[string]interface{}{
+				"query": "tableId:" + tableId,
+			}})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}
@@ -474,9 +491,9 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 	fmt.Printf("Query Start: %s\n", time.Now())
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Count(
 		es.Count.WithContext(context.Background()),
@@ -500,8 +517,13 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to count variants by id : got '%s'", bracketString)
+	}
+
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
 		return nil, umErr
@@ -512,7 +534,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	return result, nil
 }
 
-func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) (map[string]interface{}, error) {
+func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch.Client, keyword string, tableId string) (map[string]interface{}, error) {
 	// begin building the request body.
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
@@ -530,6 +552,14 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 		},
 	}
 
+	if tableId != "" {
+		aggMap["query"] = map[string]interface{}{
+			"match": map[string]interface{}{
+				"tableId": tableId,
+			},
+		}
+	}
+
 	// encode the query
 	if err := json.NewEncoder(&buf).Encode(aggMap); err != nil {
 		log.Fatalf("Error encoding aggMap: %s\n", err)
@@ -542,9 +572,9 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 		fmt.Println(myString)
 	}
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
@@ -569,14 +599,85 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 	result := make(map[string]interface{})
 
 	// Unmarshal or Decode the JSON to the interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming (hence the [9:])
-	umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get buckets by keyword: got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
 		return nil, umErr
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
+
+	return result, nil
+}
+
+func DeleteVariantsByTableId(c echo.Context, tableId string) (map[string]interface{}, error) {
+
+	cfg := c.(*contexts.GohanContext).Config
+	es := c.(*contexts.GohanContext).Es7Client
+
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"match": map[string]interface{}{
+				"tableId": tableId,
+			},
+		},
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", err)
+		return nil, err
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	// Perform the delete request.
+	deleteRes, deleteErr := es.DeleteByQuery(
+		[]string{variantsIndex},
+		bytes.NewReader(buf.Bytes()),
+	)
+	if deleteErr != nil {
+		fmt.Printf("Error getting response: %s\n", deleteErr)
+		return nil, deleteErr
+	}
+
+	defer deleteRes.Body.Close()
+
+	resultString := deleteRes.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Prepare an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the empty interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
+		return nil, umErr
+	}
 
 	return result, nil
 }

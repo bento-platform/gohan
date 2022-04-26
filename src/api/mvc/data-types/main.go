@@ -1,4 +1,4 @@
-package mvc
+package dataTypes
 
 import (
 	"net/http"
@@ -9,10 +9,11 @@ import (
 )
 
 var variantDataTypeJson = map[string]interface{}{
-	"id":              "variant",
-	"schema":          schemas.VARIANT_SCHEMA,
-	"metadata_schema": schemas.VARIANT_TABLE_METADATA_SCHEMA,
+	"id":     "variant",
+	"schema": schemas.VARIANT_SCHEMA,
 }
+
+// "metadata_schema": schemas.VARIANT_TABLE_METADATA_SCHEMA,
 
 func GetDataTypes(c echo.Context) error {
 	// Data types are basically stand-ins for schema blocks
@@ -31,10 +32,6 @@ func GetVariantDataTypeSchema(c echo.Context) error {
 
 func GetVariantDataTypeMetadataSchema(c echo.Context) error {
 	return c.JSON(http.StatusOK, schemas.VARIANT_TABLE_METADATA_SCHEMA)
-}
-
-func FakeBentoTables(c echo.Context) error {
-	return c.JSON(http.StatusOK, []string{})
 }
 
 func FakeBentoTableSchema(c echo.Context) error {

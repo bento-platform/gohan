@@ -7,7 +7,7 @@
 
 # Volume directories
 data/
-data-*/
+data-x/
 
 # vcfs
 */vcfs/*.txt
@@ -54,3 +54,6 @@ bin/*
 # ignore .gtf files
 */*.gtf*
 */*/*.gtf*
+
+# ignore vendor
+vendor/

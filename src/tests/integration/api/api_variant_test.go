@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"sync"
 	"testing"
@@ -98,8 +99,12 @@ func TestCanGetVariantsWithoutInfoInResultset(t *testing.T) {
 
 	// assert that all responses from all combinations have no results
 	for _, dtoResponse := range allDtoResponses {
-		firstDataPointCalls := dtoResponse.Results[0].Calls
-		assert.Nil(t, firstDataPointCalls[0].Info)
+		if len(dtoResponse.Results) > 0 {
+			firstDataPointCalls := dtoResponse.Results[0].Calls
+			if len(firstDataPointCalls) > 0 {
+				assert.Nil(t, firstDataPointCalls[0].Info)
+			}
+		}
 	}
 }
 
@@ -129,9 +134,14 @@ func TestCanGetVariantsWithInfoInResultset(t *testing.T) {
 		t.Skip("No infos returned! Skipping --")
 	}
 
-	for _, s := range accumulatedInfos {
-		assert.NotEmpty(t, s.Id)
-		assert.NotEmpty(t, s.Value)
+	for infoIndex, info := range accumulatedInfos {
+		// ensure the info is not nil
+		// - s.Id can be == ""
+		// - so can s.Value
+		assert.NotNil(t, info)
+		if info.Id == "" {
+			fmt.Printf("Note: Found empty info id at index %d with value %s \n", infoIndex, info.Value)
+		}
 	}
 }
 
@@ -299,6 +309,78 @@ func TestCanGetHeterozygousVariantsWithVariousAlternatives(t *testing.T) {
 
 	// trigger
 	executeReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, ratt.Alternative, specificValidation)
+}
+
+func TestCanGetVariantsWithWildcardAlternatives(t *testing.T) {
+	cfg := common.InitConfig()
+	allele := "ATTN" // example allele - TODO: render more sophisticated randomization
+	// TODO: improve variant call testing from being 1 call to many random ones
+	dtos := buildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", "", allele, t, cfg)
+	for _, dto := range dtos.Results {
+		for _, call := range dto.Calls {
+			// ensure, for each call, that at least
+			// 1 of the alt's present matches the allele
+			// queried for
+			allNonWildcardCharactersMatch := true
+			// iterate over all 'alt's in the call
+			for _, alt := range call.Alt {
+				// iterate over all characters for each alt
+				for altIndex, altChar := range alt {
+					// ensure the index is within bounds (length of the allele)
+					// 'alt's are slices of strings, and not all 'alt's in these slices need to match
+					if altIndex <= len(allele) {
+						// obtain the character at the index for the iteration
+						alleleChar := []rune(allele)[altIndex]
+						if string(alleleChar) != "N" && altChar != alleleChar {
+							// if the non-wildcard characters don't match, test fails
+							allNonWildcardCharactersMatch = false
+							break
+						}
+					}
+				}
+				if !allNonWildcardCharactersMatch {
+					break
+				}
+			}
+			assert.True(t, allNonWildcardCharactersMatch)
+		}
+	}
+
+}
+func TestCanGetVariantsWithWildcardReferences(t *testing.T) {
+	cfg := common.InitConfig()
+	allele := "ATTN" // example allele - TODO: render more sophisticated randomization
+	// TODO: improve variant call testing from being 1 call to many random ones
+	dtos := buildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", allele, "", t, cfg)
+	for _, dto := range dtos.Results {
+		for _, call := range dto.Calls {
+			// ensure, for each call, that at least
+			// 1 of the ref's present matches the allele
+			// queried for
+			allNonWildcardCharactersMatch := true
+			// iterate over all 'ref's in the call
+			for _, ref := range call.Ref {
+				// iterate over all characters for each ref
+				for refIndex, refChar := range ref {
+					// ensure the index is within bounds (length of the allele)
+					// 'ref's are slices of strings, and not all 'ref's in these slices need to match
+					if refIndex <= len(allele) {
+						// obtain the character at the index for the iteration
+						alleleChar := []rune(allele)[refIndex]
+						if string(alleleChar) != "N" && refChar != alleleChar {
+							// if the non-wildcard characters don't match, test fails
+							allNonWildcardCharactersMatch = false
+							break
+						}
+					}
+				}
+				if !allNonWildcardCharactersMatch {
+					break
+				}
+			}
+			assert.True(t, allNonWildcardCharactersMatch)
+		}
+	}
 }
 
 // -- Common utility functions for api tests
@@ -479,13 +561,25 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 	// available samples, assemblys, and chromosomes
 	overviewCombinations := getOverviewResultCombinations(overviewJson["chromosomes"], overviewJson["sampleIDs"], overviewJson["assemblyIDs"])
 
+	// avoid overflow:
+	// - shuffle all combinations and take top x
+	x := 10
+	croppedCombinations := make([][]string, len(overviewCombinations))
+	perm := rand.Perm(len(overviewCombinations))
+	for i, v := range perm {
+		croppedCombinations[v] = overviewCombinations[i]
+	}
+	if len(croppedCombinations) > x {
+		croppedCombinations = croppedCombinations[:x]
+	}
+
 	// initialize a common slice in which to
 	// accumulate al responses asynchronously
 	allDtoResponses := []dtos.VariantGetReponse{}
 	allDtoResponsesMux := sync.RWMutex{}
 
 	var combWg sync.WaitGroup
-	for _, combination := range overviewCombinations {
+	for _, combination := range croppedCombinations {
 		combWg.Add(1)
 		go func(_wg *sync.WaitGroup, _combination []string) {
 			defer _wg.Done()

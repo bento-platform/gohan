@@ -99,59 +99,47 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 func (i *IngestionService) Init() {
 	// safeguard to prevent multiple initilizations
 	if !i.Initialized {
-		// spin up a listener for both variant and gene ingest request updates
+		// spin up a go routine acting as a listener for variant and
+		// gene ingest request updates, and variant and gene bulk indexing
 		go func() {
 			for {
 				select {
-				case newRequest := <-i.IngestRequestChan:
-					if newRequest.State == ingest.Queued {
-						fmt.Printf("Received new request for %s\n", newRequest.Filename)
+				case variantIngestionRequest := <-i.IngestRequestChan:
+					if variantIngestionRequest.State == ingest.Queued {
+						fmt.Printf("Queueing a new variant ingestion request for %s\n", variantIngestionRequest.Filename)
 					}
 
-					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
-					i.IngestRequestMap[newRequest.Id.String()] = newRequest
-				}
-			}
-		}()
+					variantIngestionRequest.UpdatedAt = time.Now().String()
+					i.IngestRequestMap[variantIngestionRequest.Id.String()] = variantIngestionRequest
 
-		go func() {
-			for {
-				select {
-				case newRequest := <-i.GeneIngestRequestChan:
-					if newRequest.State == ingest.Queued {
-						fmt.Printf("Received new request for %s\n", newRequest.Filename)
+				case geneIngestionRequest := <-i.GeneIngestRequestChan:
+					if geneIngestionRequest.State == ingest.Queued {
+						fmt.Printf("Queueing a new gene ingestion request for %s\n", geneIngestionRequest.Filename)
 					}
 
-					newRequest.UpdatedAt = fmt.Sprintf("%s", time.Now())
-					i.GeneIngestRequestMap[newRequest.Filename] = newRequest
-				}
-			}
-		}()
+					geneIngestionRequest.UpdatedAt = time.Now().String()
+					i.GeneIngestRequestMap[geneIngestionRequest.Filename] = geneIngestionRequest
 
-		// spin up a listener for both variant and gene bulk indexing
-		go func() {
-			for {
-				select {
-				case queuedItem := <-i.IngestionBulkIndexingQueue:
+				case queuedVariantItem := <-i.IngestionBulkIndexingQueue:
 
-					v := queuedItem.Variant
-					wg := queuedItem.WaitGroup
+					queuedVariant := queuedVariantItem.Variant
+					wg := queuedVariantItem.WaitGroup
 
 					// Prepare the data payload: encode article to JSON
-					data, err := json.Marshal(v)
-					if err != nil {
-						log.Fatalf("Cannot encode variant %s: %s\n", v.Id, err)
+					variantData, marshallErr := json.Marshal(queuedVariant)
+					if marshallErr != nil {
+						log.Fatalf("Cannot encode variant %s: %s\n", queuedVariant.Id, marshallErr)
 					}
 
 					// Add an item to the BulkIndexer
-					err = i.IngestionBulkIndexer.Add(
+					marshallErr = i.IngestionBulkIndexer.Add(
 						context.Background(),
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
 
 							// Body is an `io.Reader` with the payload
-							Body: bytes.NewReader(data),
+							Body: bytes.NewReader(variantData),
 
 							// OnSuccess is called for each successful operation
 							OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
@@ -172,37 +160,31 @@ func (i *IngestionService) Init() {
 							},
 						},
 					)
-					if err != nil {
-						fmt.Printf("Unexpected error: %s", err)
+					if marshallErr != nil {
+						fmt.Printf("Unexpected error: %s", marshallErr)
 						wg.Done()
 					}
-				}
-			}
-		}()
 
-		go func() {
-			for {
-				select {
-				case queuedItem := <-i.GeneIngestionBulkIndexingQueue:
+				case queuedGeneItem := <-i.GeneIngestionBulkIndexingQueue:
 
-					g := queuedItem.Gene
-					wg := queuedItem.WaitGroup
+					queuedGene := queuedGeneItem.Gene
+					wg := queuedGeneItem.WaitGroup
 
 					// Prepare the data payload: encode article to JSON
-					data, err := json.Marshal(g)
-					if err != nil {
-						log.Fatalf("Cannot encode gene %+v: %s\n", g, err)
+					geneData, marshallErr := json.Marshal(queuedGene)
+					if marshallErr != nil {
+						log.Fatalf("Cannot encode gene %+v: %s\n", queuedGene, marshallErr)
 					}
 
 					// Add an item to the BulkIndexer
-					err = i.GeneIngestionBulkIndexer.Add(
+					marshallErr = i.GeneIngestionBulkIndexer.Add(
 						context.Background(),
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
 
 							// Body is an `io.Reader` with the payload
-							Body: bytes.NewReader(data),
+							Body: bytes.NewReader(geneData),
 
 							// OnSuccess is called for each successful operation
 							OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
@@ -223,8 +205,8 @@ func (i *IngestionService) Init() {
 							},
 						},
 					)
-					if err != nil {
-						fmt.Printf("Unexpected error: %s", err)
+					if marshallErr != nil {
+						fmt.Printf("Unexpected error: %s", marshallErr)
 						wg.Done()
 					}
 				}
@@ -283,29 +265,43 @@ func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string
 	return dir, file, nil
 }
 
-func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirectory string, gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
+
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	data := fmt.Sprintf("{\"path\": \"%s/%s\"}", drsBridgeDirectory, gzippedFileName)
 
-	r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
-	r.SetBasicAuth(drsUsername, drsPassword)
+	var (
+		drsResp *http.Response
+		drsErr  error
+	)
+	for {
+		r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
+		r.SetBasicAuth(drsUsername, drsPassword)
 
-	r.Header.Add("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(r)
-	if err != nil {
-		fmt.Printf("Upload to DRS error: %s\n", err)
-		return ""
-	} else {
-		fmt.Printf("Upload to DRS succeeded: %d\n", resp.StatusCode)
+		r.Header.Add("Content-Type", "application/json")
+		client := &http.Client{}
+		drsResp, drsErr = client.Do(r)
+		if drsErr != nil {
+			fmt.Printf("Upload to DRS error: %s\n", drsErr)
+			return ""
+		} else {
+			fmt.Printf("Upload to DRS succeeded: %d\n", drsResp.StatusCode)
+		}
+
+		// check for simple upload error (like db locked) and try again
+		if drsResp.StatusCode != 400 {
+			break
+		} else {
+			fmt.Printf("Got a %d status code on DRS Upload for '%s' \n", drsResp.StatusCode, data)
+		}
 	}
 
-	responsebody, bodyerr := ioutil.ReadAll(resp.Body)
+	responsebody, bodyerr := ioutil.ReadAll(drsResp.Body)
 	if bodyerr != nil {
-		log.Printf("Error reading body: %v", err)
+		log.Printf("Error reading body: %v", bodyerr)
 		return ""
 	}
 
@@ -322,7 +318,7 @@ func (i *IngestionService) UploadVcfGzToDrs(drsBridgeDirectory string, gzippedFi
 }
 
 func (i *IngestionService) ProcessVcf(
-	vcfFilePath string, drsFileId string,
+	vcfFilePath string, drsFileId string, tableId string,
 	assemblyId constants.AssemblyId, filterOutHomozygousReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
@@ -394,6 +390,7 @@ func (i *IngestionService) ProcessVcf(
 
 			tmpVariant["fileId"] = drsFileId
 			tmpVariant["assemblyId"] = assemblyId
+			tmpVariant["tableId"] = tableId
 
 			// skip this call if need be
 			skipThisCall := false
@@ -544,20 +541,30 @@ func (i *IngestionService) ProcessVcf(
 				phredScaleLikelyhoodPosition int  = 0
 			)
 
-			for i, f := range tmpVariant["format"].([]string) {
-				// ----- check formats
-				switch f {
-				case "GT":
-					hasGenotype = true
-					genotypePosition = i
-				case "GP":
-					hasGenotypeProbability = true
-					genotypeProbabilityPosition = i
-				case "PL":
-					hasPhredScaleLikelyhood = true
-					phredScaleLikelyhoodPosition = i
-				}
+			// error checking --
+			if tmpVariant == nil {
+				fmt.Printf("Something went wrong, but was caught:\ntmpVariant is nil for file with DRS fileId `%s` at line `%s`  \n\n", drsFileId, line)
+				return
 			}
+			if utils.KeyExists(tmpVariant, "format") {
+				for i, f := range tmpVariant["format"].([]string) {
+					// ----- check formats
+					switch f {
+					case "GT":
+						hasGenotype = true
+						genotypePosition = i
+					case "GP":
+						hasGenotypeProbability = true
+						genotypeProbabilityPosition = i
+					case "PL":
+						hasPhredScaleLikelyhood = true
+						phredScaleLikelyhoodPosition = i
+					}
+				}
+			} else {
+				fmt.Printf("Something went wrong, but was caught:\ntmpVariant[\"format\"] doesnt exist for file with DRS fileId `%s` at line `%s`  \n\n", drsFileId, line)
+			}
+			// --
 
 			for _, ts := range tmpSamples {
 				sample := &indexes.Sample{}

@@ -1,4 +1,4 @@
-package mvc
+package workflows
 
 import (
 	w "api/workflows"

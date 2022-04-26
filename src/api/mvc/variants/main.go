@@ -1,4 +1,4 @@
-package mvc
+package tables
 
 import (
 	"fmt"
@@ -16,19 +16,17 @@ import (
 	"time"
 
 	"api/contexts"
-	"api/models/constants"
 	a "api/models/constants/assembly-id"
-	gq "api/models/constants/genotype-query"
 	s "api/models/constants/sort"
 	"api/models/dtos"
 	"api/models/indexes"
 	"api/models/ingest"
+	"api/mvc"
 	esRepo "api/repositories/elasticsearch"
 	"api/utils"
 
 	"api/models/constants/zygosity"
 
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 
@@ -134,6 +132,8 @@ func VariantsIngest(c echo.Context) error {
 	}
 
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
+	tableId := c.QueryParam("tableId")
+	// TODO: validate table exists in elasticsearch
 
 	// -- optional filter
 	var (
@@ -339,7 +339,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// ---   push compressed to DRS
 				fmt.Printf("Uploading %s to DRS !\n", gzippedFileName)
-				drsFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
+				drsFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
 				if drsFileId == "" {
 					msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
 					fmt.Println(msg)
@@ -353,7 +353,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// -- push tabix to DRS
 				fmt.Printf("Uploading %s to DRS !\n", tabixFileNameWithRelativePath)
-				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
 				if drsTabixFileId == "" {
 					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileNameWithRelativePath
 					fmt.Println(msg)
@@ -433,7 +433,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
 				fmt.Printf("Begin processing %s at [%s]\n", vcfFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(vcfFilePath, drsFileId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				ingestionService.ProcessVcf(vcfFilePath, drsFileId, tableId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
 				fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(beginProcessingTime))
 
 				// ---   delete the temporary vcf file
@@ -458,69 +458,7 @@ func VariantsIngest(c echo.Context) error {
 func GetVariantsOverview(c echo.Context) error {
 	fmt.Printf("[%s] - GetVariantsOverview hit!\n", time.Now())
 
-	resultsMap := map[string]interface{}{}
-	resultsMux := sync.RWMutex{}
-
-	var wg sync.WaitGroup
-	es := c.(*contexts.GohanContext).Es7Client
-	cfg := c.(*contexts.GohanContext).Config
-
-	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
-		defer _wg.Done()
-
-		results, bucketsError := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
-		if bucketsError != nil {
-			resultsMap[key] = map[string]interface{}{
-				"error": "Something went wrong. Please contact the administrator!",
-			}
-			return
-		}
-
-		// retrieve aggregations.items.buckets
-		bucketsMapped := []interface{}{}
-		if aggs, ok := results["aggregations"]; ok {
-			aggsMapped := aggs.(map[string]interface{})
-
-			if items, ok := aggsMapped["items"]; ok {
-				itemsMapped := items.(map[string]interface{})
-
-				if buckets := itemsMapped["buckets"]; ok {
-					bucketsMapped = buckets.([]interface{})
-				}
-			}
-		}
-
-		individualKeyMap := map[string]interface{}{}
-		// push results bucket to slice
-		for _, bucket := range bucketsMapped {
-			doc_key := fmt.Sprint(bucket.(map[string]interface{})["key"]) // ensure strings and numbers are expressed as strings
-			doc_count := bucket.(map[string]interface{})["doc_count"]
-
-			individualKeyMap[doc_key] = doc_count
-		}
-
-		resultsMux.Lock()
-		resultsMap[key] = individualKeyMap
-		resultsMux.Unlock()
-	}
-
-	// get distribution of chromosomes
-	wg.Add(1)
-	go callGetBucketsByKeyword("chromosomes", "chrom.keyword", &wg)
-
-	// get distribution of variant IDs
-	wg.Add(1)
-	go callGetBucketsByKeyword("variantIDs", "id.keyword", &wg)
-
-	// get distribution of sample IDs
-	wg.Add(1)
-	go callGetBucketsByKeyword("sampleIDs", "sample.id.keyword", &wg)
-
-	// get distribution of assembly IDs
-	wg.Add(1)
-	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
-
-	wg.Wait()
+	resultsMap := obtainVariantsOverview(c)
 
 	return c.JSON(http.StatusOK, resultsMap)
 }
@@ -540,7 +478,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
 	getSampleIdsOnlyQP := c.QueryParam("getSampleIdsOnly")
@@ -626,7 +564,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 					_id, "", // note : "" is for sampleId
 					reference, alternative,
 					size, sortByPosition,
-					includeInfoInResultSet, genotype, assemblyId,
+					includeInfoInResultSet, genotype, assemblyId, tableId,
 					getSampleIdsOnly)
 			} else {
 
@@ -651,7 +589,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 						"", _id, // note : "" is for variantId
 						reference, alternative,
 						size, sortByPosition,
-						includeInfoInResultSet, genotype, assemblyId,
+						includeInfoInResultSet, genotype, assemblyId, tableId,
 						false)
 				}
 
@@ -776,7 +714,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId = retrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
 
 	respDTO := dtos.VariantCountReponse{
 		Results: make([]dtos.VariantCountResult, 0),
@@ -806,7 +744,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
-					reference, alternative, genotype, assemblyId)
+					reference, alternative, genotype, assemblyId, tableId)
 			} else {
 				// implied sampleId query
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
@@ -815,7 +753,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
-					reference, alternative, genotype, assemblyId)
+					reference, alternative, genotype, assemblyId, tableId)
 			}
 
 			if countError != nil {
@@ -851,56 +789,75 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 	return c.JSON(http.StatusOK, respDTO)
 }
 
-func retrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, constants.GenotypeQuery, constants.AssemblyId) {
-	es := c.(*contexts.GohanContext).Es7Client
+// -- helper functions
+func obtainVariantsOverview(_c echo.Context) map[string]interface{} {
+	resultsMap := map[string]interface{}{}
+	resultsMux := sync.RWMutex{}
 
-	chromosome := c.QueryParam("chromosome")
-	if len(chromosome) == 0 {
-		// if no chromosome is provided, assume "wildcard" search
-		chromosome = "*"
-	}
+	var wg sync.WaitGroup
+	es := _c.(*contexts.GohanContext).Es7Client
+	cfg := _c.(*contexts.GohanContext).Config
 
-	lowerBoundQP := c.QueryParam("lowerBound")
-	var (
-		lowerBound int
-		lbErr      error
-	)
-	if len(lowerBoundQP) > 0 {
-		lowerBound, lbErr = strconv.Atoi(lowerBoundQP)
-		if lbErr != nil {
-			log.Fatal(lbErr)
+	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
+		defer _wg.Done()
+
+		results, bucketsError := esRepo.GetVariantsBucketsByKeywordAndTableId(cfg, es, keyword, "")
+		if bucketsError != nil {
+			resultsMap[key] = map[string]interface{}{
+				"error": "Something went wrong. Please contact the administrator!",
+			}
+			return
 		}
-	}
 
-	upperBoundQP := c.QueryParam("upperBound")
-	var (
-		upperBound int
-		ubErr      error
-	)
-	if len(upperBoundQP) > 0 {
-		upperBound, ubErr = strconv.Atoi(upperBoundQP)
-		if ubErr != nil {
-			log.Fatal(ubErr)
+		// retrieve aggregations.items.buckets
+		bucketsMapped := []interface{}{}
+		if aggs, aggsOk := results["aggregations"]; aggsOk {
+			aggsMapped := aggs.(map[string]interface{})
+
+			if items, itemsOk := aggsMapped["items"]; itemsOk {
+				itemsMapped := items.(map[string]interface{})
+
+				if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
+					bucketsMapped = buckets.([]interface{})
+				}
+			}
 		}
-	}
 
-	reference := c.QueryParam("reference")
+		individualKeyMap := map[string]interface{}{}
+		// push results bucket to slice
+		for _, bucket := range bucketsMapped {
+			doc_key := fmt.Sprint(bucket.(map[string]interface{})["key"]) // ensure strings and numbers are expressed as strings
+			doc_count := bucket.(map[string]interface{})["doc_count"]
 
-	alternative := c.QueryParam("alternative")
-
-	genotype := gq.UNCALLED
-	genotypeQP := c.QueryParam("genotype")
-	if len(genotypeQP) > 0 {
-		if parsedGenotype, gErr := gq.CastToGenoType(genotypeQP); gErr == nil {
-			genotype = parsedGenotype
+			individualKeyMap[doc_key] = doc_count
 		}
+
+		resultsMux.Lock()
+		resultsMap[key] = individualKeyMap
+		resultsMux.Unlock()
 	}
 
-	assemblyId := a.Unknown
-	assemblyIdQP := c.QueryParam("assemblyId")
-	if len(assemblyIdQP) > 0 && a.IsKnownAssemblyId(assemblyIdQP) {
-		assemblyId = a.CastToAssemblyId(assemblyIdQP)
-	}
+	// get distribution of chromosomes
+	wg.Add(1)
+	go callGetBucketsByKeyword("chromosomes", "chrom.keyword", &wg)
 
-	return es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId
+	// get distribution of variant IDs
+	wg.Add(1)
+	go callGetBucketsByKeyword("variantIDs", "id.keyword", &wg)
+
+	// get distribution of sample IDs
+	wg.Add(1)
+	go callGetBucketsByKeyword("sampleIDs", "sample.id.keyword", &wg)
+
+	// get distribution of assembly IDs
+	wg.Add(1)
+	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
+
+	// get distribution of table IDs
+	wg.Add(1)
+	go callGetBucketsByKeyword("tableIDs", "tableId.keyword", &wg)
+
+	wg.Wait()
+
+	return resultsMap
 }

@@ -32,9 +32,9 @@ func InitConfig() *models.Config {
 		processError(err)
 	}
 
-	// TEMP: SECURITY RISK
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	//
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
 
 	return &cfg
 }
