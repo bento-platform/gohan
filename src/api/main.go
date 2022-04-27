@@ -12,6 +12,7 @@ import (
 	variantsMvc "api/mvc/variants"
 	workflowsMvc "api/mvc/workflows"
 	"api/services"
+	"api/services/sanitation"
 	"api/utils"
 	"strings"
 	"time"
@@ -88,6 +89,8 @@ func main() {
 	az := services.NewAuthzService(&cfg)
 	iz := services.NewIngestionService(es, &cfg)
 
+	_ = sanitation.NewSanitationService(es, &cfg)
+
 	// Configure Server
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -104,6 +107,7 @@ func main() {
 				Es7Client:        es,
 				Config:           &cfg,
 				IngestionService: iz,
+				// SanitationService: ss,
 			}
 			return h(cc)
 		}

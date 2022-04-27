@@ -458,7 +458,7 @@ func VariantsIngest(c echo.Context) error {
 func GetVariantsOverview(c echo.Context) error {
 	fmt.Printf("[%s] - GetVariantsOverview hit!\n", time.Now())
 
-	resultsMap := obtainVariantsOverview(c)
+	resultsMap := ObtainVariantsOverview(c)
 
 	return c.JSON(http.StatusOK, resultsMap)
 }
@@ -790,7 +790,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 }
 
 // -- helper functions
-func obtainVariantsOverview(_c echo.Context) map[string]interface{} {
+func ObtainVariantsOverview(_c echo.Context) map[string]interface{} {
 	resultsMap := map[string]interface{}{}
 	resultsMux := sync.RWMutex{}
 
