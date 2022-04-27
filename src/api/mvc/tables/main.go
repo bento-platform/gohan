@@ -267,7 +267,7 @@ func DeleteTable(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
 	}
 
-	// gather data from "deleted"
+	// gather 'deleted table' data from "deleted"
 	numDeleted := 0.0
 	docsHits := results["deleted"]
 	if docsHits != nil {
@@ -281,29 +281,36 @@ func DeleteTable(c echo.Context) error {
 		return c.JSON(http.StatusNotFound, errors.CreateSimpleNotFound(fmt.Sprintf("No table with ID %s", tableId)))
 	}
 
-	// TODO: spin the deletion of variants associated with
-	// the tableId requested off in a go routine if the table
-	// was successfully deleted and assume the deletion completes
-	// successfully in the background
+	// spin off the deletion of variants associated with
+	// the tableId provided in a go routine if the table
+	// was successfully deleted and assume the variants
+	// deletion completes successfully in the background
+	go func(_tableId string) {
+		var message string
 
+		// delete variants associated with this table id
+		deletedVariants, deleteVariantsError := esRepo.DeleteVariantsByTableId(c, _tableId)
+		if deleteVariantsError != nil {
+			fmt.Printf("Failed to delete variants associated with table ID %s\n", tableId)
+
+			// "do nothing"
+			return
+		}
+
+		// successfully attempted to delete variants (if any)
+
+		// get deletion details (if any)
+		deletedVariantsResults := deletedVariants["deleted"]
+		if deletedVariantsResults == nil {
+			message = fmt.Sprintf("Failed to delete variants associated with table ID %s", _tableId)
+		} else {
+			numDeletedVariants := int(deletedVariantsResults.(float64))
+			message = fmt.Sprintf("Successfully deleted %d variants associated with table ID %s", numDeletedVariants, _tableId)
+		}
+		fmt.Println(message)
+	}(tableId)
 	// TODO: ensure that no variants exist without a valid tableId
 
-	// delete variants associated with this table id
-	deletedVariants, deleteVariantsError := esRepo.DeleteVariantsByTableId(c, tableId)
-	if deleteVariantsError != nil {
-		fmt.Printf("Failed to delete variants associated with table ID %s\n", tableId)
-		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
-	}
-	deletedVariantsResults := deletedVariants["deleted"]
-	numDeletedVariants := 0.0
-	if deletedVariantsResults != nil {
-		numDeletedVariants = deletedVariantsResults.(float64)
-	} else {
-		msg := fmt.Sprintf("Failed to delete tables with ID %s", tableId)
-		fmt.Println(msg)
-		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(msg))
-	}
-
-	fmt.Printf("Successfully Deleted Table(s) with ID '%s' with %f variants!\n", tableId, numDeletedVariants)
+	fmt.Printf("Successfully Deleted Table(s) with ID '%s' . Variants will be deleted in the background!\n", tableId) //numDeletedVariants
 	return c.NoContent(204)
 }
