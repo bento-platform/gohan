@@ -66,7 +66,6 @@ func (ss *SanitationService) Init() {
 
 				// - get all available tables
 				tables, tablesError := esRepo.GetTables(mockContext, "", "variant")
-				// tables, tablesError := esRepo.GetTablesWithoutContext(ss.Es7Client, "", "")
 				if tablesError != nil {
 					fmt.Printf("[%s] - Error getting tables : %v..\n", time.Now(), tablesError)
 					return

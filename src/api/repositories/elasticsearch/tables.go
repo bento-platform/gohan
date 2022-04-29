@@ -267,7 +267,7 @@ func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) 
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
 	}
-	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+
 	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
