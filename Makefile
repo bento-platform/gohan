@@ -18,6 +18,7 @@ export GOARCH=amd64
 # containerization and volume mounting
 export HOST_USER_UID=$(shell id -u)
 export HOST_USER_GID=$(shell id -g)
+export OS_NAME=$(shell uname -s | tr A-Z a-z)
 
 
 # initialize services
