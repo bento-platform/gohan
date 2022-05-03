@@ -181,7 +181,8 @@ func main() {
 
 	e.GET("/private/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
-		gam.MandateAssemblyIdAttribute)
+		gam.MandateAssemblyIdAttribute,
+		gam.MandateTableIdAttribute)
 	e.GET("/private/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	// --
 
