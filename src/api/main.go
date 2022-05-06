@@ -13,6 +13,7 @@ import (
 	workflowsMvc "api/mvc/workflows"
 	"api/services"
 	"api/services/sanitation"
+	variantsService "api/services/variants"
 	"api/utils"
 	"strings"
 	"time"
@@ -88,6 +89,7 @@ func main() {
 	// Service Singletons
 	az := services.NewAuthzService(&cfg)
 	iz := services.NewIngestionService(es, &cfg)
+	vs := variantsService.NewVariantService(&cfg)
 
 	_ = sanitation.NewSanitationService(es, &cfg)
 
@@ -107,6 +109,7 @@ func main() {
 				Es7Client:        es,
 				Config:           &cfg,
 				IngestionService: iz,
+				VariantService:   vs,
 				// SanitationService: ss,
 			}
 			return h(cc)

@@ -22,6 +22,9 @@ import (
 func CreateTable(c echo.Context) error {
 	fmt.Printf("[%s] - CreateTable hit!\n", time.Now())
 
+	cfg := c.(*contexts.GohanContext).Config
+	es := c.(*contexts.GohanContext).Es7Client
+
 	decoder := json.NewDecoder(c.Request().Body)
 	var t dtos.CreateTableRequestDto
 	err := decoder.Decode(&t)
@@ -56,7 +59,7 @@ func CreateTable(c echo.Context) error {
 	// TODO: ensure dataset is a valid identifier (uuid ?)
 
 	// avoid creating duplicate tables with the same name
-	existingTables, error := esRepo.GetTablesByName(c, t.Name)
+	existingTables, error := esRepo.GetTablesByName(cfg, es, c.Request().Context(), t.Name)
 	if error != nil {
 		return c.JSON(http.StatusInternalServerError, dtos.CreateTableResponseDto{
 			Error: error.Error(),
@@ -69,7 +72,7 @@ func CreateTable(c echo.Context) error {
 	}
 
 	// call repository
-	table, error := esRepo.CreateTable(c, t)
+	table, error := esRepo.CreateTable(es, c.Request().Context(), t)
 	if error != nil {
 		return c.JSON(http.StatusInternalServerError, dtos.CreateTableResponseDto{
 			Error: error.Error(),
@@ -84,6 +87,9 @@ func CreateTable(c echo.Context) error {
 
 func GetTables(c echo.Context) error {
 	fmt.Printf("[%s] - GetTables hit!\n", time.Now())
+
+	cfg := c.(*contexts.GohanContext).Config
+	es := c.(*contexts.GohanContext).Es7Client
 
 	// obtain tableId from the path
 	tableId := c.Param("id")
@@ -102,7 +108,7 @@ func GetTables(c echo.Context) error {
 	}
 
 	// call repository
-	results, _ := esRepo.GetTables(c, tableId, dataType)
+	results, _ := esRepo.GetTables(cfg, es, c.Request().Context(), tableId, dataType)
 	if results == nil {
 		// return empty result (assume there are no tables because the index doesn't exist)
 		return c.JSON(http.StatusOK, []map[string]interface{}{})
@@ -161,7 +167,7 @@ func GetTableSummary(c echo.Context) error {
 
 	// call repository
 	// - get the table by id
-	results, getTablesError := esRepo.GetTables(c, tableId, "")
+	results, getTablesError := esRepo.GetTables(cfg, es, c.Request().Context(), tableId, "")
 	if getTablesError != nil {
 		fmt.Printf("Failed to get tables with ID %s\n", tableId)
 		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
@@ -261,7 +267,9 @@ func DeleteTable(c echo.Context) error {
 	}
 
 	// call repository
-	results, deleteError := esRepo.DeleteTableById(c, tableId)
+	cfg := c.(*contexts.GohanContext).Config
+	es := c.(*contexts.GohanContext).Es7Client
+	results, deleteError := esRepo.DeleteTableById(cfg, es, c.Request().Context(), tableId)
 	if deleteError != nil {
 		fmt.Printf("Failed to delete tables with ID %s\n", tableId)
 		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
@@ -289,7 +297,7 @@ func DeleteTable(c echo.Context) error {
 		var message string
 
 		// delete variants associated with this table id
-		deletedVariants, deleteVariantsError := esRepo.DeleteVariantsByTableId(c, _tableId)
+		deletedVariants, deleteVariantsError := esRepo.DeleteVariantsByTableId(es, cfg, _tableId)
 		if deleteVariantsError != nil {
 			fmt.Printf("Failed to delete variants associated with table ID %s\n", tableId)
 

@@ -1,6 +1,7 @@
 package sanitation
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -9,13 +10,11 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/mitchellh/mapstructure"
 
-	"api/contexts"
 	"api/models"
 	"api/models/indexes"
 	esRepo "api/repositories/elasticsearch"
 
-	// TODO: Refactor
-	variantsMvc "api/mvc/variants"
+	variantsService "api/services/variants"
 )
 
 type (
@@ -57,15 +56,8 @@ func (ss *SanitationService) Init() {
 			s.Every(1).Days().At("04:00:00").Do(func() { // 12am EST
 				fmt.Printf("[%s] - Running variant documents cleanup..\n", time.Now())
 
-				// setup a mock-http context in order to interface efficiently
-				// with existing repo functionality
-				mockContext := &contexts.GohanContext{
-					Es7Client: ss.Es7Client,
-					Config:    ss.Config,
-				}
-
 				// - get all available tables
-				tables, tablesError := esRepo.GetTables(mockContext, "", "variant")
+				tables, tablesError := esRepo.GetTables(ss.Config, ss.Es7Client, context.Background(), "", "variant")
 				if tablesError != nil {
 					fmt.Printf("[%s] - Error getting tables : %v..\n", time.Now(), tablesError)
 					return
@@ -96,7 +88,7 @@ func (ss *SanitationService) Init() {
 
 				// - obtain distribution of table IDs accross all variants
 				// TODO: refactor not use variants-mvc package to access this (anti-pattern)
-				variantsOverview := variantsMvc.ObtainVariantsOverview(mockContext)
+				variantsOverview := variantsService.GetVariantsOverview(ss.Es7Client, ss.Config)
 				if variantsOverview == nil {
 					return
 				}
@@ -124,7 +116,7 @@ func (ss *SanitationService) Init() {
 					// TODO: refactor
 					// fire and forget
 					go func(_differentId string) {
-						_, _ = esRepo.DeleteVariantsByTableId(mockContext, _differentId)
+						_, _ = esRepo.DeleteVariantsByTableId(ss.Es7Client, ss.Config, _differentId)
 					}(differentId)
 				}
 			})

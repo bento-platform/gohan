@@ -3,6 +3,7 @@ package contexts
 import (
 	"api/models"
 	"api/services"
+	variantsService "api/services/variants"
 
 	es7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/labstack/echo"
@@ -16,5 +17,6 @@ type (
 		Es7Client        *es7.Client
 		Config           *models.Config
 		IngestionService *services.IngestionService
+		VariantService   *variantsService.VariantService
 	}
 )
