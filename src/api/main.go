@@ -38,7 +38,9 @@ func main() {
 
 	fmt.Printf("Using : \n"+
 
-		"\tDebug : %t \n\n"+
+		"\tDebug : %t \n"+
+		"\tService Contact : %s \n"+
+		"\tSemantic Version : %s \n\n"+
 
 		"\tVCF Directory Path : %s \n"+
 		"\tGTF Directory Path : %s \n"+
@@ -61,6 +63,8 @@ func main() {
 		"Running on Port : %s\n",
 
 		cfg.Debug,
+		cfg.ServiceContact,
+		cfg.SemVer,
 		cfg.Api.VcfPath,
 		cfg.Api.GtfPath,
 		cfg.Api.BulkIndexingCap,
