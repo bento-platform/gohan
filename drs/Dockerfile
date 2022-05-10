@@ -67,7 +67,11 @@ RUN ["pip", "install", "-r", "requirements.txt"]
 # Security :
 ARG HOST_USER_UID
 ARG HOST_USER_GID
-RUN addgroup -S drsgroup -g $HOST_USER_GID && \
+ARG OS_NAME
+RUN if [ $OS_NAME != darwin ]; \
+    then addgroup -S drsgroup -g $HOST_USER_GID; \
+	else addgroup -S drsgroup; \
+	fi && \
     adduser -S drsuser -u $HOST_USER_UID -G drsgroup
 
 USER drsuser

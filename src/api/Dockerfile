@@ -63,7 +63,11 @@ RUN apk update && \
 # Security :
 ARG HOST_USER_UID
 ARG HOST_USER_GID
-RUN addgroup -S apigroup -g $HOST_USER_GID && \
+ARG OS_NAME
+RUN if [ $OS_NAME != darwin ]; \
+    then addgroup -S apigroup -g $HOST_USER_GID; \
+    else addgroup -S apigroup; \
+    fi && \
     adduser -S apiuser -u $HOST_USER_UID -G apigroup
 
 USER apiuser

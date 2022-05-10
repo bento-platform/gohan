@@ -35,6 +35,7 @@ services:
         GOHAN_API_INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT} 
         HOST_USER_UID: ${HOST_USER_UID}
         HOST_USER_GID: ${HOST_USER_GID}
+        OS_NAME: ${OS_NAME}
     mem_limit: ${GOHAN_API_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_API_CPUS}
     cpu_shares: 1024
@@ -90,6 +91,7 @@ services:
         BASE_IMAGE_VERSION: ${GOHAN_ES_BASE_VERSION}
         HOST_USER_UID: ${HOST_USER_UID}
         HOST_USER_GID: ${HOST_USER_GID}
+        OS_NAME: ${OS_NAME}
     mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_ES_CPUS}
     cpu_shares: 2048
