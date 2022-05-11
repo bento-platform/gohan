@@ -1,7 +1,9 @@
 package models
 
 type Config struct {
-	Debug bool `yaml:"debug" envconfig:"GOHAN_DEBUG"`
+	Debug          bool   `yaml:"debug" envconfig:"GOHAN_DEBUG"`
+	SemVer         string `yaml:"semver" envconfig:"GOHAN_SEMVER"`
+	ServiceContact string `yaml:"serviceContact" envconfig:"GOHAN_SERVICE_CONTACT"`
 
 	Api struct {
 		Url                            string `yaml:"url" envconfig:"GOHAN_PUBLIC_URL"`

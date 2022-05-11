@@ -1,7 +1,8 @@
 package elasticsearch
 
 import (
-	"api/contexts"
+	// "api/contexts"
+	"api/models"
 	"api/models/dtos"
 	"api/models/indexes"
 	"api/models/schemas"
@@ -18,17 +19,17 @@ import (
 	"strings"
 	"time"
 
+	es7 "github.com/elastic/go-elasticsearch/v7"
+
 	"github.com/elastic/go-elasticsearch/esapi"
 	"github.com/google/uuid"
-	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"
 )
 
 const tablesIndex = "tables"
 
-func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) (indexes.Table, error) {
+func CreateTable(es *es7.Client, ctxt context.Context, t dtos.CreateTableRequestDto) (indexes.Table, error) {
 
-	es := c.(*contexts.GohanContext).Es7Client
 	now := time.Now()
 
 	// TODO: improve checks and balances..
@@ -77,7 +78,7 @@ func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) (indexes.Table, e
 	fmt.Println(reflect.TypeOf(req))
 
 	// Return an API response object from request
-	res, err := req.Do(c.Request().Context(), es)
+	res, err := req.Do(ctxt, es)
 	if err != nil {
 		fmt.Printf("IndexRequest ERROR: %s\n", err)
 		return docStruct, err
@@ -108,15 +109,13 @@ func CreateTable(c echo.Context, t dtos.CreateTableRequestDto) (indexes.Table, e
 	return docStruct, nil
 }
 
-func GetTables(c echo.Context, tableId string, dataType string) (map[string]interface{}, error) {
-
-	cfg := c.(*contexts.GohanContext).Config
-	es := c.(*contexts.GohanContext).Es7Client
+func GetTables(cfg *models.Config, es *es7.Client, ctxt context.Context, tableId string, dataType string) (map[string]interface{}, error) {
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
+	// return GetTablesWithoutContext(es, tableId, dataType)
 	// get table by "any combination of any applicable parameter" query structure
 	filter := make([]map[string]interface{}, 0)
 
@@ -190,12 +189,10 @@ func GetTables(c echo.Context, tableId string, dataType string) (map[string]inte
 	fmt.Printf("Query End: %s\n", time.Now())
 
 	return result, nil
+
 }
 
-func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) {
-
-	cfg := c.(*contexts.GohanContext).Config
-	es := c.(*contexts.GohanContext).Es7Client
+func GetTablesByName(cfg *models.Config, es *es7.Client, ctxt context.Context, tableName string) ([]indexes.Table, error) {
 
 	allTables := make([]indexes.Table, 0)
 
@@ -265,7 +262,7 @@ func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) 
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
 	}
-	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+
 	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
 		fmt.Printf("Error unmarshalling response: %s\n", umErr)
@@ -298,10 +295,7 @@ func GetTablesByName(c echo.Context, tableName string) ([]indexes.Table, error) 
 	return allTables, nil
 }
 
-func DeleteTableById(c echo.Context, tableId string) (map[string]interface{}, error) {
-
-	cfg := c.(*contexts.GohanContext).Config
-	es := c.(*contexts.GohanContext).Es7Client
+func DeleteTableById(cfg *models.Config, es *es7.Client, ctxt context.Context, tableId string) (map[string]interface{}, error) {
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}

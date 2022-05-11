@@ -526,7 +526,7 @@ func (i *IngestionService) ProcessVcf(
 				return
 			}
 
-			// --- TODO: prep formats + samples
+			// --- prep formats + samples
 			var samples []*indexes.Sample
 
 			// ---- get genotype stuff

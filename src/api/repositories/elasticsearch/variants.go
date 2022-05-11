@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"api/contexts"
 	"api/models"
 	c "api/models/constants"
 	a "api/models/constants/assembly-id"
@@ -21,7 +20,7 @@ import (
 	"api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/labstack/echo"
+	es7 "github.com/elastic/go-elasticsearch/v7"
 )
 
 const variantsIndex = "variants"
@@ -616,10 +615,10 @@ func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch
 	return result, nil
 }
 
-func DeleteVariantsByTableId(c echo.Context, tableId string) (map[string]interface{}, error) {
+func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string) (map[string]interface{}, error) {
 
-	cfg := c.(*contexts.GohanContext).Config
-	es := c.(*contexts.GohanContext).Es7Client
+	// cfg := c.(*contexts.GohanContext).Config
+	// es := c.(*contexts.GohanContext).Es7Client
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}

@@ -12,6 +12,8 @@ import (
 	variantsMvc "api/mvc/variants"
 	workflowsMvc "api/mvc/workflows"
 	"api/services"
+	"api/services/sanitation"
+	variantsService "api/services/variants"
 	"api/utils"
 	"strings"
 	"time"
@@ -36,7 +38,9 @@ func main() {
 
 	fmt.Printf("Using : \n"+
 
-		"\tDebug : %t \n\n"+
+		"\tDebug : %t \n"+
+		"\tService Contact : %s \n"+
+		"\tSemantic Version : %s \n\n"+
 
 		"\tVCF Directory Path : %s \n"+
 		"\tGTF Directory Path : %s \n"+
@@ -59,6 +63,8 @@ func main() {
 		"Running on Port : %s\n",
 
 		cfg.Debug,
+		cfg.ServiceContact,
+		cfg.SemVer,
 		cfg.Api.VcfPath,
 		cfg.Api.GtfPath,
 		cfg.Api.BulkIndexingCap,
@@ -87,6 +93,9 @@ func main() {
 	// Service Singletons
 	az := services.NewAuthzService(&cfg)
 	iz := services.NewIngestionService(es, &cfg)
+	vs := variantsService.NewVariantService(&cfg)
+
+	_ = sanitation.NewSanitationService(es, &cfg)
 
 	// Configure Server
 	e.Use(middleware.Recover())
@@ -104,6 +113,8 @@ func main() {
 				Es7Client:        es,
 				Config:           &cfg,
 				IngestionService: iz,
+				VariantService:   vs,
+				// SanitationService: ss,
 			}
 			return h(cc)
 		}
@@ -177,7 +188,8 @@ func main() {
 
 	e.GET("/private/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
-		gam.MandateAssemblyIdAttribute)
+		gam.MandateAssemblyIdAttribute,
+		gam.MandateTableIdAttribute)
 	e.GET("/private/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	// --
 
