@@ -1,5 +1,3 @@
-mkdir -p /drs/chord_drs/data/obj;
-mkdir -p /drs/chord_drs/data/db;
-
 flask db upgrade;
-flask run --host=0.0.0.0;
+# flask run --host=0.0.0.0;
+gunicorn chord_drs.app:application -w 1 --threads $(expr 2 \* $(nproc --all) + 1) -b 0.0.0.0:${INTERNAL_PORT}

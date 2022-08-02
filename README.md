@@ -10,8 +10,6 @@
 ## Prerequisites
 - Golang >= 1.15.5
   - installation: https://golang.org/doc/install
-- UPX
-  - docs: https://github.com/upx/upx
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
@@ -44,7 +42,7 @@ cp ./etc/example.env .env
 
 <br >
 
-### **Init**
+### **Initialization**
 Run 
 ```
 make init
@@ -117,12 +115,32 @@ make run-gateway
 ```
 
 <br />
-<br />
 
 
 ### **API**
+<b>Containerized : </b>
 
-From the project root, run 
+&nbsp;To simply run a working instance of the api "out of the box", build the `docker image` and spawn the `container` with an fresh binary build by running
+
+```
+make build-api
+make run-api
+```
+
+&nbsp;and the `docker-compose.yaml` file will handle the configuration.
+
+
+<br />
+
+<b>Local Development :</b>
+
+&nbsp;From the project root, run 
+
+<br />
+
+&nbsp;This can be done multiple ways.
+
+  1. `Terminal` : From the project root, run 
 ```
 export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
 export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
@@ -147,6 +165,52 @@ cd src/api
 
 go run .
 ```
+
+<br />
+
+  2. `IDE (preferably VSCode)`
+
+    - Follow the recommended instructions listed at https://code.visualstudio.com/docs/languages/go
+
+    - configure the `.vscode/launch.json` to inject the above mentioned variables as recommended by https://stackoverflow.com/questions/29971572/how-do-i-add-environment-variables-to-launch-json-in-vscode
+
+
+<b>Local Release</b>
+
+&nbsp;To build / test from source; 
+
+```
+make build-api-local-binaries
+```
+
+
+&nbsp;The binary can then be found at *bin/api_${GOOS}_${GOARCH}* and executed locally with
+
+```
+export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
+export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
+
+# Elasticsearch
+export GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
+export GOHAN_ES_USERNAME=${GOHAN_ES_USERNAME}
+export GOHAN_ES_PASSWORD=${GOHAN_ES_PASSWORD}
+
+# AuthX
+export GOHAN_AUTHZ_ENABLED=${GOHAN_API_AUTHZ_ENABLED}
+export GOHAN_PUBLIC_AUTHN_JWKS_URL=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
+export GOHAN_PRIVATE_AUTHZ_URL=${GOHAN_PRIVATE_AUTHZ_URL}
+export GOHAN_AUTHZ_REQHEADS=${GOHAN_API_AUTHZ_REQHEADS}
+
+# DRS
+export GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
+export GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
+export GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
+
+cd bin/
+
+./api_${GOOS}_${GOARCH}
+```
+
 
 
 <b>Endpoints :</b>
@@ -485,63 +549,8 @@ Response
 `Status Code:` **204**
 
 <br />
-
-
-## Releases
-
-### **API :**
-Local Release: 
-
-&nbsp;From the project root, run 
-
-```
-make build-api-local-binaries
-```
-
-
-
-&nbsp;The binary can then be found at *bin/api_${GOOS}_${GOARCH}* and executed locally with
-
-```
-export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
-export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
-
-# Elasticsearch
-export GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
-export GOHAN_ES_USERNAME=${GOHAN_ES_USERNAME}
-export GOHAN_ES_PASSWORD=${GOHAN_ES_PASSWORD}
-
-# AuthX
-export GOHAN_AUTHZ_ENABLED=${GOHAN_API_AUTHZ_ENABLED}
-export GOHAN_PUBLIC_AUTHN_JWKS_URL=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
-export GOHAN_PRIVATE_AUTHZ_URL=${GOHAN_PRIVATE_AUTHZ_URL}
-export GOHAN_AUTHZ_REQHEADS=${GOHAN_API_AUTHZ_REQHEADS}
-
-# DRS
-export GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
-export GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
-export GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
-
-cd bin/
-
-./api_${GOOS}_${GOARCH}
-```
-
 <br />
 
-Containerized Alpine Release: 
-
-&nbsp;When ready, build the `docker image` and spawn the `container` with an independent binary build by running
-
-```
-make build-api
-make run-api
-```
-
-&nbsp;and the `docker-compose.yaml` file will handle the configuration.
-
-<br />
-<br />
 
 
 

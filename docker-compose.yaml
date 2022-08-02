@@ -3,7 +3,6 @@ version: '2.4'
 services:
   gateway:
     build:
-      network: bridge-net
       context: $PWD/gateway
       args:
         BASE_IMAGE: ${GOHAN_GATEWAY_BASE_IMAGE}
@@ -14,8 +13,6 @@ services:
     cpu_shares: 512
     image: ${GOHAN_GATEWAY_IMAGE}:${GOHAN_GATEWAY_VERSION}
     container_name: ${GOHAN_GATEWAY_CONTAINER_NAME}
-    networks: 
-      - bridge-net
     ports:
       - "80:80"
       - "443:443"
@@ -41,8 +38,6 @@ services:
     cpu_shares: 1024
     image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
     container_name: ${GOHAN_API_CONTAINER_NAME}
-    networks:
-      - bridge-net
     environment:
       # API
       - GOHAN_DEBUG=${GOHAN_DEBUG}
@@ -96,8 +91,6 @@ services:
     cpus: ${GOHAN_ES_CPUS}
     cpu_shares: 2048
     container_name: ${GOHAN_ES_CONTAINER_NAME}
-    networks: 
-      - bridge-net
     environment:
       - ELASTIC_USERNAME=${GOHAN_ES_USERNAME}
       - ELASTIC_PASSWORD=${GOHAN_ES_PASSWORD}
@@ -118,8 +111,6 @@ services:
     cpu_shares: 1024
     image: ${GOHAN_KB_BASE_IMAGE}:${GOHAN_KB_BASE_VERSION}
     container_name: ${GOHAN_KB_CONTAINER_NAME}
-    networks: 
-      - bridge-net
     environment:
       - ELASTICSEARCH_URL=${GOHAN_KB_ES_HOST}:${GOHAN_KB_ES_PORT}
       - ELASTICSEARCH_USERNAME=${GOHAN_ES_USERNAME}
@@ -150,12 +141,12 @@ services:
       # Runtime
       - FLASK_DEBUG=False
       - FLASK_APP=app
-      - DATABASE=/drs/chord_drs/data/db/  # slightly confused naming, folder for database to go in
-      - DATA=/drs/chord_drs/data/obj/  # DRS file objects, vs. the database
-    networks: 
-      - bridge-net
+      - DATABASE=/drs/bento_drs/data/db/  # slightly confused naming, folder for database to go in
+      - DATA=/drs/bento_drs/data/obj/  # DRS file objects, vs. the database
+      - INTERNAL_PORT=${GOHAN_DRS_INTERNAL_PORT}
     volumes:
-      - ${GOHAN_DRS_DATA_DIR}:/drs/chord_drs/data
+      - ./drs/startup.sh:/drs/bento_drs/startup.sh
+      - ${GOHAN_DRS_DATA_DIR}:/drs/bento_drs/data
       - ${GOHAN_API_DRS_BRIDGE_HOST_DIR}:${GOHAN_DRS_API_DRS_BRIDGE_DIR_CONTAINERIZED}
     healthcheck:
       test: [ "CMD", "curl", "http://localhost:${GOHAN_DRS_INTERNAL_PORT}" ]
@@ -173,8 +164,6 @@ services:
     cpu_shares: 512
     image: ${GOHAN_AUTHZ_OPA_IMAGE}:${GOHAN_AUTHZ_OPA_IMAGE_VERSION}
     container_name: ${GOHAN_AUTHZ_OPA_CONTAINER_NAME}
-    networks:
-      - bridge-net
     expose:
       - "${GOHAN_AUTHZ_OPA_INTERNAL_PORT}"
     command:
@@ -183,7 +172,3 @@ services:
       - "--log-level=debug"
       - "/api.policy.rego"
 
-
-networks: 
-  bridge-net:
-      external: true

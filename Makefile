@@ -39,38 +39,40 @@ init:
 
 init-vendor:
 	@echo "Initializing Go Module Vendor"
-	@cd src/api && go mod vendor && \
-	 cd ../tests && go mod vendor
+	cd src/api && go mod vendor
+	cd src/tests && go mod tidy && go mod vendor
 
 init-data-dirs:
-	@echo "Initializing data directories.." && \
-	# api-drs bridge: \
-	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
-		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
-		chmod -R 770 ${GOHAN_API_DRS_BRIDGE_HOST_DIR} && \
-	\
-	# drs: \
-	mkdir -p ${GOHAN_DRS_DATA_DIR} && \
-		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR} && \
-		chmod -R 770 ${GOHAN_DRS_DATA_DIR} && \
-	\
-	# elasticsearch: \
-	mkdir -p ${GOHAN_ES_DATA_DIR} && \
-		chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR} && \
-		chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
-	chmod -R 770 ${GOHAN_ES_DATA_DIR} && \
-	\
-	# tmp: \
-	# (setup for when gohan needs to preprocess vcf's at ingestion time): \
-	mkdir -p ${GOHAN_API_VCF_PATH}/tmp && \
-		chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_VCF_PATH}/tmp && \
-		chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp && \
-	chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp && \
-	mkdir -p ${GOHAN_API_GTF_PATH} && \
-			chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_GTF_PATH} && \
-			chmod -R 770 ${GOHAN_API_GTF_PATH}/ && \
-	chmod -R 770 ${GOHAN_API_GTF_PATH}/tmp && \
-	echo ".. done!"
+	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
+	chmod -R 770 ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
+
+	mkdir -p ${GOHAN_DRS_DATA_DIR}
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR}
+	chmod -R 770 ${GOHAN_DRS_DATA_DIR}
+
+
+	mkdir -p ${GOHAN_ES_DATA_DIR}
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR}
+	chmod -R 770 ${GOHAN_ES_DATA_DIR}
+	chmod -R 770 ${GOHAN_ES_DATA_DIR}
+
+	mkdir -p ${GOHAN_ES_DATA_DIR}
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR}
+	chmod -R 770 ${GOHAN_ES_DATA_DIR}
+	chmod -R 770 ${GOHAN_ES_DATA_DIR}
+
+	@# tmp:
+	@# (setup for when gohan needs to preprocess vcf's at ingestion time):
+	mkdir -p ${GOHAN_API_VCF_PATH}/tmp
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_VCF_PATH}/tmp
+	chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp
+
+	mkdir -p ${GOHAN_API_GTF_PATH}/tmp
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_GTF_PATH}
+	chmod -R 770 ${GOHAN_API_GTF_PATH}/tmp
+	
+	@echo ".. done!"
 
 
 # Run
@@ -101,8 +103,10 @@ build-api-local-binaries:
 	\
 	go build -ldflags="-s -w" -o ../../bin/api_${GOOS}_${GOARCH} && \
 	\
-	cd ../.. && \
-	upx --brute bin/api_${GOOS}_${GOARCH}
+	cd ../..
+	# Temporarily disabling:
+	# && \
+	# upx --brute bin/api_${GOOS}_${GOARCH}
 
 build-api: stop-api clean-api
 	@echo "-- Building Golang-Api-Alpine Container --"
