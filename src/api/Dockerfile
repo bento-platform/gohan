@@ -15,7 +15,10 @@ COPY . /build/
 RUN apk update && \
     apk upgrade && \
     # For compressing the final binary :
-    apk add git upx
+    apk add git
+    # Temporarily disabling: 
+    # \
+    # upx
     
 # Install & build samtools from github repos (htslib needed first)
 RUN apk --update add ncurses-dev && \
@@ -42,6 +45,7 @@ RUN apk --update add ncurses-dev && \
 # Build gohan api
 RUN CGO_ENABLED=0 && \
     go build -ldflags="-s -w" -o gohan_api 
+    # Temporarily disabling: 
     #&& \
     # Compress the final binary :
     #upx --brute gohan_api
