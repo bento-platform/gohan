@@ -11,9 +11,6 @@ SHELL = bash
 include $(env)
 export $(shell sed 's/=.*//' $(env))
 
-export GOOS=linux
-export GOARCH=amd64
-
 # export host user IDs for more secure
 # containerization and volume mounting
 export HOST_USER_UID=$(shell id -u)
