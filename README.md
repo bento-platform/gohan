@@ -174,6 +174,7 @@ go run .
 
     - configure the `.vscode/launch.json` to inject the above mentioned variables as recommended by https://stackoverflow.com/questions/29971572/how-do-i-add-environment-variables-to-launch-json-in-vscode
 
+    - use the Debug > Play button
 
 <b>Local Release</b>
 
@@ -187,27 +188,15 @@ make build-api-local-binaries
 &nbsp;The binary can then be found at *bin/api_${GOOS}_${GOARCH}* and executed locally with
 
 ```
-export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
-export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
+# load variables from local file
+set -a
+. ./.env
+set +a
 
-# Elasticsearch
-export GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
-export GOHAN_ES_USERNAME=${GOHAN_ES_USERNAME}
-export GOHAN_ES_PASSWORD=${GOHAN_ES_PASSWORD}
-
-# AuthX
-export GOHAN_AUTHZ_ENABLED=${GOHAN_API_AUTHZ_ENABLED}
-export GOHAN_PUBLIC_AUTHN_JWKS_URL=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
-export GOHAN_PRIVATE_AUTHZ_URL=${GOHAN_PRIVATE_AUTHZ_URL}
-export GOHAN_AUTHZ_REQHEADS=${GOHAN_API_AUTHZ_REQHEADS}
-
-# DRS
-export GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
-export GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
-export GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
-
+# navigate to binary directory
 cd bin/
 
+# execute binary
 ./api_${GOOS}_${GOARCH}
 ```
 
