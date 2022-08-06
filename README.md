@@ -10,6 +10,8 @@
 ## Prerequisites
 - Golang >= 1.15.5
   - installation: https://golang.org/doc/install
+  - other references 
+    - https://linguinecode.com/post/install-golang-linux-terminal
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
   - overview tutorial: https://www.youtube.com/watch?v=C3tlMqaNSaI
@@ -19,13 +21,17 @@
   - overview: https://en.wikipedia.org/wiki/Make_(software)
 - Docker
   - getting started: https://www.docker.com/get-started
+  - other references:
+    - linux installation: https://www.tutorialspoint.com/docker/installing_docker_on_linux.htm
+    - linux running without sudo : https://dev.to/nabbisen/docker-without-sudo-34ci
 - Docker-Compose
   - getting started: https://docs.docker.com/compose/gettingstarted/
 - Visual Studio Code (recommended)
   - getting started: https://code.visualstudio.com/docs
 - PERL (optional)
   - installation: https://learn.perl.org/installing/unix_linux.html
-
+- htspwd
+  - linux installation: https://www.digitalocean.com/community/tutorials/how-to-set-up-password-authentication-with-apache-on-ubuntu-18-04-quickstart
 <br />
 
 
@@ -39,6 +45,7 @@ First, from the project root, create a local file for environment variables with
 cp ./etc/example.env .env
 ```
  and make any necessary changes, such as the Elasticsearch `GOHAN_ES_USERNAME` and `GOHAN_ES_PASSWORD` when in production.
+ > note: a known current bug is that GOHAN_ES_USERNAME must remain it's default..
 
 <br >
 

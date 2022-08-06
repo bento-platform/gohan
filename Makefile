@@ -61,12 +61,14 @@ init-data-dirs:
 
 	@# tmp:
 	@# (setup for when gohan needs to preprocess vcf's at ingestion time):
+	mkdir -p ${GOHAN_API_VCF_PATH}
 	mkdir -p ${GOHAN_API_VCF_PATH}/tmp
-	chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_VCF_PATH}/tmp
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_VCF_PATH}
 	chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp
 
+	mkdir -p ${GOHAN_API_GTF_PATH}
 	mkdir -p ${GOHAN_API_GTF_PATH}/tmp
-	chown -R ${HOST_USER_UID}:${HOST_USER_GID}  ${GOHAN_API_GTF_PATH}
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_GTF_PATH}
 	chmod -R 770 ${GOHAN_API_GTF_PATH}/tmp
 	
 	@echo ".. done!"
