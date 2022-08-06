@@ -575,3 +575,73 @@ Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run
 ```
 make test-api-dev
 ```
+
+
+## TL;DR
+
+### Typical use-case walkthrough
+```
+  # environment
+  cp ./etc/example.env .env # modify to your needs
+
+  # kickstart
+  make init
+
+  # gateway & certificates
+  mkdir -p gateway/certs/dev
+
+  openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
+  openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/es_gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/es_gohan_fullchain1.crt
+
+  make build-gateway && make run-gateway
+
+
+  # elasticsearch
+  make run-elasticsearch
+
+
+  # services
+  make build-drs && make run-drs
+  make build-api && make run-api
+  
+  
+  # initiate genes catlogue:
+  curl -k https://gohan.local/genes/ingestion/run
+  
+  # monitor progress:
+  curl -k https://gohan.local/genes/ingestion/requests
+  curl -k https://gohan.local/genes/ingestion/stats
+
+  # view catalogue
+  curl -k https://gohan.local/genes/overview
+
+
+  # create table
+  DATA='{
+      "name": "Gohan Box Test Table",
+      "data_type": "variant",
+      "dataset": "00000000-0000-0000-0000-000000000000",
+      "metadata": {}
+  }'
+  curl -k -0 -v -X POST https://gohan.local/tables \
+    -H 'Content-Type:application/json' \
+    --data "$(echo $DATA)" | jq
+
+  # <obtain the "id">
+
+
+  # move vcf.gz files to `$GOHAN_API_VCF_PATH`
+
+  # ingest vcf.gz
+    curl -k https://gohan.local/variants/ingestion/run\?fileNames=4221.hc.g.vcf.gz\&assemblyId=GRCh37\&filterOutHomozygousReferences=true\&tableId=9457e322-1b91-4175-8653-f6d3eb5bb97d
+  
+  # monitor progress:
+  curl -k https://gohan.local/variants/ingestion/requests
+  curl -k https://gohan.local/variants/ingestion/stats
+
+  # view variants
+  curl -k https://gohan.local/variants/overview
+
+
+
+```
