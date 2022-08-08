@@ -8,7 +8,7 @@
 
 
 ## Prerequisites
-- Golang >= 1.15.5
+- Golang >= 1.19
   - installation: https://golang.org/doc/install
   - other references 
     - https://linguinecode.com/post/install-golang-linux-terminal
@@ -28,12 +28,79 @@
   - getting started: https://docs.docker.com/compose/gettingstarted/
 - Visual Studio Code (recommended)
   - getting started: https://code.visualstudio.com/docs
+  - Golang extension: https://marketplace.visualstudio.com/items?itemName=golang.go
 - PERL (optional)
   - installation: https://learn.perl.org/installing/unix_linux.html
 - htspwd
   - linux installation: https://www.digitalocean.com/community/tutorials/how-to-set-up-password-authentication-with-apache-on-ubuntu-18-04-quickstart
 <br />
 
+
+## TL;DR
+
+### Typical use-case walkthrough
+```
+  # environment
+  cp ./etc/example.env .env # modify to your needs
+
+  # kickstart
+  make init
+
+  # gateway & certificates
+  mkdir -p gateway/certs/dev
+
+  openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
+  openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/es_gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/es_gohan_fullchain1.crt
+
+  make build-gateway && make run-gateway
+
+
+  # elasticsearch
+  make run-elasticsearch
+
+
+  # services
+  make build-drs && make run-drs
+  make build-api && make run-api
+  
+  
+  # initiate genes catlogue:
+  curl -k https://gohan.local/genes/ingestion/run
+  
+  # monitor progress:
+  curl -k https://gohan.local/genes/ingestion/requests
+  curl -k https://gohan.local/genes/ingestion/stats
+
+  # view catalogue
+  curl -k https://gohan.local/genes/overview
+
+
+  # create table
+  DATA='{
+      "name": "Gohan Box Test Table",
+      "data_type": "variant",
+      "dataset": "00000000-0000-0000-0000-000000000000",
+      "metadata": {}
+  }'
+  curl -k -0 -v -X POST https://gohan.local/tables \
+    -H 'Content-Type:application/json' \
+    --data "$(echo $DATA)" | jq
+
+  # <obtain the table "id">
+
+
+  # move vcf.gz files to `$GOHAN_API_VCF_PATH`
+
+  # ingest vcf.gz
+  curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutHomozygousReferences=true\&tableId=<table id>
+  
+  # monitor progress:
+  curl -k https://gohan.local/variants/ingestion/requests
+  curl -k https://gohan.local/variants/ingestion/stats
+
+  # view variants
+  curl -k https://gohan.local/variants/overview
+```
 
 ## Getting started
 
@@ -149,39 +216,23 @@ make run-api
 
   1. `Terminal` : From the project root, run 
 ```
-export GOHAN_API_INTERNAL_PORT=${GOHAN_API_INTERNAL_PORT}
-export GOHAN_API_VCF_PATH=${GOHAN_API_VCF_PATH}
-
-# Elasticsearch
-export GOHAN_ES_URL=${GOHAN_PRIVATE_ES_URL}
-export GOHAN_ES_USERNAME=${GOHAN_ES_USERNAME}
-export GOHAN_ES_PASSWORD=${GOHAN_ES_PASSWORD}
-
-# AuthX
-export GOHAN_AUTHZ_ENABLED=${GOHAN_API_AUTHZ_ENABLED}
-export GOHAN_PUBLIC_AUTHN_JWKS_URL=${GOHAN_PUBLIC_AUTHN_JWKS_URL}
-export GOHAN_PRIVATE_AUTHZ_URL=${GOHAN_PRIVATE_AUTHZ_URL}
-export GOHAN_AUTHZ_REQHEADS=${GOHAN_API_AUTHZ_REQHEADS}
-
-# DRS
-export GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
-export GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
-export GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
+# load variables from local file
+set -a
+. ./.env
+set +a
 
 cd src/api
 
 go run .
 ```
 
-<br />
-
   2. `IDE (preferably VSCode)`
 
-    - Follow the recommended instructions listed at https://code.visualstudio.com/docs/languages/go
+    - follow the recommended instructions listed at https://code.visualstudio.com/docs/languages/go
 
     - configure the `.vscode/launch.json` to inject the above mentioned variables as recommended by https://stackoverflow.com/questions/29971572/how-do-i-add-environment-variables-to-launch-json-in-vscode
 
-    - use the Debug > Play button
+    - click 'Run & Debug' > "Play" 
 
 <b>Local Release</b>
 
@@ -576,72 +627,3 @@ Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run
 make test-api-dev
 ```
 
-
-## TL;DR
-
-### Typical use-case walkthrough
-```
-  # environment
-  cp ./etc/example.env .env # modify to your needs
-
-  # kickstart
-  make init
-
-  # gateway & certificates
-  mkdir -p gateway/certs/dev
-
-  openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
-  openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/es_gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/es_gohan_fullchain1.crt
-
-  make build-gateway && make run-gateway
-
-
-  # elasticsearch
-  make run-elasticsearch
-
-
-  # services
-  make build-drs && make run-drs
-  make build-api && make run-api
-  
-  
-  # initiate genes catlogue:
-  curl -k https://gohan.local/genes/ingestion/run
-  
-  # monitor progress:
-  curl -k https://gohan.local/genes/ingestion/requests
-  curl -k https://gohan.local/genes/ingestion/stats
-
-  # view catalogue
-  curl -k https://gohan.local/genes/overview
-
-
-  # create table
-  DATA='{
-      "name": "Gohan Box Test Table",
-      "data_type": "variant",
-      "dataset": "00000000-0000-0000-0000-000000000000",
-      "metadata": {}
-  }'
-  curl -k -0 -v -X POST https://gohan.local/tables \
-    -H 'Content-Type:application/json' \
-    --data "$(echo $DATA)" | jq
-
-  # <obtain the "id">
-
-
-  # move vcf.gz files to `$GOHAN_API_VCF_PATH`
-
-  # ingest vcf.gz
-    curl -k https://gohan.local/variants/ingestion/run\?fileNames=4221.hc.g.vcf.gz\&assemblyId=GRCh37\&filterOutHomozygousReferences=true\&tableId=9457e322-1b91-4175-8653-f6d3eb5bb97d
-  
-  # monitor progress:
-  curl -k https://gohan.local/variants/ingestion/requests
-  curl -k https://gohan.local/variants/ingestion/stats
-
-  # view variants
-  curl -k https://gohan.local/variants/overview
-
-
-
-```
