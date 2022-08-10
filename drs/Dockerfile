@@ -51,16 +51,9 @@ ARG REPO
 ARG BRANCH
 ARG TAG
 
-RUN git clone "${REPO}"
+RUN git clone --depth 1 -b "${TAG:-$BRANCH}" "${REPO}"
 
 WORKDIR /drs/bento_drs
-
-RUN git config --global user.email "you@example.com" && \
-	git config --global user.name "Your Name" && \
-	git fetch && \
-    git checkout "${BRANCH}" && \
-    git pull && \
-	git checkout tags/${TAG}
 
 RUN ["pip", "install", "gunicorn", "-r", "requirements.txt"]
 

@@ -112,7 +112,7 @@ First, from the project root, create a local file for environment variables with
 cp ./etc/example.env .env
 ```
  and make any necessary changes, such as the Elasticsearch `GOHAN_ES_USERNAME` and `GOHAN_ES_PASSWORD` when in production.
- > note: a known current bug is that GOHAN_ES_USERNAME must remain it's default..
+ > note: a known current bug is that GOHAN_ES_USERNAME must remain its default..
 
 <br >
 
@@ -207,10 +207,6 @@ make run-api
 <br />
 
 <b>Local Development :</b>
-
-&nbsp;From the project root, run 
-
-<br />
 
 &nbsp;This can be done multiple ways.
 

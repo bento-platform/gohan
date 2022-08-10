@@ -40,33 +40,26 @@ init-vendor:
 	cd src/tests && go mod tidy && go mod vendor
 
 init-data-dirs:
-	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
+	mkdir ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
 	chmod -R 770 ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
 
-	mkdir -p ${GOHAN_DRS_DATA_DIR}
+	mkdir ${GOHAN_DRS_DATA_DIR}
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR}
 	chmod -R 770 ${GOHAN_DRS_DATA_DIR}
 
-
-	mkdir -p ${GOHAN_ES_DATA_DIR}
+	mkdir ${GOHAN_ES_DATA_DIR}
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR}
-	chmod -R 770 ${GOHAN_ES_DATA_DIR}
-	chmod -R 770 ${GOHAN_ES_DATA_DIR}
-
-	mkdir -p ${GOHAN_ES_DATA_DIR}
-	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR}
-	chmod -R 770 ${GOHAN_ES_DATA_DIR}
 	chmod -R 770 ${GOHAN_ES_DATA_DIR}
 
 	@# tmp:
 	@# (setup for when gohan needs to preprocess vcf's at ingestion time):
-	mkdir -p ${GOHAN_API_VCF_PATH}
+	mkdir ${GOHAN_API_VCF_PATH}
 	mkdir -p ${GOHAN_API_VCF_PATH}/tmp
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_VCF_PATH}
 	chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp
 
-	mkdir -p ${GOHAN_API_GTF_PATH}
+	mkdir ${GOHAN_API_GTF_PATH}
 	mkdir -p ${GOHAN_API_GTF_PATH}/tmp
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_GTF_PATH}
 	chmod -R 770 ${GOHAN_API_GTF_PATH}/tmp
