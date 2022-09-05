@@ -1,5 +1,9 @@
 version: '2.4'
 
+networks:
+    bridge-net:
+        external: true
+
 services:
     api:
         ports:

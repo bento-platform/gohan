@@ -1,5 +1,9 @@
 version: '2.4'
 
+networks:
+  bridge-net:
+    external: true
+
 services:
   gateway:
     build:
@@ -8,6 +12,8 @@ services:
         BASE_IMAGE: ${GOHAN_GATEWAY_BASE_IMAGE}
         BASE_IMAGE_VERSION: ${GOHAN_GATEWAY_BASE_IMAGE_VERSION}
         DRS_BASIC_AUTH_FILE_PATH: ${GOHAN_DRS_BASIC_AUTH_FILE_PATH}
+    networks:
+      - ${GOHAN_DOCKER_NET}
     mem_limit: ${GOHAN_GATEWAY_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_GATEWAY_CPUS}
     cpu_shares: 512
@@ -33,6 +39,8 @@ services:
         HOST_USER_UID: ${HOST_USER_UID}
         HOST_USER_GID: ${HOST_USER_GID}
         OS_NAME: ${OS_NAME}
+    networks:
+      - ${GOHAN_DOCKER_NET}
     mem_limit: ${GOHAN_API_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_API_CPUS}
     cpu_shares: 1024
@@ -91,6 +99,8 @@ services:
     cpus: ${GOHAN_ES_CPUS}
     cpu_shares: 2048
     container_name: ${GOHAN_ES_CONTAINER_NAME}
+    networks:
+      - ${GOHAN_DOCKER_NET}
     environment:
       - ELASTIC_USERNAME=${GOHAN_ES_USERNAME}
       - ELASTIC_PASSWORD=${GOHAN_ES_PASSWORD}
@@ -111,6 +121,8 @@ services:
     cpu_shares: 1024
     image: ${GOHAN_KB_BASE_IMAGE}:${GOHAN_KB_BASE_VERSION}
     container_name: ${GOHAN_KB_CONTAINER_NAME}
+    networks:
+      - ${GOHAN_DOCKER_NET}
     environment:
       - ELASTICSEARCH_URL=${GOHAN_KB_ES_HOST}:${GOHAN_KB_ES_PORT}
       - ELASTICSEARCH_USERNAME=${GOHAN_ES_USERNAME}
@@ -137,6 +149,8 @@ services:
     cpu_shares: 512
     image: ${GOHAN_DRS_IMAGE}:${GOHAN_DRS_VERSION}
     container_name: ${GOHAN_DRS_CONTAINER_NAME}
+    networks:
+      - ${GOHAN_DOCKER_NET}
     environment: 
       # Runtime
       - FLASK_DEBUG=False
@@ -164,6 +178,8 @@ services:
     cpu_shares: 512
     image: ${GOHAN_AUTHZ_OPA_IMAGE}:${GOHAN_AUTHZ_OPA_IMAGE_VERSION}
     container_name: ${GOHAN_AUTHZ_OPA_CONTAINER_NAME}
+    networks:
+      - ${GOHAN_DOCKER_NET}
     expose:
       - "${GOHAN_AUTHZ_OPA_INTERNAL_PORT}"
     command:

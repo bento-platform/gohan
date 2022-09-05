@@ -33,6 +33,11 @@ init:
 	
 	@$(MAKE) init-data-dirs
 	@$(MAKE) init-vendor
+	@$(MAKE) init-networks
+
+
+init-networks:
+	docker network create ${GOHAN_DOCKER_NET} &
 
 init-vendor:
 	@echo "Initializing Go Module Vendor"
@@ -123,7 +128,10 @@ stop-%:
 
 
 # Clean up
-clean-all: clean-api clean-gateway clean-drs
+clean-all: clean-networks clean-api clean-gateway clean-drs
+
+clean-networks:
+	docker network remove ${GOHAN_DOCKER_NET} &
 
 clean-gateway:
 	docker rm ${GOHAN_GATEWAY_CONTAINER_NAME} --force; \
