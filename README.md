@@ -422,9 +422,9 @@ Generalized Response Body Structure
 
 <br />
 
-- http://localhost:5000/vcfs/get/by/sampleId?chromosome=2&id=NA12815&size=10000
+- http://localhost:5000/variants/get/by/sampleId?chromosome=2&id=NA12815&size=10000
 
-- http://localhost:5000/vcfs/get/by/sampleId?chromosome=2&id=NA12815&size=1000&lowerBound=1000&upperBound=100000
+- http://localhost:5000/variants/get/by/sampleId?chromosome=2&id=NA12815&size=1000&lowerBound=1000&upperBound=100000
 
 
 <br />
