@@ -51,18 +51,11 @@ ARG REPO
 ARG BRANCH
 ARG TAG
 
-RUN git clone "${REPO}"
+RUN git clone --depth 1 -b "${TAG:-$BRANCH}" "${REPO}"
 
-WORKDIR /drs/chord_drs
+WORKDIR /drs/bento_drs
 
-RUN git config --global user.email "you@example.com" && \
-	git config --global user.name "Your Name" && \
-	git fetch && \
-    git checkout "${BRANCH}" && \
-    git pull && \
-	git checkout tags/${TAG}
-
-RUN ["pip", "install", "-r", "requirements.txt"]
+RUN ["pip", "install", "gunicorn", "-r", "requirements.txt"]
 
 # Security :
 ARG HOST_USER_UID
@@ -77,8 +70,8 @@ RUN if [ $OS_NAME != darwin ]; \
 USER drsuser
 
 # Run
-WORKDIR /drs/chord_drs/chord_drs
 
-COPY startup.sh ./startup.sh
+# assume it is mounted
+# COPY startup.sh ./startup.sh
 EXPOSE 5000
 CMD ["sh", "startup.sh"]

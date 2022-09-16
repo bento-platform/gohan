@@ -274,34 +274,84 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 	data := fmt.Sprintf("{\"path\": \"%s/%s\"}", drsBridgeDirectory, gzippedFileName)
 
 	var (
-		drsResp *http.Response
-		drsErr  error
+		drsId           string
+		drsResp         *http.Response
+		drsErr          error
+		attemptCount    int = 0
+		maxAttempts     int = 5
+		waitTimeSeconds int = 3
 	)
 	for {
+		// prepare upload request to drs
 		r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
-		r.SetBasicAuth(drsUsername, drsPassword)
 
+		r.SetBasicAuth(drsUsername, drsPassword)
 		r.Header.Add("Content-Type", "application/json")
+
 		client := &http.Client{}
+
+		// perform request
 		drsResp, drsErr = client.Do(r)
+
+		// check for errors, possibly try again
 		if drsErr != nil {
 			fmt.Printf("Upload to DRS error: %s\n", drsErr)
-			return ""
-		} else {
-			fmt.Printf("Upload to DRS succeeded: %d\n", drsResp.StatusCode)
+
+			if attemptCount < maxAttempts {
+				// increment attempt counter
+				attemptCount++
+
+				// give it a few seconds break
+				time.Sleep(time.Duration(waitTimeSeconds * int(time.Second)))
+
+				fmt.Printf("trying again...\n")
+				continue
+			} else {
+				fmt.Printf("exiting upload loop...\n")
+				return "" // empty drs-id string
+			}
 		}
 
 		// check for simple upload error (like db locked) and try again
-		if drsResp.StatusCode != 400 {
+		fmt.Printf("Got a %d status code on DRS upload \n", drsResp.StatusCode)
+		if drsResp.StatusCode == 201 {
+			fmt.Printf("File %s upload to DRS succeeded: %d\n", gzippedFileName, drsResp.StatusCode)
+
+			// proceed with vcf processing
 			break
+		} else if drsResp.StatusCode == 401 {
+			// exit right away on 'unauthorized' status code
+			fmt.Printf("Received a '401 Unauthorized' from DRS -- exiting upload loop...\n")
+			return "" // empty drs-id string
 		} else {
-			fmt.Printf("Got a %d status code on DRS Upload for '%s' \n", drsResp.StatusCode, data)
+			// print response message
+			unsuccessfulAttemptResponseBody, unsuccessfulAttemptResponseErr := ioutil.ReadAll(drsResp.Body)
+			if unsuccessfulAttemptResponseErr != nil {
+				fmt.Printf("Error reading unsuccessful attempt response body: %v", unsuccessfulAttemptResponseErr)
+			} else {
+				fmt.Printf("Received from after failed attempt: %s\n", string(unsuccessfulAttemptResponseBody))
+			}
+			// continue the loop in the event this failure to parse response body is intermittent
+
+			if attemptCount < maxAttempts {
+				// increment attempt counter
+				attemptCount++
+
+				// give it a few seconds break
+				time.Sleep(time.Duration(waitTimeSeconds * int(time.Second)))
+
+				fmt.Printf("Failed to upload to DRS after %d attempts.. Trying again...\n", attemptCount)
+				continue
+			} else {
+				fmt.Printf("After %d failed attempts, exiting upload loop...\n", attemptCount)
+				return "" // empty drs-id string
+			}
 		}
 	}
 
 	responsebody, bodyerr := ioutil.ReadAll(drsResp.Body)
 	if bodyerr != nil {
-		log.Printf("Error reading body: %v", bodyerr)
+		fmt.Printf("Error reading body: %v\n", bodyerr)
 		return ""
 	}
 
@@ -310,11 +360,11 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 		fmt.Printf("Parsing error: %s\n", err)
 		return ""
 	}
-	id := jsonParsed.Path("id").Data().(string)
+	drsId = jsonParsed.Path("id").Data().(string)
 
-	fmt.Println("Get DRS ID: ", id)
+	fmt.Println("Get DRS ID: ", drsId)
 
-	return id
+	return drsId
 }
 
 func (i *IngestionService) ProcessVcf(
