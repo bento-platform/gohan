@@ -43,8 +43,11 @@
   # environment
   cp ./etc/example.env .env # modify to your needs
 
-  # kickstart
+  # kickstart dockerized gohan environment
   make init
+
+  # (optional): if you plan on modifying the api codebase before deploying
+  make init-dev
 
   # gateway & certificates
   mkdir -p gateway/certs/dev
@@ -52,16 +55,17 @@
   openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
   openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/es_gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/es_gohan_fullchain1.crt
 
-  make build-gateway && make run-gateway
 
+  # build services
+  make build-gateway 
+  make build-drs
+  make build-api 
 
-  # elasticsearch
+  # run services
+  make run-gateway
   make run-elasticsearch
-
-
-  # services
-  make build-drs && make run-drs
-  make build-api && make run-api
+  make run-drs
+  make run-api
   
   
   # initiate genes catlogue:
