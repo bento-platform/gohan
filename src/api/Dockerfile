@@ -69,10 +69,11 @@ ARG HOST_USER_UID
 ARG HOST_USER_GID
 ARG OS_NAME
 RUN if [ $OS_NAME != darwin ]; \
-    then addgroup -S apigroup -g $HOST_USER_GID; \
-    else addgroup -S apigroup; \
+    then addgroup -S apigroup -g $HOST_USER_GID || true; \
+    else addgroup -S apigroup || true; \
     fi && \
-    adduser -S apiuser -u $HOST_USER_UID -G apigroup
+    adduser -S apiuser -u $HOST_USER_UID -G apigroup || true
+    # note: ' || true' ignores possible minor errors
 
 USER apiuser
 
