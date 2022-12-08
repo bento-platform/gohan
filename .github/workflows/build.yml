@@ -54,7 +54,7 @@ jobs:
         uses: docker/build-push-action@v3
         # if: ${{ github.event_name == 'release' }}
         with:
-          context: ./src/api/
+          context: "{{defaultContext}}:src/api"
           file: Dockerfile
           push: true
           tags: latest
