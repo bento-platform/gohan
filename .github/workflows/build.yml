@@ -50,6 +50,12 @@ jobs:
           #   type=semver,pattern=api-{{version}}
           #   type=semver,pattern=api-{{major}}.{{minor}}
 
+      - name: Gather default environment variables
+        id: envx
+        run: |
+          cp ./etc/example.env .env
+          source .env
+      
       - name: Build and push production image
         uses: docker/build-push-action@v3
         # if: ${{ github.event_name == 'release' }}
