@@ -45,9 +45,9 @@ jobs:
             ghcr.io/bento-platform/gohan
           flavor: |
             latest=true
-          tags: |
-            type=semver,pattern=api-{{version}}
-            type=semver,pattern=api-{{major}}.{{minor}}
+          # tags: |
+          #   type=semver,pattern=api-{{version}}
+          #   type=semver,pattern=api-{{major}}.{{minor}}
 
       - name: Build and push production image
         uses: docker/build-push-action@v3
@@ -56,6 +56,6 @@ jobs:
           context: ./src/api/
           file: Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          # tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
