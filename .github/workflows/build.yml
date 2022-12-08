@@ -54,9 +54,17 @@ jobs:
         id: envx
         run: |
           cp ./etc/example.env .env && source .env
+
+      - name: Load environment variables from .env file
+        uses: xom9ikk/dotenv@v2
+        with:
+          path: .env
       
       - name: Build and push production image
         uses: docker/build-push-action@v3
+        env:
+          BUILDER_BASE_IMAGE: ${{ env.BUILDER_BASE_IMAGE }}
+          BASE_IMAGE: ${{ env.BASE_IMAGE }}
         # if: ${{ github.event_name == 'release' }}
         with:
           context: "{{defaultContext}}:src/api"
