@@ -57,8 +57,6 @@ jobs:
 
       - name: Load environment variables from .env file
         uses: xom9ikk/dotenv@v2
-        with:
-          path: .env
       
       - name: Build and push production image
         uses: docker/build-push-action@v3
