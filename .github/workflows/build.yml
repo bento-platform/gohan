@@ -45,6 +45,7 @@ jobs:
             ghcr.io/bento-platform/gohan
           flavor: |
             latest=true
+          tags: latest
           # tags: |
           #   type=semver,pattern=api-{{version}}
           #   type=semver,pattern=api-{{major}}.{{minor}}
@@ -56,6 +57,7 @@ jobs:
           context: ./src/api/
           file: Dockerfile
           push: true
+          tags: latest
           # tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
