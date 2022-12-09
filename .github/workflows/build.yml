@@ -55,8 +55,8 @@ jobs:
         run: |
           cp ./etc/example.env .env
           source .env
-          echo $GOHAN_API_BUILDER_BASE_IMAGE > $GITHUB_ENV
-          echo $GOHAN_API_BASE_IMAGE > $GITHUB_ENV
+          echo "GOHAN_API_BUILDER_BASE_IMAGE=$GOHAN_API_BUILDER_BASE_IMAGE" > $GITHUB_ENV
+          echo "GOHAN_API_BASE_IMAGE=$GOHAN_API_BASE_IMAGE" > $GITHUB_ENV
 
       - name: Load environment variables from .env file
         uses: xom9ikk/dotenv@v2
