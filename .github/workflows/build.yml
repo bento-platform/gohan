@@ -50,8 +50,8 @@ jobs:
           flavor: |
             latest=true
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern=test
+            type=semver,pattern=0.0
 
       - name: Gather default environment variables
         id: envx
