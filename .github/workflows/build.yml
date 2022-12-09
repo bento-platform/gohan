@@ -74,6 +74,6 @@ jobs:
             BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
             BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: test-0.0
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
