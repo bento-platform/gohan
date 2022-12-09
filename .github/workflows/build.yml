@@ -10,6 +10,10 @@ on:
     branches:
       - "ci-image-builds" # temp
 
+  workflow_dispatch:
+    branches:
+      - "**" # temp
+
 jobs:
   build-push:
     runs-on: ubuntu-latest
