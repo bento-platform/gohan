@@ -63,13 +63,13 @@ jobs:
       
       - name: Build and push production image
         uses: docker/build-push-action@v3
-        build-args: |
-          BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
-          BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
         # if: ${{ github.event_name == 'release' }}
         with:
           context: "{{defaultContext}}:src/api"
           file: Dockerfile
+          build-args: |
+            BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
+            BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
           push: true
           tags: latest
           # tags: ${{ steps.meta.outputs.tags }}
