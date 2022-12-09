@@ -46,13 +46,12 @@ jobs:
         # if: ${{ github.event_name == 'release' }}
         with:
           images: |
-            ghcr.io/bento-platform/gohan
+            ghcr.io/bento-platform/gohan-api
           flavor: |
             latest=true
-          tags: latest
-          # tags: |
-          #   type=semver,pattern=api-{{version}}
-          #   type=semver,pattern=api-{{major}}.{{minor}}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
       - name: Gather default environment variables
         id: envx
@@ -76,6 +75,6 @@ jobs:
             BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
           push: true
           tags: latest
-          # tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
