@@ -70,12 +70,12 @@ jobs:
         with:
           context: "{{defaultContext}}:src/api"
           file: Dockerfile
-          images: |
-            ghcr.io/bento-platform/gohan
           build-args: |
             BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
             BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
           push: true
-          tags: api-test-0.0
+          tags: ghcr.io/bento-platform/gohan:api-test-0.0
           # labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64 # ,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
