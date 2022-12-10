@@ -1,4 +1,4 @@
-name: Build and push gohan
+name: Build and push gohan-elasticsearch
 
 on:
   release:
@@ -39,27 +39,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-
-      # - name: Set up production image metadata
-      #   id: meta
-      #   uses: docker/metadata-action@v4
-      #   # if: ${{ github.event_name == 'release' }}
-      #   with:
-      #     images: |
-      #       ghcr.io/bento-platform/gohan-api
-      #     flavor: |
-      #       latest=true
-      #     tags: |
-      #       type=semver,pattern=test
-      #       type=semver,pattern=0.0
-
       - name: Gather default environment variables
         id: envx
         run: |
           cp ./etc/example.env .env
           source .env
-          echo "GOHAN_API_BUILDER_BASE_IMAGE=$GOHAN_API_BUILDER_BASE_IMAGE" >> $GITHUB_ENV
-          echo "GOHAN_API_BASE_IMAGE=$GOHAN_API_BASE_IMAGE" >> $GITHUB_ENV
+          echo "GOHAN_ES_BASE_IMAGE=$GOHAN_ES_BASE_IMAGE" >> $GITHUB_ENV
+          echo "GOHAN_ES_BASE_VERSION=$GOHAN_ES_BASE_VERSION" >> $GITHUB_ENV
 
       - name: Load environment variables from .env file
         uses: xom9ikk/dotenv@v2
@@ -71,8 +57,9 @@ jobs:
           context: "{{defaultContext}}:src/api"
           file: Dockerfile
           build-args: |
-            BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
-            BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
+            BASE_IMAGE=${{ env.GOHAN_ES_BASE_IMAGE }}
+            BASE_IMAGE_VERSION=${{ env.GOHAN_ES_BASE_VERSION }}
+            HOST_USER_GID=1000
           push: true
           tags: ghcr.io/bento-platform/gohan:api-test-0.0
           # labels: ${{ steps.meta.outputs.labels }}
