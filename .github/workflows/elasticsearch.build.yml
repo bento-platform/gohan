@@ -54,7 +54,7 @@ jobs:
         uses: docker/build-push-action@v3
         # if: ${{ github.event_name == 'release' }}
         with:
-          context: "{{defaultContext}}:src/api"
+          context: "{{defaultContext}}:elasticsearch"
           file: Dockerfile
           build-args: |
             BASE_IMAGE=${{ env.GOHAN_ES_BASE_IMAGE }}
