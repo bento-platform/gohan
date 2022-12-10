@@ -66,7 +66,7 @@ jobs:
       #     cache-to: type=gha,mode=max
 
       - name: Run Bento build action
-        uses: bento-platform/bento_build_action@v0.9
+        uses: bento-platform/bento_build_action@v0.9.1
         with:
           # context: "{{defaultContext}}:src/api"
           build-args: |
