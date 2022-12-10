@@ -39,20 +39,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-
-      # - name: Set up production image metadata
-      #   id: meta
-      #   uses: docker/metadata-action@v4
-      #   # if: ${{ github.event_name == 'release' }}
-      #   with:
-      #     images: |
-      #       ghcr.io/bento-platform/gohan-api
-      #     flavor: |
-      #       latest=true
-      #     tags: |
-      #       type=semver,pattern=test
-      #       type=semver,pattern=0.0
-
       - name: Gather default environment variables
         id: envx
         run: |
@@ -75,7 +61,6 @@ jobs:
             BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
           push: true
           tags: ghcr.io/bento-platform/gohan:api-test-0.0
-          # labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64 # ,linux/arm64
+          platforms: linux/amd64, linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
