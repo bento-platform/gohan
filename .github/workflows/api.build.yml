@@ -40,7 +40,7 @@ jobs:
       - name: Run Bento build action
         uses: bento-platform/bento_build_action@v0.9.2
         with:
-          # context: "{{defaultContext}}:src/api"
+          context: "{{defaultContext}}:src/api"
           build-args: |
             BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
             BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
@@ -48,5 +48,5 @@ jobs:
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
           image-name: ghcr.io/bento-platform/gohan-api
-          development-dockerfile: src/api/Dockerfile
-          dockerfile: src/api/Dockerfile
+          development-dockerfile: Dockerfile
+          dockerfile: Dockerfile
