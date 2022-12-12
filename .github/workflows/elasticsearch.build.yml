@@ -8,11 +8,7 @@ on:
       - master
   push:
     branches:
-      - "ci-image-builds" # temp
-
-  workflow_dispatch:
-    branches:
-      - "**" # temp
+      - master
 
 jobs:
   build-push:
