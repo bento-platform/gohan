@@ -1,0 +1,49 @@
+name: Build and push gohan-elasticsearch
+
+on:
+  release:
+    types: [ published ]
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Gather default environment variables
+        id: envx
+        run: |
+          cp ./etc/example.env .env
+          source .env
+          echo "GOHAN_ES_BASE_IMAGE=$GOHAN_ES_BASE_IMAGE" >> $GITHUB_ENV
+          echo "GOHAN_ES_BASE_VERSION=$GOHAN_ES_BASE_VERSION" >> $GITHUB_ENV
+
+      - name: Load environment variables from .env file
+        uses: xom9ikk/dotenv@v2
+      
+      - name: Run Bento build action
+        uses: bento-platform/bento_build_action@v0.9.3
+        with:
+          context: "{{defaultContext}}:elasticsearch"
+          build-args: |
+            BASE_IMAGE=${{ env.GOHAN_ES_BASE_IMAGE }}
+            BASE_IMAGE_VERSION=${{ env.GOHAN_ES_BASE_VERSION }}
+            HOST_USER_GID=1000
+          registry: ghcr.io
+          registry-username: ${{ github.actor }}
+          registry-password: ${{ secrets.GITHUB_TOKEN }}
+          image-name: ghcr.io/bento-platform/gohan-elasticsearch
+          development-dockerfile: Dockerfile
+          dockerfile: Dockerfile
