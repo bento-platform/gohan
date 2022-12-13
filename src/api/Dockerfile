@@ -65,7 +65,7 @@ RUN apk update && \
     xz-dev zlib-dev bzip2-dev
 
 # Security :
-# ARG HOST_USER_UID
+ARG HOST_USER_UID
 ARG HOST_USER_GID
 ARG OS_NAME
 RUN if [ $OS_NAME != darwin ]; \
