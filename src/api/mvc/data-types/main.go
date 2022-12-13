@@ -10,6 +10,7 @@ import (
 
 var variantDataTypeJson = map[string]interface{}{
 	"id":     "variant",
+	"label":  "Variants",
 	"schema": schemas.VARIANT_SCHEMA,
 }
 
