@@ -669,6 +669,14 @@ func (i *IngestionService) ProcessVcf(
 							}
 						}
 
+						// TODO: improve 'alt' accuracy
+						//   By this point, tmpVariant["alt"] is populated with
+						//   an array of strings, i.e ["C", "CTT", "CTTTT", ...] .
+						//   Using the values in 'alleleLeft' and 'alleleRight' as
+						//   reference to which alleles are "most-likely", we
+						//   should remove (or store elsewhere) the values
+						//   corresponding to the "least-likely" alleles
+
 						variation.Genotype = indexes.Genotype{
 							Phased:   phased,
 							Zygosity: zyg,
