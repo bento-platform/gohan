@@ -1,9 +1,9 @@
 package common
 
 import (
-	"api/models"
 	"crypto/tls"
 	"fmt"
+	"gohan/api/models"
 	"net/http"
 	"os"
 	"path"

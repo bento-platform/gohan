@@ -1,7 +1,7 @@
 package zygosity
 
 import (
-	"api/models/constants"
+	"gohan/api/models/constants"
 )
 
 const (

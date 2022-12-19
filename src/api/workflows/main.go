@@ -1,8 +1,8 @@
 package workflows
 
 import (
-	c "api/models/constants"
-	a "api/models/constants/assembly-id"
+	c "gohan/api/models/constants"
+	a "gohan/api/models/constants/assembly-id"
 )
 
 type WorkflowSchema map[string]interface{}

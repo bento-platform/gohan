@@ -1,13 +1,13 @@
 package api
 
 import (
-	"api/models"
-	"api/models/dtos"
-	"api/models/indexes"
-	"api/utils"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gohan/api/models"
+	"gohan/api/models/dtos"
+	"gohan/api/models/indexes"
+	"gohan/api/utils"
 	"io/ioutil"
 	"net/http"
 	"testing"

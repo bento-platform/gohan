@@ -1,8 +1,8 @@
 package dtos
 
 import (
-	"api/models/constants"
-	"api/models/indexes"
+	"gohan/api/models/constants"
+	"gohan/api/models/indexes"
 	"time"
 )
 

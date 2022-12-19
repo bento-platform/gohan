@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"api/models"
-	"api/models/constants"
-	assemblyId "api/models/constants/assembly-id"
-	"api/utils"
+	"gohan/api/models"
+	"gohan/api/models/constants"
+	assemblyId "gohan/api/models/constants/assembly-id"
+	"gohan/api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
 )
