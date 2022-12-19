@@ -11,14 +11,14 @@ import (
 	z "gohan/api/models/constants/zygosity"
 	"gohan/api/models/dtos"
 	"gohan/api/models/indexes"
+	common "gohan/api/tests/common"
+	testConsts "gohan/api/tests/common/constants"
+	ratt "gohan/api/tests/common/constants/referenceAlternativeTestType"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"sync"
 	"testing"
-	common "tests/common"
-	testConsts "tests/common/constants"
-	ratt "tests/common/constants/referenceAlternativeTestType"
 
 	. "github.com/ahmetb/go-linq"
 

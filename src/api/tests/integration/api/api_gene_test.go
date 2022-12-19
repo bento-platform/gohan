@@ -9,11 +9,11 @@ import (
 	"gohan/api/models/constants/chromosome"
 	"gohan/api/models/dtos"
 	"gohan/api/models/indexes"
+	common "gohan/api/tests/common"
 	"io/ioutil"
 	"net/http"
 	"sync"
 	"testing"
-	common "tests/common"
 
 	. "github.com/ahmetb/go-linq"
 
