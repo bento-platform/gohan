@@ -1,7 +1,7 @@
 package errors
 
 import (
-	"api/models/dtos"
+	"gohan/api/models/dtos"
 	"time"
 )
 

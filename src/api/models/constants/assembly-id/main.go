@@ -1,7 +1,7 @@
 package assemblyId
 
 import (
-	"api/models/constants"
+	"gohan/api/models/constants"
 	"strings"
 )
 

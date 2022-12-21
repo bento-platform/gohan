@@ -3,7 +3,7 @@ package dataTypes
 import (
 	"net/http"
 
-	"api/models/schemas"
+	"gohan/api/models/schemas"
 
 	"github.com/labstack/echo"
 )

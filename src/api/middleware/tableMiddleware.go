@@ -1,16 +1,16 @@
 package middleware
 
 import (
-	"api/models/dtos/errors"
-	"api/utils"
 	"fmt"
+	"gohan/api/models/dtos/errors"
+	"gohan/api/utils"
 	"net/http"
 
 	"github.com/labstack/echo"
 )
 
 /*
-	Echo middleware to ensure a valid `tableId` HTTP query parameter was provided
+Echo middleware to ensure a valid `tableId` HTTP query parameter was provided
 */
 func MandateTableIdAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {

@@ -1,7 +1,7 @@
 package referenceAlternativeTestType
 
 import (
-	"tests/common/constants"
+	"gohan/api/tests/common/constants"
 )
 
 const (

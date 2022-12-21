@@ -1,17 +1,17 @@
 package api
 
 import (
-	"api/models"
-	"api/models/dtos"
-	"api/models/indexes"
-	"api/utils"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gohan/api/models"
+	"gohan/api/models/dtos"
+	"gohan/api/models/indexes"
+	common "gohan/api/tests/common"
+	"gohan/api/utils"
 	"io/ioutil"
 	"net/http"
 	"testing"
-	common "tests/common"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -56,7 +56,7 @@ func TestCanCreateTable(t *testing.T) {
 	shouldBe := 200
 	assert.Equal(t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET %s Status: %s ; Should be %d", getTableByIdUrl, response.Status, shouldBe))
 
-	//	-- interpret array of available tables from response
+	//	-- interpret array of available tables from response as a serialized json byte string
 	tableRespBody, tableRespBodyErr := ioutil.ReadAll(response.Body)
 	assert.Nil(t, tableRespBodyErr)
 

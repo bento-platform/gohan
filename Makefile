@@ -43,8 +43,7 @@ init-networks:
 
 init-vendor:
 	@echo "Initializing Go Module Vendor"
-	cd src/api && go mod vendor
-	cd src/tests && go mod tidy && go mod vendor
+	cd src/api && go mod tidy && go mod vendor
 
 init-data-dirs:
 	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
@@ -76,7 +75,7 @@ init-data-dirs:
 
 # Run
 run-all:
-	docker-compose -f docker-compose.yaml up -d --force-recreate
+	docker-compose -f docker-compose.yaml up -d
 
 run-dev-all:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate
@@ -85,8 +84,7 @@ run-dev-%:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate $*
 
 run-%:
-	docker-compose -f docker-compose.yaml up -d --force-recreate $*
-
+	docker-compose -f docker-compose.yaml up -d $*
 
 
 # Build
@@ -205,14 +203,15 @@ clean-api-drs-bridge-data:
 ## Tests
 test-api-dev: prepare-test-config
 	@# Run the tests
+	cd src/api && \
 	go clean -cache && \
-	go test tests/integration/... -v
+	go test ./tests/integration/... -v
 
 prepare-test-config:
 	@# Prepare environment variables dynamically via a JSON file 
 	@# since xUnit doens't support loading env variables natively
-	envsubst < ./etc/test.config.yml.tpl > ./src/tests/common/test.config.yml
+	envsubst < ./etc/test.config.yml.tpl > ./src/api/tests/common/test.config.yml
 
 clean-tests:
 	@# Clean up
-	rm ./src/tests/common/test.config.yml
+	rm ./src/api/tests/common/test.config.yml

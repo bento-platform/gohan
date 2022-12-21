@@ -10,11 +10,11 @@ import (
 	"github.com/go-co-op/gocron"
 	"github.com/mitchellh/mapstructure"
 
-	"api/models"
-	"api/models/indexes"
-	esRepo "api/repositories/elasticsearch"
+	"gohan/api/models"
+	"gohan/api/models/indexes"
+	esRepo "gohan/api/repositories/elasticsearch"
 
-	variantsService "api/services/variants"
+	variantsService "gohan/api/services/variants"
 )
 
 type (

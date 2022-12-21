@@ -1,7 +1,7 @@
 package structs
 
 import (
-	"api/models/indexes"
+	"gohan/api/models/indexes"
 	"sync"
 )
 

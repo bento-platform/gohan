@@ -1,14 +1,14 @@
 package middleware
 
 import (
-	assid "api/models/constants/assembly-id"
+	assid "gohan/api/models/constants/assembly-id"
 	"net/http"
 
 	"github.com/labstack/echo"
 )
 
 /*
-	Echo middleware to ensure a valid `assemblyId` HTTP query parameter was provided
+Echo middleware to ensure a valid `assemblyId` HTTP query parameter was provided
 */
 func MandateAssemblyIdAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {

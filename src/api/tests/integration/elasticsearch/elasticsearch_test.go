@@ -2,9 +2,9 @@ package elasticsearch
 
 import (
 	"fmt"
+	common "gohan/api/tests/common"
 	"net/http"
 	"testing"
-	common "tests/common"
 
 	"github.com/stretchr/testify/assert"
 )

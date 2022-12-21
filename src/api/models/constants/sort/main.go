@@ -1,7 +1,7 @@
 package sort
 
 import (
-	"api/models/constants"
+	"gohan/api/models/constants"
 	"strings"
 )
 

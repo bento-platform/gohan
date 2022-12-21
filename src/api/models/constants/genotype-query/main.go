@@ -1,8 +1,8 @@
 package genotypeQuery
 
 import (
-	"api/models/constants"
 	"errors"
+	"gohan/api/models/constants"
 	"strings"
 )
 

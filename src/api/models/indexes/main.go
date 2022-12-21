@@ -1,7 +1,7 @@
 package indexes
 
 import (
-	c "api/models/constants"
+	c "gohan/api/models/constants"
 )
 
 type Variant struct {
