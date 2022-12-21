@@ -12,7 +12,7 @@ export HOST_USER_GID=$(shell id -g)
 export OS_NAME=$(shell uname -s | tr A-Z a-z)
 
 export GOOS=${OS_NAME}
-export GOARCH=$(shell if [ $(uname -m) == aarch64 ]; then echo arm64; else echo $(uname -m); fi | tr A-Z a-z)
+export GOARCH=$(shell if [ "$(uname -m)" == "aarch64" ]; then echo arm64; else echo $(uname -m); fi | tr A-Z a-z)
 
 # import global variables
 env ?= .env
