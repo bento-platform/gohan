@@ -196,28 +196,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	}
 
 	if genotype != gq.UNCALLED {
-		zygosityMatchMap := make(map[string]interface{})
-
-		switch genotype {
-		case gq.HETEROZYGOUS:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Heterozygous,
-			}
-
-		case gq.HOMOZYGOUS_REFERENCE:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.HomozygousReference,
-			}
-
-		case gq.HOMOZYGOUS_ALTERNATE:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.HomozygousAlternate,
-			}
-		}
-
-		mustMap = append(mustMap, map[string]interface{}{
-			"match": zygosityMatchMap,
-		})
+		mustMap = addZygosityToMustMap(genotype, mustMap)
 	}
 
 	// individually append each range components to the must map
@@ -424,28 +403,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	}
 
 	if genotype != gq.UNCALLED {
-		zygosityMatchMap := make(map[string]interface{})
-
-		switch genotype {
-		case gq.HETEROZYGOUS:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Heterozygous,
-			}
-
-		case gq.HOMOZYGOUS_REFERENCE:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.HomozygousReference,
-			}
-
-		case gq.HOMOZYGOUS_ALTERNATE:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.HomozygousAlternate,
-			}
-		}
-
-		mustMap = append(mustMap, map[string]interface{}{
-			"match": zygosityMatchMap,
-		})
+		mustMap = addZygosityToMustMap(genotype, mustMap)
 	}
 
 	// append the match components to the must map
@@ -679,4 +637,37 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 	}
 
 	return result, nil
+}
+
+// -- internal use only --
+
+func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interface{}) []map[string]interface{} {
+	zygosityMatchMap := make(map[string]interface{})
+
+	switch genotype {
+	case gq.HETEROZYGOUS:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.Heterozygous,
+		}
+
+	case gq.HOMOZYGOUS_REFERENCE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.HomozygousReference,
+		}
+
+	case gq.HOMOZYGOUS_ALTERNATE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.HomozygousAlternate,
+		}
+	}
+
+	// Not all genotype-queries are compatible yet, i.e. Haploid types `REFERENCE` and `ALTERNATE`
+	// - verify zygosity-map is not empty before adding to the must-map
+	if len(zygosityMatchMap) > 0 {
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": zygosityMatchMap,
+		})
+	}
+
+	return mustMap
 }
