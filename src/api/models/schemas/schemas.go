@@ -85,7 +85,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 			},
 			"type": "string",
 		},
-		"alt": map[string]interface{}{
+		"alternative": map[string]interface{}{
 			"description": "Alternate allele",
 			"search": map[string]interface{}{
 				"canNegate": false,
@@ -99,7 +99,7 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 			},
 			"type": "string",
 		},
-		"ref": map[string]interface{}{
+		"reference": map[string]interface{}{
 			"description": "Reference allele",
 			"search": map[string]interface{}{
 				"canNegate": false,
