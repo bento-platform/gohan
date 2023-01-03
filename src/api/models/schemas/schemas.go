@@ -85,6 +85,34 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 			},
 			"type": "string",
 		},
+		"alternative": map[string]interface{}{
+			"description": "Alternate allele",
+			"search": map[string]interface{}{
+				"canNegate": false,
+				"operations": []string{
+					"eq",
+				},
+				"order":     1,
+				"queryable": "all",
+				"required":  false,
+				"type":      "single",
+			},
+			"type": "string",
+		},
+		"reference": map[string]interface{}{
+			"description": "Reference allele",
+			"search": map[string]interface{}{
+				"canNegate": false,
+				"operations": []string{
+					"eq",
+				},
+				"order":     1,
+				"queryable": "all",
+				"required":  false,
+				"type":      "single",
+			},
+			"type": "string",
+		},
 		"start": map[string]interface{}{
 			"description": "1-indexed start location of the variant on the chromosome.",
 			"search": map[string]interface{}{
