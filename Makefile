@@ -1,21 +1,24 @@
 # Makefile for Gohan
 
-# import global variables
-env ?= .env
-
 #>>>
 # set default shell
 #<<<
 SHELL = bash
-
-include $(env)
-export $(shell sed 's/=.*//' $(env))
 
 # export host user IDs for more secure
 # containerization and volume mounting
 export HOST_USER_UID=$(shell id -u)
 export HOST_USER_GID=$(shell id -g)
 export OS_NAME=$(shell uname -s | tr A-Z a-z)
+
+export GOOS=${OS_NAME}
+export GOARCH=$(shell if [ "$(uname -m)" == "aarch64" ]; then echo arm64; else echo $(uname -m); fi | tr A-Z a-z)
+
+# import global variables
+env ?= .env
+
+include $(env)
+export $(shell sed 's/=.*//' $(env))
 
 
 # initialize services
@@ -43,8 +46,7 @@ init-networks:
 
 init-vendor:
 	@echo "Initializing Go Module Vendor"
-	cd src/api && go mod vendor
-	cd src/tests && go mod tidy && go mod vendor
+	cd src/api && go mod tidy && go mod vendor
 
 init-data-dirs:
 	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
@@ -76,7 +78,7 @@ init-data-dirs:
 
 # Run
 run-all:
-	docker-compose -f docker-compose.yaml up -d --force-recreate
+	docker-compose -f docker-compose.yaml up -d
 
 run-dev-all:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate
@@ -85,8 +87,7 @@ run-dev-%:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate $*
 
 run-%:
-	docker-compose -f docker-compose.yaml up -d --force-recreate $*
-
+	docker-compose -f docker-compose.yaml up -d $*
 
 
 # Build
@@ -205,14 +206,15 @@ clean-api-drs-bridge-data:
 ## Tests
 test-api-dev: prepare-test-config
 	@# Run the tests
+	cd src/api && \
 	go clean -cache && \
-	go test tests/integration/... -v
+	go test ./tests/integration/... -v
 
 prepare-test-config:
 	@# Prepare environment variables dynamically via a JSON file 
 	@# since xUnit doens't support loading env variables natively
-	envsubst < ./etc/test.config.yml.tpl > ./src/tests/common/test.config.yml
+	envsubst < ./etc/test.config.yml.tpl > ./src/api/tests/common/test.config.yml
 
 clean-tests:
 	@# Clean up
-	rm ./src/tests/common/test.config.yml
+	rm ./src/api/tests/common/test.config.yml

@@ -1,7 +1,7 @@
 package search
 
 import (
-	"api/models/constants"
+	"gohan/api/models/constants"
 )
 
 const (

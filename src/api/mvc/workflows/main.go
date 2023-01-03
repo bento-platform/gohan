@@ -1,8 +1,8 @@
 package workflows
 
 import (
-	w "api/workflows"
 	"fmt"
+	w "gohan/api/workflows"
 	"net/http"
 
 	"github.com/labstack/echo"

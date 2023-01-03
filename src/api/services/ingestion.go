@@ -1,13 +1,6 @@
 package services
 
 import (
-	"api/models"
-	"api/models/constants"
-	"api/models/constants/chromosome"
-	z "api/models/constants/zygosity"
-	"api/models/ingest"
-	"api/models/ingest/structs"
-	"api/utils"
 	"bufio"
 	"bytes"
 	"compress/gzip"
@@ -15,6 +8,13 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"gohan/api/models"
+	"gohan/api/models/constants"
+	"gohan/api/models/constants/chromosome"
+	z "gohan/api/models/constants/zygosity"
+	"gohan/api/models/ingest"
+	"gohan/api/models/ingest/structs"
+	"gohan/api/utils"
 	"io"
 	"io/ioutil"
 	"log"
@@ -28,7 +28,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"api/models/indexes"
+	"gohan/api/models/indexes"
 
 	"github.com/Jeffail/gabs"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -668,6 +668,14 @@ func (i *IngestionService) ProcessVcf(
 								zyg = z.Heterozygous
 							}
 						}
+
+						// TODO: improve 'alt' accuracy
+						//   By this point, tmpVariant["alt"] is populated with
+						//   an array of strings, i.e ["C", "CTT", "CTTTT", ...] .
+						//   Using the values in 'alleleLeft' and 'alleleRight' as
+						//   reference to which alleles are "most-likely", we
+						//   should remove (or store elsewhere) the values
+						//   corresponding to the "least-likely" alleles
 
 						variation.Genotype = indexes.Genotype{
 							Phased:   phased,

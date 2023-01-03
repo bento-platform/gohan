@@ -1,8 +1,8 @@
 package schemas
 
 import (
-	c "api/models/constants"
-	so "api/models/constants/search"
+	c "gohan/api/models/constants"
+	so "gohan/api/models/constants/search"
 )
 
 type Schema map[string]interface{}

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"net/http"
 
-	gq "api/models/constants/genotype-query"
+	gq "gohan/api/models/constants/genotype-query"
 
 	"github.com/labstack/echo"
 )
 
 /*
-	Echo middleware to ensure the validity of the optionally provided `genotype` HTTP query parameter
+Echo middleware to ensure the validity of the optionally provided `genotype` HTTP query parameter
 */
 func ValidatePotentialGenotypeQueryParameter(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {

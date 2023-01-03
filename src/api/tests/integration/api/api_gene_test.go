@@ -1,19 +1,19 @@
 package api
 
 import (
-	"api/models"
-	c "api/models/constants"
-	a "api/models/constants/assembly-id"
-	"api/models/constants/chromosome"
-	"api/models/dtos"
-	"api/models/indexes"
 	"encoding/json"
 	"fmt"
+	"gohan/api/models"
+	c "gohan/api/models/constants"
+	a "gohan/api/models/constants/assembly-id"
+	"gohan/api/models/constants/chromosome"
+	"gohan/api/models/dtos"
+	"gohan/api/models/indexes"
+	common "gohan/api/tests/common"
 	"io/ioutil"
 	"net/http"
 	"sync"
 	"testing"
-	common "tests/common"
 
 	. "github.com/ahmetb/go-linq"
 

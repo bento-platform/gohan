@@ -43,7 +43,7 @@ RUN apk --update add ncurses-dev && \
     rm -rf htslib samtools
     
 # Build gohan api
-RUN CGO_ENABLED=0 && \
+RUN go mod vendor && \
     go build -ldflags="-s -w" -o gohan_api 
     # Temporarily disabling: 
     #&& \

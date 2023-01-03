@@ -1,7 +1,7 @@
 package api
 
 // import (
-// 	"api/models/dtos"
+// 	"gohan/api/models/dtos"
 // 	"encoding/json"
 // 	"fmt"
 // 	"io/ioutil"
@@ -9,7 +9,7 @@ package api
 // 	"regexp"
 // 	"sync"
 // 	"testing"
-// 	common "tests/common"
+// 	common "gohan/api/tests/common"
 
 // 	"github.com/stretchr/testify/assert"
 // )

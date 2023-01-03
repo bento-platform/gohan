@@ -1,10 +1,10 @@
 package mvc
 
 import (
-	"api/contexts"
-	"api/models/constants"
-	a "api/models/constants/assembly-id"
-	gq "api/models/constants/genotype-query"
+	"gohan/api/contexts"
+	"gohan/api/models/constants"
+	a "gohan/api/models/constants/assembly-id"
+	gq "gohan/api/models/constants/genotype-query"
 	"log"
 	"strconv"
 	"strings"

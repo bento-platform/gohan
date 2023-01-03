@@ -1,14 +1,14 @@
 package middleware
 
 import (
-	"api/models/constants/chromosome"
+	"gohan/api/models/constants/chromosome"
 	"net/http"
 
 	"github.com/labstack/echo"
 )
 
 /*
-	Echo middleware to ensure a valid `chromosome` HTTP query parameter was provided
+Echo middleware to ensure a valid `chromosome` HTTP query parameter was provided
 */
 func ValidateOptionalChromosomeAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {

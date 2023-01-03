@@ -1,9 +1,9 @@
 package variantsService
 
 import (
-	"api/models"
-	esRepo "api/repositories/elasticsearch"
 	"fmt"
+	"gohan/api/models"
+	esRepo "gohan/api/repositories/elasticsearch"
 	"sync"
 
 	"github.com/elastic/go-elasticsearch/v7"

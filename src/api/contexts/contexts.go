@@ -1,9 +1,9 @@
 package contexts
 
 import (
-	"api/models"
-	"api/services"
-	variantsService "api/services/variants"
+	"gohan/api/models"
+	"gohan/api/services"
+	variantsService "gohan/api/services/variants"
 
 	es7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/labstack/echo"
