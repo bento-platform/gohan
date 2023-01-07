@@ -58,7 +58,6 @@
 
   # build services
   make build-gateway 
-  make build-drs
   make build-api 
 
   # run services
@@ -148,7 +147,6 @@ make run-kibana
 
 Run 
 ```
-make build-drs
 make run-drs
 ```
 
