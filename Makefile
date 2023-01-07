@@ -112,10 +112,6 @@ build-api: stop-api clean-api
 	@echo "-- Building Golang-Api-Alpine Container --"
 	docker-compose -f docker-compose.yaml build api
 
-build-drs: stop-drs clean-drs
-	@echo "-- Building DRS Container --"
-	docker-compose -f docker-compose.yaml build drs
-
 build-authz: stop-authz clean-authz
 	@echo "-- Building Authorization Container --"
 	docker-compose -f docker-compose.yaml build authorization
@@ -131,7 +127,7 @@ stop-%:
 
 
 # Clean up
-clean-all: clean-networks clean-api clean-gateway clean-drs
+clean-all: clean-networks clean-api clean-gateway
 
 clean-networks:
 	docker network remove ${GOHAN_DOCKER_NET} &
@@ -144,10 +140,6 @@ clean-api:
 	rm -f bin/api_${GOOS}_${GOARCH}
 	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
 	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
-
-clean-drs:
-	docker rm ${GOHAN_DRS_CONTAINER_NAME} --force; \
-	docker rmi ${GOHAN_DRS_IMAGE}:${GOHAN_DRS_VERSION} --force;
 
 clean-authz:
 	docker rm ${GOHAN_AUTHZ_OPA_CONTAINER_NAME} --force; \
