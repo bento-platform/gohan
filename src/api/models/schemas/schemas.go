@@ -176,8 +176,6 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 		"genotype_type": map[string]interface{}{
 			"description": "Variant call genotype type.",
 			"enum": []string{
-				"MISSING",
-				"MISSING_UPSTREAM_DELETION",
 				"REFERENCE",
 				"ALTERNATE",
 				"HOMOZYGOUS_REFERENCE",
