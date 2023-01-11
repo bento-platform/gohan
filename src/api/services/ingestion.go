@@ -626,6 +626,9 @@ func (i *IngestionService) ProcessVcf(
 					if hasGenotype && k == genotypePosition {
 						// create genotype from value
 						gtString := tmpValueStrings[k]
+
+						// TODO: check and handle when 'gtString' is '.'
+
 						phased := strings.Contains(gtString, "|")
 
 						var (
@@ -672,43 +675,37 @@ func (i *IngestionService) ProcessVcf(
 						//   By this point, tmpVariant["alt"] is populated with
 						//   an array of strings, i.e ["C", "CTT", "CTTTT", ...] .
 						//   Using the values in 'alleleLeft' and 'alleleRight' as
-						//   reference to which alleles are "most-likely", remove
-						//   those that are "least-likely" here;
+						//   reference to which alleles are "most-likely", format and
+						//   store alleles specific to each sample
 
 						// indexing ref/alt in a vcf row:
 						//
-						// 		 0       1, 2, 3, ...
+						//       0       1, 2, 3, ...
 						// ...  REF		ALT			...
 						// ...  G		CT,CTT,CTTT
-						if len(tmpVariant["alt"].([]string)) > 1 {
-							// hold a temporary copy of the current state of 'alt'
-							tmpVariantAltCopy := tmpVariant["alt"].([]string)
 
-							// built out a more optimal version of 'alt'
-							newVariantAlt := []string{}
-							// when 'alleleLeft' and '-Right' are both 0, set the
-							// 'alt' list to one element of '<NON_REF>'
-							// otherwise, preserve the allele(s) at position (x - 1)
-							// in the original 'alt' list,
-							if alleleLeft == 0 && alleleRight == 0 {
-								newVariantAlt = append(newVariantAlt, "<NON_REF>")
-							} else {
-								if alleleLeft > 0 {
-									newVariantAlt = append(newVariantAlt, tmpVariantAltCopy[alleleLeft-1])
-								}
-								if alleleRight > 0 {
-									newVariantAlt = append(newVariantAlt, tmpVariantAltCopy[alleleRight-1])
-								}
-							}
+						var alleles []string
+						// hold a temporary pointer to the current state of this-variant's 'alt' and 'ref' for brevity
+						tmpVariantAlt := tmpVariant["alt"].([]string)
+						tmpVariantRef := tmpVariant["ref"].([]string)
 
-							tmpVariant["alt"] = utils.RemoveDuplicates(newVariantAlt)
+						if alleleLeft > 0 {
+							alleles = append(alleles, tmpVariantAlt[alleleLeft-1])
+						} else {
+							alleles = append(alleles, tmpVariantRef[0])
 						}
-						// else, don't touch 'tmpVariant["alt"]'
+						if alleleRight > 0 {
+							alleles = append(alleles, tmpVariantAlt[alleleRight-1])
+						} else {
+							alleles = append(alleles, tmpVariantRef[0])
+						}
 
 						variation.Genotype = indexes.Genotype{
 							Phased:   phased,
 							Zygosity: zyg,
 						}
+						variation.Alleles = alleles
+
 					} else if hasGenotypeProbability && k == genotypeProbabilityPosition {
 						// create genotype probability from value
 						probValStrings := strings.Split(tmpValueStrings[k], ",")
