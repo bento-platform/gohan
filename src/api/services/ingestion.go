@@ -686,19 +686,19 @@ func (i *IngestionService) ProcessVcf(
 
 							// built out a more optimal version of 'alt'
 							newVariantAlt := []string{}
-							// when 'alleleLeft' and '-Right' are greater than 0, preserve
-							// the allele(s) at position (x - 1) from the original 'alt' list,
-							// otherwise, set to '<NON_REF>'
-							if alleleLeft > 0 {
-								newVariantAlt = append(newVariantAlt, tmpVariantAltCopy[alleleLeft-1])
-							} else {
+							// when 'alleleLeft' and '-Right' are both 0, set the
+							// 'alt' list to one element of '<NON_REF>'
+							// otherwise, preserve the allele(s) at position (x - 1)
+							// in the original 'alt' list,
+							if alleleLeft == 0 && alleleRight == 0 {
 								newVariantAlt = append(newVariantAlt, "<NON_REF>")
-							}
-
-							if alleleRight > 0 {
-								newVariantAlt = append(newVariantAlt, tmpVariantAltCopy[alleleRight-1])
 							} else {
-								newVariantAlt = append(newVariantAlt, "<NON_REF>")
+								if alleleLeft > 0 {
+									newVariantAlt = append(newVariantAlt, tmpVariantAltCopy[alleleLeft-1])
+								}
+								if alleleRight > 0 {
+									newVariantAlt = append(newVariantAlt, tmpVariantAltCopy[alleleRight-1])
+								}
 							}
 
 							tmpVariant["alt"] = utils.RemoveDuplicates(newVariantAlt)
