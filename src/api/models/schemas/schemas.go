@@ -189,7 +189,7 @@ var VARIANT_CALL_SCHEMA Schema = map[string]interface{}{
 				},
 				"order":     2.0,
 				"queryable": "all",
-				"required":  true,
+				"required":  false,
 				"type":      "single",
 			},
 			"type": "string",
