@@ -669,29 +669,41 @@ func (i *IngestionService) ProcessVcf(
 							}
 						}
 
-						// TODO: improve 'alt' accuracy
 						//   By this point, tmpVariant["alt"] is populated with
 						//   an array of strings, i.e ["C", "CTT", "CTTTT", ...] .
 						//   Using the values in 'alleleLeft' and 'alleleRight' as
-						//   reference to which alleles are "most-likely", we
-						//   should remove (or store elsewhere) the values
-						//   corresponding to the "least-likely" alleles
-						if len(tmpVariant["alt"].([]string)) > 1 {
-							// modify tmpVariant["alt"]
-							tmpVariantAltCopy := tmpVariant["alt"].([]string)
-							newVariantAlt := []string{}
+						//   reference to which alleles are "most-likely", remove
+						//   those that are "least-likely" here;
 
-							var alleleLeftGenoType, alleleRightGenoType string
+						// indexing ref/alt in a vcf row:
+						//
+						// 		 0       1, 2, 3, ...
+						// ...  REF		ALT			...
+						// ...  G		CT,CTT,CTTT
+						if len(tmpVariant["alt"].([]string)) > 1 {
+							// hold a temporary copy of the current state of 'alt'
+							tmpVariantAltCopy := tmpVariant["alt"].([]string)
+
+							// built out a more optimal version of 'alt'
+							newVariantAlt := []string{}
+							// when 'alleleLeft' and '-Right' are greater than 0, preserve
+							// the allele(s) at position (x - 1) from the original 'alt' list,
+							// otherwise, set to '<NON_REF>'
 							if alleleLeft > 0 {
-								alleleLeftGenoType = tmpVariantAltCopy[alleleLeft-1]
-								newVariantAlt = append(newVariantAlt, alleleLeftGenoType)
+								newVariantAlt = append(newVariantAlt, tmpVariantAltCopy[alleleLeft-1])
+							} else {
+								newVariantAlt = append(newVariantAlt, "<NON_REF>")
 							}
+
 							if alleleRight > 0 {
-								alleleRightGenoType = tmpVariantAltCopy[alleleRight-1]
-								newVariantAlt = append(newVariantAlt, alleleRightGenoType)
+								newVariantAlt = append(newVariantAlt, tmpVariantAltCopy[alleleRight-1])
+							} else {
+								newVariantAlt = append(newVariantAlt, "<NON_REF>")
 							}
+
 							tmpVariant["alt"] = utils.RemoveDuplicates(newVariantAlt)
 						}
+						// else, don't touch 'tmpVariant["alt"]'
 
 						variation.Genotype = indexes.Genotype{
 							Phased:   phased,
