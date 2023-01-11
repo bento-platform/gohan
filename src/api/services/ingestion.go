@@ -676,6 +676,22 @@ func (i *IngestionService) ProcessVcf(
 						//   reference to which alleles are "most-likely", we
 						//   should remove (or store elsewhere) the values
 						//   corresponding to the "least-likely" alleles
+						if len(tmpVariant["alt"].([]string)) > 1 {
+							// modify tmpVariant["alt"]
+							tmpVariantAltCopy := tmpVariant["alt"].([]string)
+							newVariantAlt := []string{}
+
+							var alleleLeftGenoType, alleleRightGenoType string
+							if alleleLeft > 0 {
+								alleleLeftGenoType = tmpVariantAltCopy[alleleLeft-1]
+								newVariantAlt = append(newVariantAlt, alleleLeftGenoType)
+							}
+							if alleleRight > 0 {
+								alleleRightGenoType = tmpVariantAltCopy[alleleRight-1]
+								newVariantAlt = append(newVariantAlt, alleleRightGenoType)
+							}
+							tmpVariant["alt"] = utils.RemoveDuplicates(newVariantAlt)
+						}
 
 						variation.Genotype = indexes.Genotype{
 							Phased:   phased,
