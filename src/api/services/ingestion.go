@@ -684,20 +684,20 @@ func (i *IngestionService) ProcessVcf(
 						// ...  REF		ALT			...
 						// ...  G		CT,CTT,CTTT
 
-						var alleles []string
+						var alleles indexes.AllelePair
 						// hold a temporary pointer to the current state of this-variant's 'alt' and 'ref' for brevity
 						tmpVariantAlt := tmpVariant["alt"].([]string)
 						tmpVariantRef := tmpVariant["ref"].([]string)
 
 						if alleleLeft > 0 {
-							alleles = append(alleles, tmpVariantAlt[alleleLeft-1])
+							alleles.Left = tmpVariantAlt[alleleLeft-1]
 						} else {
-							alleles = append(alleles, tmpVariantRef[0])
+							alleles.Left = tmpVariantRef[0]
 						}
 						if alleleRight > 0 {
-							alleles = append(alleles, tmpVariantAlt[alleleRight-1])
+							alleles.Right = tmpVariantAlt[alleleRight-1]
 						} else {
-							alleles = append(alleles, tmpVariantRef[0])
+							alleles.Right = tmpVariantRef[0]
 						}
 
 						variation.Genotype = indexes.Genotype{
