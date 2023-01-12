@@ -385,35 +385,61 @@ func TestCanGetVariantsWithWildcardReferences(t *testing.T) {
 }
 func TestCanGetVariantsWithWildcardAlleles(t *testing.T) {
 	cfg := common.InitConfig()
-	qAlleles := []string{"N", "NN", "NNN"} // wildcard alleles of 3 different lengths
-	// TODO: improve variant call testing from being 1 call to many random ones
-	dtos := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", strings.Join(qAlleles, ","), t, cfg)
-	fmt.Println(dtos)
-	for _, dto := range dtos.Results {
-		if len(dto.Calls) == 0 {
-			t.Skip("No calls returned! Skipping --")
-		}
+	// iterate over all 'allele's queried for
+	qAlleles := []string{"N", "NN", "NNN", "NNNN", "NNNNN"} // wildcard alleles of different lengths
+	for _, qAllele := range qAlleles {
+		dtos := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", qAllele, t, cfg)
+		for _, dto := range dtos.Results {
+			fmt.Printf("Got %d calls from allele query %s \n", len(dto.Calls), qAllele)
+			if len(dto.Calls) == 0 {
+				continue
+			}
 
-		for _, call := range dto.Calls {
-			// ensure, for each call, that at least
-			// 1 of the alleles present matches one of
-			// the alleles queried for
-			wildcardCharactersMatch := false
+			for _, call := range dto.Calls {
+				// ensure, for each call, that at least
+				// 1 of the alleles present matches one of
+				// the alleles queried for
+				wildcardCharactersMatch := false
 
-			// iterate over all 'allele's queried for
-			for _, qAllele := range qAlleles {
-				// iterate over all 'allele's in the call
+				// - iterate over all 'allele's in the call
 				for _, allele := range call.Alleles {
 					if len(qAllele) == len(allele) {
 						wildcardCharactersMatch = true
 						break
 					}
 				}
-				if wildcardCharactersMatch {
-					break
-				}
+
+				assert.True(t, wildcardCharactersMatch)
 			}
-			assert.True(t, wildcardCharactersMatch)
+		}
+	}
+}
+func TestCanGetVariantsWithWildcardAllelePairs(t *testing.T) {
+	cfg := common.InitConfig()
+
+	// wildcard allele pairs of different lengths
+	qAllelePairs := [][]string{
+		{"N", "N"},
+		{"N", "NN"},
+		{"NN", "N"},
+		{"N", "NNN"},
+		{"NNN", "N"}}
+
+	// iterate over all 'allele pairs'
+	for _, qAllelePair := range qAllelePairs {
+		dtos := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", strings.Join(qAllelePair, ","), t, cfg)
+		for _, dto := range dtos.Results {
+			if len(dto.Calls) == 0 {
+				continue
+			}
+
+			for _, call := range dto.Calls {
+				// ensure, for each call, that the length
+				// of each allele in the pair matches the
+				// wildcard query allele-pair lengths
+				assert.True(t, len(qAllelePair[0]) == len(call.Alleles[0])) // alleleLeft
+				assert.True(t, len(qAllelePair[1]) == len(call.Alleles[1])) // alleleRight
+			}
 		}
 	}
 }

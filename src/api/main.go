@@ -153,12 +153,14 @@ func main() {
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/get/by/sampleId", variantsMvc.VariantsGetBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsPluralAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
