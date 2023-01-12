@@ -483,7 +483,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
 	getSampleIdsOnlyQP := c.QueryParam("getSampleIdsOnly")
@@ -567,7 +567,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
-					reference, alternative,
+					reference, alternative, alleles,
 					size, sortByPosition,
 					includeInfoInResultSet, genotype, assemblyId, tableId,
 					getSampleIdsOnly)
@@ -592,7 +592,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 					docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 						chromosome, lowerBound, upperBound,
 						"", _id, // note : "" is for variantId
-						reference, alternative,
+						reference, alternative, alleles,
 						size, sortByPosition,
 						includeInfoInResultSet, genotype, assemblyId, tableId,
 						false)
@@ -719,7 +719,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, _, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
 
 	respDTO := dtos.VariantCountReponse{
 		Results: make([]dtos.VariantCountResult, 0),
