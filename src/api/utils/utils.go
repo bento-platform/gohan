@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
+var AcceptedNucleotideCharacters = []string{"A", "C", "T", "G", "N"}
+
 func StringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
@@ -73,4 +75,18 @@ func RemoveDuplicates(arr []string) []string {
 		desired_output = append(desired_output, j)
 	}
 	return desired_output
+}
+
+func GenerateRandomFixedLengthString(availableCharactersSlice []string, length int) string {
+	// Set the seed for the random number generator
+	rand.Seed(time.Now().UnixNano())
+
+	characters := strings.Join(availableCharactersSlice, "")
+
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = characters[rand.Intn(len(characters))]
+	}
+
+	return string(b)
 }

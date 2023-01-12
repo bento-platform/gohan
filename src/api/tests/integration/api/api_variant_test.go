@@ -14,6 +14,7 @@ import (
 	common "gohan/api/tests/common"
 	testConsts "gohan/api/tests/common/constants"
 	ratt "gohan/api/tests/common/constants/referenceAlternativeTestType"
+	"gohan/api/utils"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -383,6 +384,58 @@ func TestCanGetVariantsWithWildcardReferences(t *testing.T) {
 		}
 	}
 }
+
+func TestCanGetVariantsByAlleles(t *testing.T) {
+	cfg := common.InitConfig()
+
+	// random number between 1 and 5
+	allelleLen := rand.Intn(5) + 1
+	// random nucleotide string of length 'allelleLen'
+	qAllele := utils.GenerateRandomFixedLengthString(utils.AcceptedNucleotideCharacters, allelleLen)
+
+	fmt.Println(qAllele)
+
+	// check alleles in response
+	dtos := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", qAllele, false, t, cfg)
+	for _, dto := range dtos.Results {
+		for _, call := range dto.Calls {
+			// ensure, for each call, that at least
+			// 1 of the alleles present matches the allele
+			// queried for
+			allAllelesMatchUp := false
+
+			// TODO: "does an allele exist matching the one queried"
+			// - iterate over all 'allele's in the call
+			for _, allele := range call.Alleles {
+				matched := make([]bool, len(qAllele))
+				if len(qAllele) == len(allele) {
+					for alIndex, alChar := range allele {
+						// ensure the index is within bounds (length of the allele)
+						// 'ref's are slices of strings, and not all 'ref's in these slices need to match
+						if alIndex <= len(allele) {
+							// obtain the character at the index for the iteration
+							qAlleleChar := []rune(qAllele)[alIndex]
+							if string(qAlleleChar) == "N" || alChar == qAlleleChar {
+								// if the non-wildcard characters don't match, test fails
+								// alleleMatchesUp = false
+								matched[alIndex] = true
+							}
+						} else {
+							continue
+						}
+					}
+					if areAllBoolsTrue(matched) {
+						allAllelesMatchUp = true
+						break
+					}
+				}
+			}
+
+			assert.True(t, allAllelesMatchUp)
+		}
+	}
+}
+
 func TestCanGetVariantsWithWildcardAlleles(t *testing.T) {
 	cfg := common.InitConfig()
 	// iterate over all 'allele's queried for
@@ -444,7 +497,7 @@ func TestCanGetVariantsWithWildcardAllelePairs(t *testing.T) {
 	}
 }
 
-func TestGetVariantsCanHandleInvalidAlleleQuery(t *testing.T) {
+func TestGetVariantsCanHandleInvalidWildcardAlleleQuery(t *testing.T) {
 	cfg := common.InitConfig()
 	// iterate over all 'allele's queried for
 	qAlleles := []string{"N", "NN", "NNN", "NNNN", "NNNNN"} // wildcard alleles of different lengths
@@ -464,6 +517,15 @@ func TestGetVariantsCanHandleInvalidAlleleQuery(t *testing.T) {
 }
 
 // -- Common utility functions for api tests
+func areAllBoolsTrue(sliceOfBools []bool) bool {
+	for _, b := range sliceOfBools {
+		if !b {
+			return false
+		}
+	}
+	return true
+}
+
 func executeReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
 	genotypeQuery c.GenotypeQuery, refAltTestType testConsts.ReferenceAlternativeTestType,
 	specificValidation func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string)) {
