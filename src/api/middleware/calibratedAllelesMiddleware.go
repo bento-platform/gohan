@@ -13,7 +13,6 @@ func MandateCalibratedAlleles(next echo.HandlerFunc) echo.HandlerFunc {
 
 		// ensure no more than 2 alleles are provided at once
 		if len(allelesQP) > 2 {
-			// if upper bound is less than the lower bound
 			return echo.NewHTTPError(http.StatusBadRequest, "Too many alleles! Please only provide 1 or 2")
 		}
 
