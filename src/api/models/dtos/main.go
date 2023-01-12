@@ -49,8 +49,9 @@ type VariantCall struct {
 
 	Info []indexes.Info `json:"info,omitempty"` // TODO; refactor?
 
-	SampleId     string `json:"sample_id"`
-	GenotypeType string `json:"genotype_type"`
+	SampleId     string   `json:"sample_id"`
+	GenotypeType string   `json:"genotype_type,omitempty"`
+	Alleles      []string `json:"alleles,omitempty"`
 	// TODO: GenotypeProbability, PhredScaleLikelyhood ?
 
 	AssemblyId constants.AssemblyId `json:"assemblyId,omitempty"`

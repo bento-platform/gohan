@@ -667,6 +667,8 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 					variant := source.(map[string]interface{})["variant"].(indexes.Variant)
 					docId := source.(map[string]interface{})["documentId"].(string)
 
+					alleles := variant.Sample.Variation.Alleles
+
 					sampleId := strings.ToUpper(variant.Sample.Id)
 
 					variantResult.Calls = append(variantResult.Calls, dtos.VariantCall{
@@ -683,6 +685,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 
 						SampleId:     sampleId,
 						GenotypeType: zygosity.ZygosityToString(variant.Sample.Variation.Genotype.Zygosity),
+						Alleles:      []string{alleles.Left, alleles.Right},
 
 						AssemblyId: variant.AssemblyId,
 						DocumentId: docId,
