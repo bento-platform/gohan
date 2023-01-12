@@ -12,7 +12,7 @@ import (
 // -- Simplest: 1 error with message
 func CreateSimpleBadRequest(message string) dtos.GeneralErrorResponseDto {
 	return dtos.GeneralErrorResponseDto{
-		Code:      400,
+		Status:    400,
 		Message:   "Bad Request",
 		Timestamp: time.Now(),
 		Errors: []dtos.GeneralError{
@@ -24,7 +24,7 @@ func CreateSimpleBadRequest(message string) dtos.GeneralErrorResponseDto {
 }
 func CreateSimpleUnauthorized(message string) dtos.GeneralErrorResponseDto {
 	return dtos.GeneralErrorResponseDto{
-		Code:      401,
+		Status:    401,
 		Message:   "Unauthorized",
 		Timestamp: time.Now(),
 		Errors: []dtos.GeneralError{
@@ -36,7 +36,7 @@ func CreateSimpleUnauthorized(message string) dtos.GeneralErrorResponseDto {
 }
 func CreateSimpleNotFound(message string) dtos.GeneralErrorResponseDto {
 	return dtos.GeneralErrorResponseDto{
-		Code:      404,
+		Status:    404,
 		Message:   "Not Found",
 		Timestamp: time.Now(),
 		Errors: []dtos.GeneralError{
@@ -48,7 +48,7 @@ func CreateSimpleNotFound(message string) dtos.GeneralErrorResponseDto {
 }
 func CreateSimpleInternalServerError(message string) dtos.GeneralErrorResponseDto {
 	return dtos.GeneralErrorResponseDto{
-		Code:      500,
+		Status:    500,
 		Message:   "Internal Server Error",
 		Timestamp: time.Now(),
 		Errors: []dtos.GeneralError{

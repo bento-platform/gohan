@@ -89,7 +89,7 @@ type TableSummaryResponseDto struct {
 
 // -- Errors
 type GeneralErrorResponseDto struct {
-	Code      int            `json:"code,omitempty"`
+	Status    int            `json:"status,omitempty"`
 	Message   string         `json:"message,omitempty"`
 	Errors    []GeneralError `json:"errors,omitempty"`
 	Timestamp time.Time      `json:"timestamp,omitempty"`

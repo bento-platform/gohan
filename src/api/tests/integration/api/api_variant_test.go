@@ -316,7 +316,7 @@ func TestCanGetVariantsWithWildcardAlternatives(t *testing.T) {
 	cfg := common.InitConfig()
 	allele := "ATTN" // example allele - TODO: render more sophisticated randomization
 	// TODO: improve variant call testing from being 1 call to many random ones
-	dtos := buildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", "", allele, "", t, cfg)
+	dtos := buildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", "", allele, "", false, t, cfg)
 	for _, dto := range dtos.Results {
 		for _, call := range dto.Calls {
 			// ensure, for each call, that at least
@@ -352,7 +352,7 @@ func TestCanGetVariantsWithWildcardReferences(t *testing.T) {
 	cfg := common.InitConfig()
 	allele := "ATTN" // example allele - TODO: render more sophisticated randomization
 	// TODO: improve variant call testing from being 1 call to many random ones
-	dtos := buildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", allele, "", "", t, cfg)
+	dtos := buildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", allele, "", "", false, t, cfg)
 	for _, dto := range dtos.Results {
 		for _, call := range dto.Calls {
 			// ensure, for each call, that at least
@@ -388,7 +388,7 @@ func TestCanGetVariantsWithWildcardAlleles(t *testing.T) {
 	// iterate over all 'allele's queried for
 	qAlleles := []string{"N", "NN", "NNN", "NNNN", "NNNNN"} // wildcard alleles of different lengths
 	for _, qAllele := range qAlleles {
-		dtos := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", qAllele, t, cfg)
+		dtos := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", qAllele, false, t, cfg)
 		for _, dto := range dtos.Results {
 			fmt.Printf("Got %d calls from allele query %s \n", len(dto.Calls), qAllele)
 			if len(dto.Calls) == 0 {
@@ -427,7 +427,7 @@ func TestCanGetVariantsWithWildcardAllelePairs(t *testing.T) {
 
 	// iterate over all 'allele pairs'
 	for _, qAllelePair := range qAllelePairs {
-		dtos := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", strings.Join(qAllelePair, ","), t, cfg)
+		dtos := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", strings.Join(qAllelePair, ","), false, t, cfg)
 		for _, dto := range dtos.Results {
 			if len(dto.Calls) == 0 {
 				continue
@@ -441,6 +441,25 @@ func TestCanGetVariantsWithWildcardAllelePairs(t *testing.T) {
 				assert.True(t, len(qAllelePair[1]) == len(call.Alleles[1])) // alleleRight
 			}
 		}
+	}
+}
+
+func TestGetVariantsCanHandleInvalidAlleleQuery(t *testing.T) {
+	cfg := common.InitConfig()
+	// iterate over all 'allele's queried for
+	qAlleles := []string{"N", "NN", "NNN", "NNNN", "NNNNN"} // wildcard alleles of different lengths
+	for i, _ := range qAlleles {
+		if i <= 2 {
+			continue
+		} // skip valid calls
+
+		limitedAlleles := strings.Join(qAlleles[:i], ",")
+		invalidReqResObj := buildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", limitedAlleles, true, t, cfg)
+
+		// make sure only an error was returned
+		assert.True(t, invalidReqResObj.Status == 400)
+		assert.True(t, len(invalidReqResObj.Message) != 0)
+		assert.True(t, len(invalidReqResObj.Results) == 0)
 	}
 }
 
@@ -537,7 +556,7 @@ func buildQueryAndMakeGetVariantsCall(
 	chromosome string, sampleId string, includeInfo bool,
 	sortByPosition c.SortDirection, genotype c.GenotypeQuery, assemblyId c.AssemblyId,
 	referenceAllelePattern string, alternativeAllelePattern string, commaDeliminatedAlleles string,
-	_t *testing.T, _cfg *models.Config) dtos.VariantGetReponse {
+	ignoreStatusCode bool, _t *testing.T, _cfg *models.Config) dtos.VariantGetReponse {
 
 	queryString := fmt.Sprintf("?ids=%s&includeInfoInResultSet=%t&sortByPosition=%s&assemblyId=%s", sampleId, includeInfo, sortByPosition, assemblyId)
 
@@ -560,7 +579,7 @@ func buildQueryAndMakeGetVariantsCall(
 	}
 	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
 
-	return makeGetVariantsCall(url, _t)
+	return makeGetVariantsCall(url, ignoreStatusCode, _t)
 }
 
 func getVariantsOverview(_t *testing.T, _cfg *models.Config) map[string]interface{} {
@@ -660,7 +679,7 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 			assemblyId := a.CastToAssemblyId(_combination[2])
 
 			// make the call
-			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", _t, cfg)
+			dto := buildQueryAndMakeGetVariantsCall(chrom, sampleId, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", false, _t, cfg)
 
 			assert.Equal(_t, 1, len(dto.Results))
 
@@ -678,7 +697,7 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 	return allDtoResponses
 }
 
-func makeGetVariantsCall(url string, _t *testing.T) dtos.VariantGetReponse {
+func makeGetVariantsCall(url string, ignoreStatusCode bool, _t *testing.T) dtos.VariantGetReponse {
 	fmt.Printf("Calling %s\n", url)
 	request, _ := http.NewRequest("GET", url, nil)
 
@@ -688,9 +707,11 @@ func makeGetVariantsCall(url string, _t *testing.T) dtos.VariantGetReponse {
 
 	defer response.Body.Close()
 
-	// this test (at the time of writing) will only work if authorization is disabled
-	shouldBe := 200
-	assert.Equal(_t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET %s Status: %s ; Should be %d", url, response.Status, shouldBe))
+	if !ignoreStatusCode {
+		// this test (at the time of writing) will only work if authorization is disabled
+		shouldBe := 200
+		assert.Equal(_t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET %s Status: %s ; Should be %d", url, response.Status, shouldBe))
+	}
 
 	//	-- interpret array of ingestion requests from response
 	respBody, respBodyErr := ioutil.ReadAll(response.Body)
