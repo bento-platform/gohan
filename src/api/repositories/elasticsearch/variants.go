@@ -347,7 +347,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
-	reference string, alternative string,
+	reference string, alternative string, alleles []string,
 	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string) (map[string]interface{}, error) {
 
 	// begin building the request body.
@@ -356,6 +356,8 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			"query": "chrom:" + chromosome,
 		}},
 	}
+	shouldMap := []map[string]interface{}{}
+	var minimumShouldMatch int
 
 	// 'complexifying' the query
 	// TODO: refactor common code between 'Get' and 'Count'-DocumentsContainerVariantOrSampleIdInPositionRange
@@ -384,6 +386,33 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			"query_string": map[string]interface{}{
 				"query": "alt:" + alternative,
 			}})
+	}
+
+	if len(alleles) > 0 {
+		switch len(alleles) {
+		case 1:
+			// any allele can be present on either side of the pair
+			shouldMap = append(shouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.left.keyword:" + alleles[0],
+				}})
+			shouldMap = append(shouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.right.keyword:" + alleles[0],
+				}})
+			minimumShouldMatch = 1
+		case 2:
+			// treat as a left/right pair
+			shouldMap = append(shouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.left.keyword:" + alleles[0],
+				}})
+			shouldMap = append(shouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.right.keyword:" + alleles[1],
+				}})
+			minimumShouldMatch = 2
+		}
 	}
 
 	if reference != "" {
@@ -458,7 +487,9 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			"bool": map[string]interface{}{
 				"filter": []map[string]interface{}{{
 					"bool": map[string]interface{}{
-						"must": mustMap,
+						"must":                 mustMap,
+						"should":               shouldMap,
+						"minimum_should_match": minimumShouldMatch,
 					}},
 				},
 			},
