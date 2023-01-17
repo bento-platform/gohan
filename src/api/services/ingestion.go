@@ -368,18 +368,26 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 }
 
 func (i *IngestionService) ProcessVcf(
-	vcfFilePath string, drsFileId string, tableId string,
+	gzippedFilePath string, drsFileId string, tableId string,
 	assemblyId constants.AssemblyId, filterOutHomozygousReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
-	f, err := os.Open(vcfFilePath)
+	// ---   reopen gzipped file after having been copied to the temporary api-drs
+	//       bridge directory, as the stream depletes and needs a refresh
+	f, err := os.Open(gzippedFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
 		return
 	}
 	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
+	gr, err := gzip.NewReader(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer gr.Close()
+
+	scanner := bufio.NewScanner(gr)
 	var discoveredHeaders bool = false
 	var headers []string
 	headerSampleIds := make(map[int]string)
@@ -751,7 +759,7 @@ func (i *IngestionService) ProcessVcf(
 	// let all lines be queued up and processed
 	_fileWG.Wait()
 
-	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", vcfFilePath, skippedHomozygousReferencesCount)
+	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", gzippedFilePath, skippedHomozygousReferencesCount)
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {

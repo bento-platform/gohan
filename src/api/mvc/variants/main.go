@@ -402,49 +402,13 @@ func VariantsIngest(c echo.Context) error {
 				// 	panic(err)
 				// }
 
-				// ---   reopen gzipped file after having been copied to the temporary api-drs
-				//       bridge directory, as the stream depletes and needs a refresh
-				r, err = os.Open(gzippedFilePath)
-				if err != nil {
-					msg := fmt.Sprintf("error reopening %s: %s\n", gzippedFileName, err)
-					fmt.Println(msg)
-
-					reqStat.State = ingest.Error
-					reqStat.Message = msg
-					ingestionService.IngestRequestChan <- reqStat
-
-					return
-				}
-
-				// ---   extract gzip compressed vcf file
-				fmt.Printf("Extracting %s !\n", gzippedFilePath)
-				vcfFilePath := ingestionService.ExtractVcfGz(gzippedFilePath, r, vcfTmpPath)
-				if vcfFilePath == "" {
-					msg := "Something went wrong: filepath is empty for " + gzippedFileName
-					fmt.Println(msg)
-
-					reqStat.State = ingest.Error
-					reqStat.Message = msg
-					ingestionService.IngestRequestChan <- reqStat
-
-					return
-				}
 				defer r.Close()
 
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
-				fmt.Printf("Begin processing %s at [%s]\n", vcfFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(vcfFilePath, drsFileId, tableId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
-				fmt.Printf("Ingest duration for file at %s : %s\n", vcfFilePath, time.Since(beginProcessingTime))
-
-				// ---   delete the temporary vcf file
-				fmt.Printf("Removing temporary file %s !\n", vcfFilePath)
-				os.Remove(vcfFilePath)
-				fmt.Printf("Removal done!")
-
-				// ---   delete full tmp path and all contents
-				// 		 (WARNING : Only do this when running over a single file)
-				//os.RemoveAll(vcfTmpPath)
+				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
+				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				reqStat.State = ingest.Done
 				ingestionService.IngestRequestChan <- reqStat
