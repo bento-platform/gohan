@@ -15,7 +15,6 @@ import (
 	"gohan/api/models/ingest"
 	"gohan/api/models/ingest/structs"
 	"gohan/api/utils"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -215,37 +214,6 @@ func (i *IngestionService) Init() {
 
 		i.Initialized = true
 	}
-}
-
-func (i *IngestionService) ExtractVcfGz(gzippedFilePath string, gzipStream io.Reader, vcfTmpPath string) string {
-	uncompressedStream, err := gzip.NewReader(gzipStream)
-	if err != nil {
-		log.Fatal("ExtractTarGz: NewReader failed - ", err)
-		return ""
-	}
-
-	// ---	 store to disk (temporarily)
-	// new file name
-	vcfFilePath := strings.Replace(gzippedFilePath, ".gz", "", -1)
-	vcfFilePathSplits := strings.Split(vcfFilePath, "/")
-	vcfFileName := vcfFilePathSplits[len(vcfFilePathSplits)-1]
-	newVcfFilePath := vcfTmpPath + "/" + vcfFileName
-
-	fmt.Printf("Creating new temporary VCF file: %s\n", newVcfFilePath)
-	f, err := os.Create(newVcfFilePath)
-	if err != nil {
-		fmt.Println("Something went wrong:  ", err)
-		return ""
-	}
-
-	fmt.Printf("Writing to new temporary VCF file: %s\n", newVcfFilePath)
-	w := bufio.NewWriter(f)
-	io.Copy(w, uncompressedStream)
-
-	uncompressedStream.Close()
-	f.Close()
-
-	return newVcfFilePath
 }
 
 func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string, error) {
