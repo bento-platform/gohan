@@ -318,6 +318,7 @@ Requests
 >   - upperBound : **number**
 >   - reference : **string** `an allele ( "A" | "C" | "G" | "T" | "N" or some combination thereof )`
 >   - alternative : **string** `an allele`
+>   - alleles : **string** `ordered comma-deliminated list of alleles (max: 2)`
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
@@ -332,6 +333,7 @@ Requests
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
+>   - alleles : **string** `ordered comma-deliminated list of alleles (max: 2)`
 >   - ids : **string** `(a comma-deliminated list of variant ID alphanumeric codes)`
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 
@@ -342,6 +344,7 @@ Requests
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
+>   - alleles : **string** `ordered comma-deliminated list of alleles (max: 2)`
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >   - size : **number** `(maximum number of results per id)`
 >   - sortByPosition : **string** `(<empty> | asc | desc)`
@@ -355,6 +358,7 @@ Requests
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
 >   - alternative : **string** `an allele`
+>   - alleles : **string** `ordered comma-deliminated list of alleles (max: 2)`
 >   - ids : **string** `(comma-deliminated list of sample ID alphanumeric codes)`
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 >
@@ -382,6 +386,7 @@ Generalized Response Body Structure
 >                    "pos": `number`,
 >                    "ref": `[]string`,  // list of alleles
 >                    "alt": `[]string`,  // list of alleles
+>                    "alleles": `[]string`,  // ordereed list of alleles
 >                    "info": [
 >                        {
 >                            "id": `string`,
