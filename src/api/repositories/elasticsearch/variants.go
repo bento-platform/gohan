@@ -120,8 +120,10 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 			"query": "chrom:" + chromosome,
 		}},
 	}
-	shouldMap := []map[string]interface{}{}
-	var minimumShouldMatch int
+	var (
+		shouldMap          []map[string]interface{}
+		minimumShouldMatch int
+	)
 
 	// 'complexifying' the query
 	// TODO: refactor common code between 'Get' and 'Count'-DocumentsContainerVariantOrSampleIdInPositionRange
@@ -150,32 +152,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 			}})
 	}
 
-	if len(alleles) > 0 {
-		switch len(alleles) {
-		case 1:
-			// any allele can be present on either side of the pair
-			shouldMap = append(shouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[0],
-				}})
-			shouldMap = append(shouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.right.keyword:" + alleles[0],
-				}})
-			minimumShouldMatch = 1
-		case 2:
-			// treat as a left/right pair
-			shouldMap = append(shouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[0],
-				}})
-			shouldMap = append(shouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.right.keyword:" + alleles[1],
-				}})
-			minimumShouldMatch = 2
-		}
-	}
+	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, shouldMap)
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
@@ -356,8 +333,10 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			"query": "chrom:" + chromosome,
 		}},
 	}
-	shouldMap := []map[string]interface{}{}
-	var minimumShouldMatch int
+	var (
+		shouldMap          []map[string]interface{}
+		minimumShouldMatch int
+	)
 
 	// 'complexifying' the query
 	// TODO: refactor common code between 'Get' and 'Count'-DocumentsContainerVariantOrSampleIdInPositionRange
@@ -388,32 +367,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			}})
 	}
 
-	if len(alleles) > 0 {
-		switch len(alleles) {
-		case 1:
-			// any allele can be present on either side of the pair
-			shouldMap = append(shouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[0],
-				}})
-			shouldMap = append(shouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.right.keyword:" + alleles[0],
-				}})
-			minimumShouldMatch = 1
-		case 2:
-			// treat as a left/right pair
-			shouldMap = append(shouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[0],
-				}})
-			shouldMap = append(shouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.right.keyword:" + alleles[1],
-				}})
-			minimumShouldMatch = 2
-		}
-	}
+	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, shouldMap)
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
@@ -702,6 +656,27 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 }
 
 // -- internal use only --
+
+func addAllelesToShouldMap(alleles []string, allelesShouldMap []map[string]interface{}) ([]map[string]interface{}, int) {
+	minimumShouldMatch := 0
+
+	if len(alleles) > 0 {
+		for _, allele := range alleles {
+			// any allele can be present on either side of the pair
+			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.left.keyword:" + allele,
+				}})
+			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.right.keyword:" + allele,
+				}})
+		}
+		minimumShouldMatch = 2
+	}
+
+	return allelesShouldMap, minimumShouldMatch
+}
 
 func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interface{}) []map[string]interface{} {
 	zygosityMatchMap := make(map[string]interface{})
