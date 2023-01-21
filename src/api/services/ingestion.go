@@ -603,14 +603,14 @@ func (i *IngestionService) ProcessVcf(
 						// create genotype from value
 						gtString := tmpValueStrings[k]
 
-						// TODO: check and handle when 'gtString' is '.'
-
 						phased := strings.Contains(gtString, "|")
 
 						var (
 							alleleStringSplits []string
 							alleleLeft         int
 							alleleRight        int
+							errLeft            error
+							errRight           error
 						)
 						if phased {
 							alleleStringSplits = strings.Split(gtString, "|")
@@ -619,15 +619,21 @@ func (i *IngestionService) ProcessVcf(
 						}
 
 						// convert string to int
-						// -- if error, assume it's a period and assign -1
-						alleleLeft, errLeft := strconv.Atoi(alleleStringSplits[0])
-						if errLeft != nil {
-							alleleLeft = -1
-						}
+						// - check and handle when 'gtString' contains '.'s
+						if alleleStringSplits[0] == "." && alleleStringSplits[1] == "." {
+							alleleLeft = 0
+							alleleRight = 0
+						} else {
+							// -- if error, probably an unknown character -- assign -1
+							alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
+							if errLeft != nil {
+								alleleLeft = -1
+							}
 
-						alleleRight, errRight := strconv.Atoi(alleleStringSplits[1])
-						if errRight != nil {
-							alleleRight = -1
+							alleleRight, errRight = strconv.Atoi(alleleStringSplits[1])
+							if errRight != nil {
+								alleleRight = -1
+							}
 						}
 
 						// -- zygosity:
