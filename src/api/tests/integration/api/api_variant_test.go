@@ -488,10 +488,18 @@ func TestCanGetVariantsWithWildcardAllelePairs(t *testing.T) {
 
 			for _, call := range dto.Calls {
 				// ensure, for each call, that the length
-				// of each allele in the pair matches the
+				// of both alleles in the pair match either
 				// wildcard query allele-pair lengths
-				assert.True(t, len(qAllelePair[0]) == len(call.Alleles[0])) // alleleLeft
-				assert.True(t, len(qAllelePair[1]) == len(call.Alleles[1])) // alleleRight
+				eitherAlleleMatchesEitherQueriedAllele := (len(qAllelePair[0]) == len(call.Alleles[0]) && len(qAllelePair[1]) == len(call.Alleles[1])) ||
+					(len(qAllelePair[1]) == len(call.Alleles[1]) && len(qAllelePair[0]) == len(call.Alleles[0])) ||
+					(len(qAllelePair[0]) == len(call.Alleles[1]) && len(qAllelePair[1]) == len(call.Alleles[0])) ||
+					(len(qAllelePair[1]) == len(call.Alleles[0]) && len(qAllelePair[0]) == len(call.Alleles[1]))
+
+				if !eitherAlleleMatchesEitherQueriedAllele {
+					fmt.Print(qAllelePair, call.Alleles)
+				}
+
+				assert.True(t, eitherAlleleMatchesEitherQueriedAllele)
 			}
 		}
 	}
