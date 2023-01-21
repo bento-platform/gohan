@@ -661,20 +661,6 @@ func addAllelesToShouldMap(alleles []string, allelesShouldMap []map[string]inter
 	minimumShouldMatch := 0
 
 	if len(alleles) > 0 {
-		// for _, allele := range alleles {
-		// 	// any allele can be present on either side of the pair
-		// 	allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-		// 		"query_string": map[string]interface{}{
-		// 			// "query": "sample.variation.alleles.left.keyword:" + allele,
-		// 			"query": "sample.variation.alleles.left.keyword:" + allele + " && sample.variation.alleles.right.keyword:" + allele,
-		// 		}})
-		// 	allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-		// 		"query_string": map[string]interface{}{
-		// 			"query": "sample.variation.alleles.right.keyword:" + allele,
-		// 		}})
-		// }
-		// minimumShouldMatch = 2
-
 		switch len(alleles) {
 		case 1:
 			// any allele can be present on either side of the pair
