@@ -1,20 +1,20 @@
 package main
 
 import (
-	"api/contexts"
-	gam "api/middleware"
-	"api/models"
-	serviceInfo "api/models/constants/service-info"
-	dataTypesMvc "api/mvc/data-types"
-	genesMvc "api/mvc/genes"
-	serviceInfoMvc "api/mvc/service-info"
-	tablesMvc "api/mvc/tables"
-	variantsMvc "api/mvc/variants"
-	workflowsMvc "api/mvc/workflows"
-	"api/services"
-	"api/services/sanitation"
-	variantsService "api/services/variants"
-	"api/utils"
+	"gohan/api/contexts"
+	gam "gohan/api/middleware"
+	"gohan/api/models"
+	serviceInfo "gohan/api/models/constants/service-info"
+	dataTypesMvc "gohan/api/mvc/data-types"
+	genesMvc "gohan/api/mvc/genes"
+	serviceInfoMvc "gohan/api/mvc/service-info"
+	tablesMvc "gohan/api/mvc/tables"
+	variantsMvc "gohan/api/mvc/variants"
+	workflowsMvc "gohan/api/mvc/workflows"
+	"gohan/api/services"
+	"gohan/api/services/sanitation"
+	variantsService "gohan/api/services/variants"
+	"gohan/api/utils"
 	"strings"
 	"time"
 
@@ -153,12 +153,14 @@ func main() {
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/get/by/sampleId", variantsMvc.VariantsGetBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateSampleIdsPluralAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)

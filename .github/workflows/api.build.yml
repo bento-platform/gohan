@@ -6,6 +6,7 @@ on:
   pull_request:
     branches:
       - master
+      - "releases/**" # temp
   push:
     branches:
       - master

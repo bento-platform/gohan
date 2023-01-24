@@ -1,21 +1,24 @@
 # Makefile for Gohan
 
-# import global variables
-env ?= .env
-
 #>>>
 # set default shell
 #<<<
 SHELL = bash
-
-include $(env)
-export $(shell sed 's/=.*//' $(env))
 
 # export host user IDs for more secure
 # containerization and volume mounting
 export HOST_USER_UID=$(shell id -u)
 export HOST_USER_GID=$(shell id -g)
 export OS_NAME=$(shell uname -s | tr A-Z a-z)
+
+export GOOS=${OS_NAME}
+export GOARCH=$(shell if [ "$(uname -m)" == "aarch64" ]; then echo arm64; else echo $(uname -m); fi | tr A-Z a-z)
+
+# import global variables
+env ?= .env
+
+include $(env)
+export $(shell sed 's/=.*//' $(env))
 
 
 # initialize services
@@ -43,8 +46,7 @@ init-networks:
 
 init-vendor:
 	@echo "Initializing Go Module Vendor"
-	cd src/api && go mod vendor
-	cd src/tests && go mod tidy && go mod vendor
+	cd src/api && go mod tidy && go mod vendor
 
 init-data-dirs:
 	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
@@ -76,7 +78,7 @@ init-data-dirs:
 
 # Run
 run-all:
-	docker-compose -f docker-compose.yaml up -d --force-recreate
+	docker-compose -f docker-compose.yaml up -d
 
 run-dev-all:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate
@@ -85,8 +87,7 @@ run-dev-%:
 	docker-compose -f docker-compose.dev.yaml up -d --force-recreate $*
 
 run-%:
-	docker-compose -f docker-compose.yaml up -d --force-recreate $*
-
+	docker-compose -f docker-compose.yaml up -d $*
 
 
 # Build
@@ -111,10 +112,6 @@ build-api: stop-api clean-api
 	@echo "-- Building Golang-Api-Alpine Container --"
 	docker-compose -f docker-compose.yaml build api
 
-build-drs: stop-drs clean-drs
-	@echo "-- Building DRS Container --"
-	docker-compose -f docker-compose.yaml build drs
-
 build-authz: stop-authz clean-authz
 	@echo "-- Building Authorization Container --"
 	docker-compose -f docker-compose.yaml build authorization
@@ -130,7 +127,7 @@ stop-%:
 
 
 # Clean up
-clean-all: clean-networks clean-api clean-gateway clean-drs
+clean-all: clean-networks clean-api clean-gateway
 
 clean-networks:
 	docker network remove ${GOHAN_DOCKER_NET} &
@@ -143,10 +140,6 @@ clean-api:
 	rm -f bin/api_${GOOS}_${GOARCH}
 	docker rm ${GOHAN_API_CONTAINER_NAME} --force; \
 	docker rmi ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION} --force;
-
-clean-drs:
-	docker rm ${GOHAN_DRS_CONTAINER_NAME} --force; \
-	docker rmi ${GOHAN_DRS_IMAGE}:${GOHAN_DRS_VERSION} --force;
 
 clean-authz:
 	docker rm ${GOHAN_AUTHZ_OPA_CONTAINER_NAME} --force; \
@@ -205,14 +198,15 @@ clean-api-drs-bridge-data:
 ## Tests
 test-api-dev: prepare-test-config
 	@# Run the tests
+	cd src/api && \
 	go clean -cache && \
-	go test tests/integration/... -v
+	go test ./tests/integration/... -v
 
 prepare-test-config:
 	@# Prepare environment variables dynamically via a JSON file 
 	@# since xUnit doens't support loading env variables natively
-	envsubst < ./etc/test.config.yml.tpl > ./src/tests/common/test.config.yml
+	envsubst < ./etc/test.config.yml.tpl > ./src/api/tests/common/test.config.yml
 
 clean-tests:
 	@# Clean up
-	rm ./src/tests/common/test.config.yml
+	rm ./src/api/tests/common/test.config.yml

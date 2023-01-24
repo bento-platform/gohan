@@ -1,13 +1,6 @@
 package services
 
 import (
-	"api/models"
-	"api/models/constants"
-	"api/models/constants/chromosome"
-	z "api/models/constants/zygosity"
-	"api/models/ingest"
-	"api/models/ingest/structs"
-	"api/utils"
 	"bufio"
 	"bytes"
 	"compress/gzip"
@@ -15,7 +8,13 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
+	"gohan/api/models"
+	"gohan/api/models/constants"
+	"gohan/api/models/constants/chromosome"
+	z "gohan/api/models/constants/zygosity"
+	"gohan/api/models/ingest"
+	"gohan/api/models/ingest/structs"
+	"gohan/api/utils"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -28,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"api/models/indexes"
+	"gohan/api/models/indexes"
 
 	"github.com/Jeffail/gabs"
 	"github.com/elastic/go-elasticsearch/v7"
@@ -217,37 +216,6 @@ func (i *IngestionService) Init() {
 	}
 }
 
-func (i *IngestionService) ExtractVcfGz(gzippedFilePath string, gzipStream io.Reader, vcfTmpPath string) string {
-	uncompressedStream, err := gzip.NewReader(gzipStream)
-	if err != nil {
-		log.Fatal("ExtractTarGz: NewReader failed - ", err)
-		return ""
-	}
-
-	// ---	 store to disk (temporarily)
-	// new file name
-	vcfFilePath := strings.Replace(gzippedFilePath, ".gz", "", -1)
-	vcfFilePathSplits := strings.Split(vcfFilePath, "/")
-	vcfFileName := vcfFilePathSplits[len(vcfFilePathSplits)-1]
-	newVcfFilePath := vcfTmpPath + "/" + vcfFileName
-
-	fmt.Printf("Creating new temporary VCF file: %s\n", newVcfFilePath)
-	f, err := os.Create(newVcfFilePath)
-	if err != nil {
-		fmt.Println("Something went wrong:  ", err)
-		return ""
-	}
-
-	fmt.Printf("Writing to new temporary VCF file: %s\n", newVcfFilePath)
-	w := bufio.NewWriter(f)
-	io.Copy(w, uncompressedStream)
-
-	uncompressedStream.Close()
-	f.Close()
-
-	return newVcfFilePath
-}
-
 func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string, error) {
 	cmd := exec.Command("tabix", "-f", gzippedFilePath)
 	cmdOutput := &bytes.Buffer{}
@@ -368,18 +336,26 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 }
 
 func (i *IngestionService) ProcessVcf(
-	vcfFilePath string, drsFileId string, tableId string,
+	gzippedFilePath string, drsFileId string, tableId string,
 	assemblyId constants.AssemblyId, filterOutHomozygousReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
-	f, err := os.Open(vcfFilePath)
+	// ---   reopen gzipped file after having been copied to the temporary api-drs
+	//       bridge directory, as the stream depletes and needs a refresh
+	f, err := os.Open(gzippedFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)
 		return
 	}
 	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
+	gr, err := gzip.NewReader(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer gr.Close()
+
+	scanner := bufio.NewScanner(gr)
 	var discoveredHeaders bool = false
 	var headers []string
 	headerSampleIds := make(map[int]string)
@@ -626,12 +602,15 @@ func (i *IngestionService) ProcessVcf(
 					if hasGenotype && k == genotypePosition {
 						// create genotype from value
 						gtString := tmpValueStrings[k]
+
 						phased := strings.Contains(gtString, "|")
 
 						var (
 							alleleStringSplits []string
 							alleleLeft         int
 							alleleRight        int
+							errLeft            error
+							errRight           error
 						)
 						if phased {
 							alleleStringSplits = strings.Split(gtString, "|")
@@ -640,15 +619,21 @@ func (i *IngestionService) ProcessVcf(
 						}
 
 						// convert string to int
-						// -- if error, assume it's a period and assign -1
-						alleleLeft, errLeft := strconv.Atoi(alleleStringSplits[0])
-						if errLeft != nil {
-							alleleLeft = -1
-						}
+						// - check and handle when 'gtString' contains '.'s
+						if alleleStringSplits[0] == "." && alleleStringSplits[1] == "." {
+							alleleLeft = 0
+							alleleRight = 0
+						} else {
+							// -- if error, probably an unknown character -- assign -1
+							alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
+							if errLeft != nil {
+								alleleLeft = -1
+							}
 
-						alleleRight, errRight := strconv.Atoi(alleleStringSplits[1])
-						if errRight != nil {
-							alleleRight = -1
+							alleleRight, errRight = strconv.Atoi(alleleStringSplits[1])
+							if errRight != nil {
+								alleleRight = -1
+							}
 						}
 
 						// -- zygosity:
@@ -669,10 +654,40 @@ func (i *IngestionService) ProcessVcf(
 							}
 						}
 
+						//   By this point, tmpVariant["alt"] is populated with
+						//   an array of strings, i.e ["C", "CTT", "CTTTT", ...] .
+						//   Using the values in 'alleleLeft' and 'alleleRight' as
+						//   reference to which alleles are "most-likely", format and
+						//   store alleles specific to each sample
+
+						// indexing ref/alt in a vcf row:
+						//
+						//       0       1, 2, 3, ...
+						// ...  REF		ALT			...
+						// ...  G		CT,CTT,CTTT
+
+						var alleles indexes.AllelePair
+						// hold a temporary pointer to the current state of this-variant's 'alt' and 'ref' for brevity
+						tmpVariantAlt := tmpVariant["alt"].([]string)
+						tmpVariantRef := tmpVariant["ref"].([]string)
+
+						if alleleLeft > 0 {
+							alleles.Left = tmpVariantAlt[alleleLeft-1]
+						} else {
+							alleles.Left = tmpVariantRef[0]
+						}
+						if alleleRight > 0 {
+							alleles.Right = tmpVariantAlt[alleleRight-1]
+						} else {
+							alleles.Right = tmpVariantRef[0]
+						}
+
 						variation.Genotype = indexes.Genotype{
 							Phased:   phased,
 							Zygosity: zyg,
 						}
+						variation.Alleles = alleles
+
 					} else if hasGenotypeProbability && k == genotypeProbabilityPosition {
 						// create genotype probability from value
 						probValStrings := strings.Split(tmpValueStrings[k], ",")
@@ -743,7 +758,7 @@ func (i *IngestionService) ProcessVcf(
 	// let all lines be queued up and processed
 	_fileWG.Wait()
 
-	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", vcfFilePath, skippedHomozygousReferencesCount)
+	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", gzippedFilePath, skippedHomozygousReferencesCount)
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {

@@ -2,10 +2,10 @@ package gateway
 
 import (
 	"fmt"
+	common "gohan/api/tests/common"
 	"net/http"
 	"strings"
 	"testing"
-	common "tests/common"
 
 	"github.com/stretchr/testify/assert"
 )

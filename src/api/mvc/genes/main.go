@@ -1,18 +1,18 @@
 package genes
 
 import (
-	"api/contexts"
-	"api/models/constants"
-	assemblyId "api/models/constants/assembly-id"
-	"api/models/constants/chromosome"
-	"api/models/dtos"
-	"api/models/ingest"
-	"api/models/ingest/structs"
-	esRepo "api/repositories/elasticsearch"
 	"bufio"
 	"compress/gzip"
 	"crypto/tls"
 	"fmt"
+	"gohan/api/contexts"
+	"gohan/api/models/constants"
+	assemblyId "gohan/api/models/constants/assembly-id"
+	"gohan/api/models/constants/chromosome"
+	"gohan/api/models/dtos"
+	"gohan/api/models/ingest"
+	"gohan/api/models/ingest/structs"
+	esRepo "gohan/api/repositories/elasticsearch"
 	"io"
 	"net/http"
 	"net/url"
@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"api/models/indexes"
+	"gohan/api/models/indexes"
 
 	"github.com/labstack/echo"
 	"github.com/mitchellh/mapstructure"

@@ -1,7 +1,7 @@
 package indexes
 
 import (
-	c "api/models/constants"
+	c "gohan/api/models/constants"
 )
 
 type Variant struct {
@@ -33,9 +33,14 @@ type Sample struct {
 }
 
 type Variation struct {
-	Genotype             Genotype  `json:"genotype"`
-	GenotypeProbability  []float64 `json:"genotypeProbability"`  // -1 = no call (equivalent to a '.')
-	PhredScaleLikelyhood []float64 `json:"phredScaleLikelyhood"` // -1 = no call (equivalent to a '.')
+	Genotype             Genotype   `json:"genotype"`
+	GenotypeProbability  []float64  `json:"genotypeProbability"`  // -1 = no call (equivalent to a '.')
+	PhredScaleLikelyhood []float64  `json:"phredScaleLikelyhood"` // -1 = no call (equivalent to a '.')
+	Alleles              AllelePair `json:"alleles"`
+}
+type AllelePair struct {
+	Left  string `json:"left"`
+	Right string `json:"right"`
 }
 
 type Genotype struct {

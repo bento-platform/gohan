@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"api/models"
 	"crypto/tls"
+	"gohan/api/models"
 	"net"
 	"net/http"
 

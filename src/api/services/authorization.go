@@ -1,12 +1,12 @@
 package services
 
 import (
-	"api/models"
-	e "api/models/dtos/errors"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gohan/api/models"
+	e "gohan/api/models/dtos/errors"
 	"io/ioutil"
 	"net/http"
 	"strings"

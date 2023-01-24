@@ -1,9 +1,9 @@
 package serviceInfo
 
 import (
-	"api/contexts"
-	serviceInfo "api/models/constants/service-info"
 	"fmt"
+	"gohan/api/contexts"
+	serviceInfo "gohan/api/models/constants/service-info"
 
 	"net/http"
 

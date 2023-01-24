@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
+var AcceptedNucleotideCharacters = []string{"A", "C", "T", "G", "N"}
+
 func StringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
@@ -61,4 +63,30 @@ func IsValidUUID(u string) bool {
 func KeyExists(decoded map[string]interface{}, key string) bool {
 	val, ok := decoded[key]
 	return ok && val != nil
+}
+
+func RemoveDuplicates(arr []string) []string {
+	words_string := map[string]bool{}
+	for i := range arr {
+		words_string[arr[i]] = true
+	}
+	desired_output := []string{} // Keep all keys from the map into a slice.
+	for j, _ := range words_string {
+		desired_output = append(desired_output, j)
+	}
+	return desired_output
+}
+
+func GenerateRandomFixedLengthString(availableCharactersSlice []string, length int) string {
+	// Set the seed for the random number generator
+	rand.Seed(time.Now().UnixNano())
+
+	characters := strings.Join(availableCharactersSlice, "")
+
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = characters[rand.Intn(len(characters))]
+	}
+
+	return string(b)
 }

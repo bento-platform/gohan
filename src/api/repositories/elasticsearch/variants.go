@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
-	"api/models"
-	c "api/models/constants"
-	a "api/models/constants/assembly-id"
-	gq "api/models/constants/genotype-query"
-	s "api/models/constants/sort"
-	z "api/models/constants/zygosity"
-	"api/utils"
+	"gohan/api/models"
+	c "gohan/api/models/constants"
+	a "gohan/api/models/constants/assembly-id"
+	gq "gohan/api/models/constants/genotype-query"
+	s "gohan/api/models/constants/sort"
+	z "gohan/api/models/constants/zygosity"
+	"gohan/api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
 	es7 "github.com/elastic/go-elasticsearch/v7"
@@ -108,7 +108,7 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
-	reference string, alternative string,
+	reference string, alternative string, alleles []string,
 	size int, sortByPosition c.SortDirection,
 	includeInfoInResultSet bool,
 	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string,
@@ -120,6 +120,10 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 			"query": "chrom:" + chromosome,
 		}},
 	}
+	var (
+		shouldMap          []map[string]interface{}
+		minimumShouldMatch int
+	)
 
 	// 'complexifying' the query
 	// TODO: refactor common code between 'Get' and 'Count'-DocumentsContainerVariantOrSampleIdInPositionRange
@@ -147,6 +151,8 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 				"query": "alt:" + alternative,
 			}})
 	}
+
+	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, shouldMap)
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
@@ -196,28 +202,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	}
 
 	if genotype != gq.UNCALLED {
-		zygosityMatchMap := make(map[string]interface{})
-
-		switch genotype {
-		case gq.HETEROZYGOUS:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Heterozygous,
-			}
-
-		case gq.HOMOZYGOUS_REFERENCE:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.HomozygousReference,
-			}
-
-		case gq.HOMOZYGOUS_ALTERNATE:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.HomozygousAlternate,
-			}
-		}
-
-		mustMap = append(mustMap, map[string]interface{}{
-			"match": zygosityMatchMap,
-		})
+		mustMap = addZygosityToMustMap(genotype, mustMap)
 	}
 
 	// individually append each range components to the must map
@@ -240,7 +225,9 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 			"bool": map[string]interface{}{
 				"filter": []map[string]interface{}{{
 					"bool": map[string]interface{}{
-						"must": mustMap,
+						"must":                 mustMap,
+						"should":               shouldMap,
+						"minimum_should_match": minimumShouldMatch,
 					}},
 				},
 			},
@@ -337,7 +324,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
-	reference string, alternative string,
+	reference string, alternative string, alleles []string,
 	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string) (map[string]interface{}, error) {
 
 	// begin building the request body.
@@ -346,6 +333,10 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			"query": "chrom:" + chromosome,
 		}},
 	}
+	var (
+		shouldMap          []map[string]interface{}
+		minimumShouldMatch int
+	)
 
 	// 'complexifying' the query
 	// TODO: refactor common code between 'Get' and 'Count'-DocumentsContainerVariantOrSampleIdInPositionRange
@@ -375,6 +366,8 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 				"query": "alt:" + alternative,
 			}})
 	}
+
+	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, shouldMap)
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
@@ -424,28 +417,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	}
 
 	if genotype != gq.UNCALLED {
-		zygosityMatchMap := make(map[string]interface{})
-
-		switch genotype {
-		case gq.HETEROZYGOUS:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.Heterozygous,
-			}
-
-		case gq.HOMOZYGOUS_REFERENCE:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.HomozygousReference,
-			}
-
-		case gq.HOMOZYGOUS_ALTERNATE:
-			zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
-				"query": z.HomozygousAlternate,
-			}
-		}
-
-		mustMap = append(mustMap, map[string]interface{}{
-			"match": zygosityMatchMap,
-		})
+		mustMap = addZygosityToMustMap(genotype, mustMap)
 	}
 
 	// append the match components to the must map
@@ -469,7 +441,9 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			"bool": map[string]interface{}{
 				"filter": []map[string]interface{}{{
 					"bool": map[string]interface{}{
-						"must": mustMap,
+						"must":                 mustMap,
+						"should":               shouldMap,
+						"minimum_should_match": minimumShouldMatch,
 					}},
 				},
 			},
@@ -679,4 +653,65 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 	}
 
 	return result, nil
+}
+
+// -- internal use only --
+
+func addAllelesToShouldMap(alleles []string, allelesShouldMap []map[string]interface{}) ([]map[string]interface{}, int) {
+	minimumShouldMatch := 0
+
+	if len(alleles) > 0 {
+		switch len(alleles) {
+		case 1:
+			// any allele can be present on either side of the pair
+			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " OR sample.variation.alleles.right.keyword:" + alleles[0],
+				}})
+		case 2:
+			// treat as a left/right pair
+			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:" + alleles[1],
+				}})
+			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+				"query_string": map[string]interface{}{
+					"query": "sample.variation.alleles.left.keyword:" + alleles[1] + " AND sample.variation.alleles.right.keyword:" + alleles[0],
+				}})
+		}
+		minimumShouldMatch = 1
+	}
+
+	return allelesShouldMap, minimumShouldMatch
+}
+
+func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interface{}) []map[string]interface{} {
+	zygosityMatchMap := make(map[string]interface{})
+
+	switch genotype {
+	case gq.HETEROZYGOUS:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.Heterozygous,
+		}
+
+	case gq.HOMOZYGOUS_REFERENCE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.HomozygousReference,
+		}
+
+	case gq.HOMOZYGOUS_ALTERNATE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.HomozygousAlternate,
+		}
+	}
+
+	// Not all genotype-queries are compatible yet, i.e. Haploid types `REFERENCE` and `ALTERNATE`
+	// - verify zygosity-map is not empty before adding to the must-map
+	if len(zygosityMatchMap) > 0 {
+		mustMap = append(mustMap, map[string]interface{}{
+			"match": zygosityMatchMap,
+		})
+	}
+
+	return mustMap
 }

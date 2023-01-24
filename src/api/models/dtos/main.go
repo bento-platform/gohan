@@ -1,8 +1,8 @@
 package dtos
 
 import (
-	"api/models/constants"
-	"api/models/indexes"
+	"gohan/api/models/constants"
+	"gohan/api/models/indexes"
 	"time"
 )
 
@@ -49,8 +49,9 @@ type VariantCall struct {
 
 	Info []indexes.Info `json:"info,omitempty"` // TODO; refactor?
 
-	SampleId     string `json:"sample_id"`
-	GenotypeType string `json:"genotype_type"`
+	SampleId     string   `json:"sample_id"`
+	GenotypeType string   `json:"genotype_type,omitempty"`
+	Alleles      []string `json:"alleles,omitempty"`
 	// TODO: GenotypeProbability, PhredScaleLikelyhood ?
 
 	AssemblyId constants.AssemblyId `json:"assemblyId,omitempty"`
@@ -88,7 +89,7 @@ type TableSummaryResponseDto struct {
 
 // -- Errors
 type GeneralErrorResponseDto struct {
-	Code      int            `json:"code,omitempty"`
+	Status    int            `json:"status,omitempty"`
 	Message   string         `json:"message,omitempty"`
 	Errors    []GeneralError `json:"errors,omitempty"`
 	Timestamp time.Time      `json:"timestamp,omitempty"`
