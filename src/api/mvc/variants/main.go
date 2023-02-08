@@ -202,20 +202,6 @@ func VariantsIngest(c echo.Context) error {
 	}
 	// -----
 
-	// create temporary directory for unzipped vcfs
-	vcfTmpPath := fmt.Sprintf("%s/tmp", vcfPath)
-	_, err = os.Stat(vcfTmpPath)
-	if os.IsNotExist(err) {
-		fmt.Printf("VCF %s folder does not exist -- creating...", vcfTmpPath)
-		err = os.Mkdir(vcfTmpPath, 0755)
-		if err != nil {
-			fmt.Println(err)
-
-			// TODO: create a standard response object
-			return err
-		}
-	}
-
 	// ingest vcf
 	responseDtos := []ingest.IngestResponseDTO{}
 	for _, fileName := range fileNames {
@@ -259,9 +245,9 @@ func VariantsIngest(c echo.Context) error {
 				reqStat.State = ingest.Running
 				ingestionService.IngestRequestChan <- reqStat
 
-				// ---	 decompress vcf.gz
+				// ---	 open vcf.gz
 
-				fmt.Printf("Decompressing %s !\n", gzippedFileName)
+				fmt.Printf("Opening %s !\n", gzippedFileName)
 				var separator string
 				if strings.HasPrefix(gzippedFileName, "/") {
 					separator = ""
@@ -390,17 +376,6 @@ func VariantsIngest(c echo.Context) error {
 
 					return
 				}
-				// TODO: implement (below temporarily disabled -- too risky this way)
-				// // ---- remove temporarily relative paths if they are empty
-				// if files, err := ioutil.ReadDir(fullTmpDir); err == nil {
-				// 	if len(files) == 0 {
-				// 		if err = os.Remove(fullTmpDir); err != nil {
-				// 			panic(err)
-				// 		}
-				// 	}
-				// } else {
-				// 	panic(err)
-				// }
 
 				defer r.Close()
 
