@@ -111,8 +111,4 @@ task vcf_gz_gohan {
             fi
         done
     }
-    output {
-        File txt_output = stdout()
-        File err_output = stderr()
-    }
 }
