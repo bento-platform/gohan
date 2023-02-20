@@ -73,7 +73,6 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 	//the chances of 100% successful upload, though the longer it may take (negligible)
 
 	bi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
-		Index:      "variants",
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
 		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 5MB ?)
