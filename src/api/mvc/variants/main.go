@@ -111,25 +111,124 @@ func VariantsIngest(c echo.Context) error {
 	ingestionService := c.(*contexts.GohanContext).IngestionService
 
 	// retrieve query parameters (comman separated)
-	fileNames := strings.Split(c.QueryParam("fileNames"), ",")
-	for i, fileName := range fileNames {
-		if fileName == "" {
-			// TODO: create a standard response object
-			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
-		} else {
-			// remove DRS bridge directory base path from the requested filenames (if present)
-			if strings.HasPrefix(fileName, cfg.Drs.BridgeDirectory) {
-				replaced := strings.Replace(fileName, cfg.Drs.BridgeDirectory, "", 1)
+	var fileNames []string
+	// get vcf files
+	var vcfGzfiles []string
 
-				replacedDirectory, replacedFileName := path.Split(replaced)
-				// strip the leading '/' away
-				if replacedDirectory == "/" {
-					fileNames[i] = replacedFileName
+	dirName := c.QueryParam("directory")
+	if dirName != "" {
+		if strings.HasPrefix(dirName, cfg.Drs.BridgeDirectory) {
+			replaced := strings.Replace(dirName, cfg.Drs.BridgeDirectory, "", 1)
+
+			replacedFullPath, replacedDirName := path.Split(replaced)
+			// strip the leading '/' away
+			if replacedFullPath == "/" {
+				dirName = replacedDirName
+			} else {
+				dirName = replaced
+			}
+		}
+
+		err := filepath.Walk(fmt.Sprintf("%s/%s", vcfPath, dirName),
+			func(absoluteFileName string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+
+				if absoluteFileName == vcfPath {
+					// skip
+					return nil
+				}
+
+				// keep track of relative path
+				relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
+
+				// verify if there is a relative path
+				directoryPath, fileName := path.Split(relativePathFileName)
+				if directoryPath == "/" {
+					relativePathFileName = fileName // effectively strips the leading '/' away
+				}
+
+				// Filter only .vcf.gz files
+				// if fileName != "" {
+				if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
+					fileNames = append(fileNames, relativePathFileName)
 				} else {
-					fileNames[i] = replaced
+					fmt.Printf("Skipping %s\n", relativePathFileName)
+				}
+				// }
+				return nil
+			})
+		if err != nil {
+			log.Println(err)
+		}
+	} else {
+		fileNames := strings.Split(c.QueryParam("fileNames"), ",")
+		for i, fileName := range fileNames {
+			if fileName == "" {
+				// TODO: create a standard response object
+				return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
+			} else {
+				// remove DRS bridge directory base path from the requested filenames (if present)
+				if strings.HasPrefix(fileName, cfg.Drs.BridgeDirectory) {
+					replaced := strings.Replace(fileName, cfg.Drs.BridgeDirectory, "", 1)
+
+					replacedDirectory, replacedFileName := path.Split(replaced)
+					// strip the leading '/' away
+					if replacedDirectory == "/" {
+						fileNames[i] = replacedFileName
+					} else {
+						fileNames[i] = replaced
+					}
 				}
 			}
 		}
+
+		// TODO: simply load files by filename provided
+		// rather than load all available files and looping over them
+		// -----
+		// Read all files and temporarily catalog all .vcf.gz files
+		err := filepath.Walk(vcfPath,
+			func(absoluteFileName string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+
+				if absoluteFileName == vcfPath {
+					// skip
+					return nil
+				}
+
+				// keep track of relative path
+				relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
+
+				// verify if there is a relative path
+				directoryPath, fileName := path.Split(relativePathFileName)
+				if directoryPath == "/" {
+					relativePathFileName = fileName // effectively strips the leading '/' away
+				}
+
+				// Filter only .vcf.gz files
+				// if fileName != "" {
+				if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
+					vcfGzfiles = append(vcfGzfiles, relativePathFileName)
+				} else {
+					fmt.Printf("Skipping %s\n", relativePathFileName)
+				}
+				// }
+				return nil
+			})
+		if err != nil {
+			log.Println(err)
+		}
+
+		// Locate fileName from request inside found files
+		for _, fileName := range fileNames {
+			if !utils.StringInSlice(fileName, vcfGzfiles) {
+				return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
+			}
+		}
+		// -----
 	}
 
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
@@ -153,56 +252,8 @@ func VariantsIngest(c echo.Context) error {
 	startTime := time.Now()
 	fmt.Printf("Ingest Start: %s\n", startTime)
 
-	// get vcf files
-	var vcfGzfiles []string
-
-	// TODO: simply load files by filename provided
-	// rather than load all available files and looping over them
-	// -----
-	// Read all files and temporarily catalog all .vcf.gz files
-	err := filepath.Walk(vcfPath,
-		func(absoluteFileName string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if absoluteFileName == vcfPath {
-				// skip
-				return nil
-			}
-
-			// keep track of relative path
-			relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
-
-			// verify if there is a relative path
-			directoryPath, fileName := path.Split(relativePathFileName)
-			if directoryPath == "/" {
-				relativePathFileName = fileName // effectively strips the leading '/' away
-			}
-
-			// Filter only .vcf.gz files
-			// if fileName != "" {
-			if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
-				vcfGzfiles = append(vcfGzfiles, relativePathFileName)
-			} else {
-				fmt.Printf("Skipping %s\n", relativePathFileName)
-			}
-			// }
-			return nil
-		})
-	if err != nil {
-		log.Println(err)
-	}
-
-	// Locate fileName from request inside found files
-	for _, fileName := range fileNames {
-		if !utils.StringInSlice(fileName, vcfGzfiles) {
-			return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
-		}
-	}
-	// -----
-
 	// ingest vcf
+	// ingserviceMux := sync.RWMutex{}
 	responseDtos := []ingest.IngestResponseDTO{}
 	for _, fileName := range fileNames {
 
@@ -239,7 +290,9 @@ func VariantsIngest(c echo.Context) error {
 			ingestionService.ConcurrentFileIngestionQueue <- true
 			go func(gzippedFileName string, reqStat *ingest.VariantIngestRequest) {
 				// free up a spot in the queue
-				defer func() { <-ingestionService.ConcurrentFileIngestionQueue }()
+				defer func() {
+					<-ingestionService.ConcurrentFileIngestionQueue
+				}()
 
 				fmt.Printf("Begin running %s !\n", gzippedFileName)
 				reqStat.State = ingest.Running

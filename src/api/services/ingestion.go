@@ -40,6 +40,7 @@ type (
 		Initialized                    bool
 		IngestRequestChan              chan *ingest.VariantIngestRequest
 		IngestRequestMap               map[string]*ingest.VariantIngestRequest
+		IngestRequestMapMux            sync.RWMutex
 		GeneIngestRequestChan          chan *ingest.GeneIngestRequest
 		GeneIngestRequestMap           map[string]*ingest.GeneIngestRequest
 		IngestionBulkIndexingCapacity  int
@@ -58,6 +59,7 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		Initialized:                    false,
 		IngestRequestChan:              make(chan *ingest.VariantIngestRequest),
 		IngestRequestMap:               map[string]*ingest.VariantIngestRequest{},
+		IngestRequestMapMux:            sync.RWMutex{},
 		GeneIngestRequestChan:          make(chan *ingest.GeneIngestRequest),
 		GeneIngestRequestMap:           map[string]*ingest.GeneIngestRequest{},
 		IngestionBulkIndexingCapacity:  cfg.Api.BulkIndexingCap,
@@ -108,7 +110,9 @@ func (i *IngestionService) Init() {
 					}
 
 					variantIngestionRequest.UpdatedAt = time.Now().String()
+					i.IngestRequestMapMux.Lock()
 					i.IngestRequestMap[variantIngestionRequest.Id.String()] = variantIngestionRequest
+					i.IngestRequestMapMux.Unlock()
 
 				case geneIngestionRequest := <-i.GeneIngestRequestChan:
 					if geneIngestionRequest.State == ingest.Queued {
@@ -762,6 +766,9 @@ func (i *IngestionService) ProcessVcf(
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
+	i.IngestRequestMapMux.Lock()
+	defer i.IngestRequestMapMux.Unlock()
+
 	for _, v := range i.IngestRequestMap {
 		if v.Filename == filename && (v.State == ingest.Queued || v.State == ingest.Running) {
 			return true
