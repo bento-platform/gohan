@@ -139,7 +139,7 @@ func (i *IngestionService) Init() {
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
-							Index:  fmt.Sprintf("variants-%s", queuedVariant.Sample.Id),
+							Index:  fmt.Sprintf("variants-%s", queuedVariant.Chrom),
 
 							// Body is an `io.Reader` with the payload
 							Body: bytes.NewReader(variantData),
