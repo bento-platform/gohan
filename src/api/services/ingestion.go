@@ -605,8 +605,8 @@ func (i *IngestionService) ProcessVcf(
 
 						var (
 							alleleStringSplits []string
-							alleleLeft         int
-							alleleRight        int
+							alleleLeft         int = -1
+							alleleRight        int = -1
 							errLeft            error
 							errRight           error
 						)
@@ -616,22 +616,36 @@ func (i *IngestionService) ProcessVcf(
 							alleleStringSplits = strings.Split(gtString, "/")
 						}
 
-						// convert string to int
-						// - check and handle when 'gtString' contains '.'s
-						if alleleStringSplits[0] == "." && alleleStringSplits[1] == "." {
-							alleleLeft = 0
-							alleleRight = 0
-						} else {
-							// -- if error, probably an unknown character -- assign -1
-							alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
-							if errLeft != nil {
-								alleleLeft = -1
+						switch len(alleleStringSplits) {
+						case 1:
+							if alleleStringSplits[0] == "." {
+								alleleLeft = 0
+							} else {
+								// -- if error, probably an unknown character -- assign -1
+								alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
+								if errLeft != nil {
+									alleleLeft = -1
+								}
 							}
+						case 2:
+							// convert string to int
+							// - check and handle when 'gtString' contains '.'s
+							if alleleStringSplits[0] == "." && alleleStringSplits[1] == "." {
+								alleleLeft = 0
+								alleleRight = 0
+							} else {
+								// -- if error, probably an unknown character -- assign -1
+								alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
+								if errLeft != nil {
+									alleleLeft = -1
+								}
 
-							alleleRight, errRight = strconv.Atoi(alleleStringSplits[1])
-							if errRight != nil {
-								alleleRight = -1
+								alleleRight, errRight = strconv.Atoi(alleleStringSplits[1])
+								if errRight != nil {
+									alleleRight = -1
+								}
 							}
+							// default (0) : let default -1 and -1 be handled
 						}
 
 						// -- zygosity:
