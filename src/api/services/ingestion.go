@@ -374,27 +374,25 @@ func (i *IngestionService) ProcessVcf(
 		// Gather Header row by seeking the CHROM string
 		line := scanner.Text()
 		if !discoveredHeaders {
-			if line[0] == '#' {
-				if strings.Contains(line, "CHROM") {
-					// Split the string by tabs
-					headers = strings.Split(line, "\t")
+			if line[0:6] == "#CHROM" {
+				// Split the string by tabs
+				headers = strings.Split(line, "\t")
 
-					for id, header := range headers {
-						// determine if header is a default VCF header.
-						// if it is not, assume it's a sampleId and keep
-						// track of it with an id
-						if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), constants.VcfHeaders) {
-							headerSampleIds[len(constants.VcfHeaders)-id] = header
-						}
+				for id, header := range headers {
+					// determine if header is a default VCF header.
+					// if it is not, assume it's a sampleId and keep
+					// track of it with an id
+					if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), constants.VcfHeaders) {
+						headerSampleIds[len(constants.VcfHeaders)-id] = header
 					}
-
-					discoveredHeaders = true
-
-					fmt.Println("Found the headers: ", headers)
-					continue
 				}
+
+				discoveredHeaders = true
+
+				fmt.Println("Found the headers: ", headers)
 				continue
 			}
+			continue
 		}
 
 		// take a spot in the queue
