@@ -1,9 +1,21 @@
 package chromosome
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
+
+func ValidListOfHumanChromosomes() []string {
+	var humChroms []string
+	for i := 1; i < 24; i++ {
+		humChroms = append(humChroms, fmt.Sprint(i))
+	}
+	humChroms = append(humChroms, "X")
+	humChroms = append(humChroms, "Y")
+	humChroms = append(humChroms, "M")
+	return humChroms
+}
 
 func IsValidHumanChromosome(text string) bool {
 
