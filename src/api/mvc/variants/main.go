@@ -163,7 +163,7 @@ func VariantsIngest(c echo.Context) error {
 			log.Println(err)
 		}
 	} else {
-		fileNames := strings.Split(c.QueryParam("fileNames"), ",")
+		fileNames = strings.Split(c.QueryParam("fileNames"), ",")
 		for i, fileName := range fileNames {
 			if fileName == "" {
 				// TODO: create a standard response object
