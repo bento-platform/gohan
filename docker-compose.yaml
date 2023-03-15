@@ -36,9 +36,6 @@ services:
         BASE_IMAGE: ${GOHAN_API_BASE_IMAGE}
         # also passed in as an ENV from within Dockerfile :
         GOHAN_API_INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT} 
-        HOST_USER_UID: ${HOST_USER_UID}
-        HOST_USER_GID: ${HOST_USER_GID}
-        OS_NAME: ${OS_NAME}
     networks:
       - ${GOHAN_DOCKER_NET}
     mem_limit: ${GOHAN_API_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
@@ -47,6 +44,10 @@ services:
     image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
     container_name: ${GOHAN_API_CONTAINER_NAME}
     environment:
+      # Image
+      - GOHAN_UID=${UID}
+      - GOHAN_GID=${GID}
+
       # API
       - GOHAN_DEBUG=${GOHAN_DEBUG}
       - GOHAN_SERVICE_CONTACT=${GOHAN_SERVICE_CONTACT}
