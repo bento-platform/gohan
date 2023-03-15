@@ -64,7 +64,7 @@ RUN apt-get update -y && \
 
 WORKDIR /app
 
-# Copy pre-built executable
+# Copy pre-built executable from builder stage
 COPY --from=builder /build/gohan_api .
 
 # Copy static workflow files
