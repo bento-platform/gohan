@@ -45,8 +45,8 @@ services:
     container_name: ${GOHAN_API_CONTAINER_NAME}
     environment:
       # Image
-      - GOHAN_UID=${UID}
-      - GOHAN_GID=${GID}
+      - BENTO_UID=${UID}
+      - BENTO_GID=${GID}
 
       # API
       - GOHAN_DEBUG=${GOHAN_DEBUG}
@@ -101,8 +101,8 @@ services:
       - ${GOHAN_DOCKER_NET}
     environment:
       # Image
-      - GOHAN_UID=${UID}
-      - GOHAN_GID=${GID}
+      - BENTO_UID=${UID}
+      - BENTO_GID=${GID}
 
       # ES
       - ELASTIC_USERNAME=${GOHAN_ES_USERNAME}
