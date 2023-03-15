@@ -92,9 +92,6 @@ services:
       args:
         BASE_IMAGE: ${GOHAN_ES_BASE_IMAGE}
         BASE_IMAGE_VERSION: ${GOHAN_ES_BASE_VERSION}
-        HOST_USER_UID: ${HOST_USER_UID}
-        HOST_USER_GID: ${HOST_USER_GID}
-        OS_NAME: ${OS_NAME}
     mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_ES_CPUS}
     cpu_shares: 2048
@@ -102,6 +99,11 @@ services:
     networks:
       - ${GOHAN_DOCKER_NET}
     environment:
+      # Image
+      - GOHAN_UID=${UID}
+      - GOHAN_GID=${GID}
+
+      # ES
       - ELASTIC_USERNAME=${GOHAN_ES_USERNAME}
       - ELASTIC_PASSWORD=${GOHAN_ES_PASSWORD}
       - ${GOHAN_ES_JAVA_OPTS}

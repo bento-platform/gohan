@@ -34,13 +34,12 @@ jobs:
         uses: xom9ikk/dotenv@v2
       
       - name: Run Bento build action
-        uses: bento-platform/bento_build_action@v0.9.3
+        uses: bento-platform/bento_build_action@v0.11.0
         with:
           context: "{{defaultContext}}:elasticsearch"
           build-args: |
             BASE_IMAGE=${{ env.GOHAN_ES_BASE_IMAGE }}
             BASE_IMAGE_VERSION=${{ env.GOHAN_ES_BASE_VERSION }}
-            HOST_USER_GID=1000
           registry: ghcr.io
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
