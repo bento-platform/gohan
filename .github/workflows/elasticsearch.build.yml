@@ -6,6 +6,7 @@ on:
   pull_request:
     branches:
       - master
+      - "qa/**"  # Build PRs which will be eventually merged into patches
   push:
     branches:
       - master
@@ -40,7 +41,6 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ env.GOHAN_ES_BASE_IMAGE }}
             BASE_IMAGE_VERSION=${{ env.GOHAN_ES_BASE_VERSION }}
-            HOST_USER_GID=1000
           registry: ghcr.io
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}

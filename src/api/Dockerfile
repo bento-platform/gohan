@@ -9,83 +9,32 @@ LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics
 
 WORKDIR /build
 
-COPY . /build/
-
-# Alpine updates and executable dependencies
-RUN apk update && \
-    apk upgrade && \
-    # For compressing the final binary :
-    apk add git
-    # Temporarily disabling: 
-    # \
-    # upx
-    
-# Install & build samtools from github repos (htslib needed first)
-RUN apk --update add ncurses-dev && \
-    apk add git build-base xz-dev zlib-dev bzip2-dev curl-dev && \ 
-    \
-    git clone https://github.com/samtools/htslib.git && \
-    \
-    cd htslib && \
-    git submodule update --init --recursive && \
-    \
-    make && \
-    make install && \
-    \
-    cd .. && \
-    git clone https://github.com/samtools/samtools.git && \
-    \
-    cd samtools && \
-    make && \
-    make install && \
-    \
-    cd .. && \
-    rm -rf htslib samtools
+COPY . .
     
 # Build gohan api
 RUN go mod vendor && \
-    go build -ldflags="-s -w" -o gohan_api 
-    # Temporarily disabling: 
-    #&& \
-    # Compress the final binary :
-    #upx --brute gohan_api
+    go build -ldflags="-s -w" -o gohan_api
 
 
 # Stage two - executioner
 FROM $BASE_IMAGE
 
-# Alpine updates
-RUN apk update && \
-    apk upgrade && \
-    # Dependencies :
-    apk add \
-    # - for healthchecks
-    curl \
-    # - for tabix
-    xz-dev zlib-dev bzip2-dev
+# Debian updates
+#  - tabix for indexing VCFs
+#  - other base dependencies provided by the base image
+RUN apt-get update -y && \
+    apt-get upgrade -y && \
+    apt-get install -y tabix && \
+    rm -rf /var/lib/apt/lists/*
 
-# Security :
-ARG HOST_USER_UID
-ARG HOST_USER_GID
-ARG OS_NAME
-RUN if [ $OS_NAME != darwin ]; \
-    then addgroup -S apigroup -g $HOST_USER_GID || true; \
-    else addgroup -S apigroup || true; \
-    fi && \
-    adduser -S apiuser -u $HOST_USER_UID -G apigroup || true
-    # note: ' || true' ignores possible minor errors
+WORKDIR /app
 
-USER apiuser
-
-# Copy pre-built executables
-COPY --from=builder /build/gohan_api /app/
-COPY --from=builder /usr/local/bin/tabix /usr/local/bin/
+# Copy pre-built executable from builder stage
+COPY --from=builder /build/gohan_api .
 
 # Copy static workflow files
 COPY workflows/*.wdl /app/workflows/
 
+# Use base image entrypoint to set up user & gosu exec the command below
 # Run
-ARG GOHAN_API_INTERNAL_PORT
-ENV GOHAN_API_INTERNAL_PORT=$GOHAN_API_INTERNAL_PORT
-EXPOSE $GOHAN_API_INTERNAL_PORT
-ENTRYPOINT [ "/app/gohan_api" ]
+CMD [ "/app/gohan_api" ]
