@@ -1,16 +1,14 @@
 ARG BASE_IMAGE
 ARG BASE_IMAGE_VERSION
 
-FROM "${BASE_IMAGE}:${BASE_IMAGE_VERSION}"
+FROM ${BASE_IMAGE}:${BASE_IMAGE_VERSION}
 
-ARG HOST_USER_UID
-ARG HOST_USER_GID
-ARG OS_NAME
-RUN if [ $OS_NAME != darwin ]; \
-    then groupadd --system elasticsearchgroup -g $HOST_USER_GID || true; \
-    else groupadd --system elasticsearchgroup || true; \
-    fi && \
-    usermod -a -G elasticsearchgroup elasticsearch || true
-    # note: ' || true' ignores possible minor errors
+RUN apt-get update -y && \
+    apt-get install -y bash gosu && \
+    rm -rf /var/lib/apt/lists/*
 
-USER elasticsearch
+COPY gohan_create_service_user.bash /gohan_create_service_user.bash
+COPY gohan_entrypoint.bash /gohan_entrypoint.bash
+
+ENTRYPOINT ["/bin/bash", "/gohan_entrypoint.bash"]
+CMD ["/usr/local/bin/docker-entrypoint.sh"]
