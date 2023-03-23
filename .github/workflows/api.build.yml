@@ -7,6 +7,7 @@ on:
     branches:
       - master
       - "releases/**" # temp
+      - "qa/**"  # Build PRs which will be eventually merged into patches
   push:
     branches:
       - master
