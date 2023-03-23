@@ -7,6 +7,7 @@ on:
     branches:
       - master
       - "releases/**" # temp
+      - "qa/**"  # Build PRs which will be eventually merged into patches
   push:
     branches:
       - master
@@ -35,14 +36,12 @@ jobs:
         uses: xom9ikk/dotenv@v2
       
       - name: Run Bento build action
-        uses: bento-platform/bento_build_action@v0.9.3
+        uses: bento-platform/bento_build_action@v0.11.0
         with:
           context: "{{defaultContext}}:src/api"
           build-args: |
             BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
             BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
-            HOST_USER_UID=1000
-            HOST_USER_GID=1000
           registry: ghcr.io
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
