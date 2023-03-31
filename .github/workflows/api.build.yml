@@ -13,7 +13,9 @@ on:
       - master
 
 jobs:
+
   build-push:
+    if: '! github.event.pull_request.draft' # exclude WIP/draft pull requests
     runs-on: ubuntu-latest
 
     permissions:
