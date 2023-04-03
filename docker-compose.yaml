@@ -16,7 +16,6 @@ services:
       - ${GOHAN_DOCKER_NET}
     mem_limit: ${GOHAN_GATEWAY_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_GATEWAY_CPUS}
-    cpu_shares: 512
     image: ${GOHAN_GATEWAY_IMAGE}:${GOHAN_GATEWAY_VERSION}
     container_name: ${GOHAN_GATEWAY_CONTAINER_NAME}
     ports:
@@ -40,7 +39,6 @@ services:
       - ${GOHAN_DOCKER_NET}
     mem_limit: ${GOHAN_API_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_API_CPUS}
-    cpu_shares: 1024
     image: ${GOHAN_API_IMAGE}:${GOHAN_API_VERSION}
     container_name: ${GOHAN_API_CONTAINER_NAME}
     environment:
@@ -95,7 +93,6 @@ services:
         BASE_IMAGE_VERSION: ${GOHAN_ES_BASE_VERSION}
     mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_ES_CPUS}
-    cpu_shares: 2048
     container_name: ${GOHAN_ES_CONTAINER_NAME}
     networks:
       - ${GOHAN_DOCKER_NET}
@@ -135,7 +132,6 @@ services:
         OS_NAME: ${OS_NAME}
     mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_ES_CPUS}
-    cpu_shares: 2048
     container_name: es02
     networks:
       - ${GOHAN_DOCKER_NET}
@@ -170,7 +166,6 @@ services:
         OS_NAME: ${OS_NAME}
     mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_ES_CPUS}
-    cpu_shares: 2048
     container_name: es03
     networks:
       - ${GOHAN_DOCKER_NET}
@@ -196,7 +191,6 @@ services:
   kibana:
     mem_limit: ${GOHAN_KB_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_KB_CPUS}
-    cpu_shares: 1024
     image: ${GOHAN_KB_BASE_IMAGE}:${GOHAN_KB_BASE_VERSION}
     container_name: ${GOHAN_KB_CONTAINER_NAME}
     networks:
@@ -214,7 +208,6 @@ services:
   drs:
     mem_limit: ${GOHAN_DRS_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_DRS_CPUS}
-    cpu_shares: 512
     image: ${GOHAN_DRS_IMAGE}:${GOHAN_DRS_VERSION}
     container_name: ${GOHAN_DRS_CONTAINER_NAME}
     networks:
@@ -242,7 +235,6 @@ services:
         - BASE_IMAGE=${GOHAN_AUTHZ_OPA_BASE_IMAGE}:${GOHAN_AUTHZ_OPA_BASE_IMAGE_VERSION}
     mem_limit: ${GOHAN_AUTHZ_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
     cpus: ${GOHAN_AUTHZ_CPUS}
-    cpu_shares: 512
     image: ${GOHAN_AUTHZ_OPA_IMAGE}:${GOHAN_AUTHZ_OPA_IMAGE_VERSION}
     container_name: ${GOHAN_AUTHZ_OPA_CONTAINER_NAME}
     networks:
