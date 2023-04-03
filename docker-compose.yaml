@@ -113,7 +113,7 @@ services:
       # - xpack.security.enabled=true
       # - discovery.type=${GOHAN_ES_DISC_TYP}
       - discovery.seed_hosts=es02
-      - cluster.initial_master_nodes=es01,es02
+      - cluster.initial_master_nodes=es01,es02,es03
       # - bootstrap.memory_lock=true
     volumes: 
       - ${GOHAN_ES_DATA_DIR}:/usr/share/elasticsearch/data
@@ -148,7 +148,42 @@ services:
       # - xpack.security.enabled=true
       # - discovery.type=${GOHAN_ES_DISC_TYP}
       - discovery.seed_hosts=es01
-      - cluster.initial_master_nodes=es01,es02
+      - cluster.initial_master_nodes=es01,es02,es03
+      # - bootstrap.memory_lock=true
+    volumes: 
+      - ${GOHAN_ES2_DATA_DIR}:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [ "CMD", "curl", "http://localhost:${GOHAN_ES_INTERNAL_PORT_1}" ]
+      timeout: 5s
+      interval: 1m
+      retries: 3
+
+  es03:
+    image: ${GOHAN_ES_IMAGE}:${GOHAN_ES_VERSION}
+    build:
+      context: $PWD/elasticsearch
+      args:
+        BASE_IMAGE: ${GOHAN_ES_BASE_IMAGE}
+        BASE_IMAGE_VERSION: ${GOHAN_ES_BASE_VERSION}
+        HOST_USER_UID: ${HOST_USER_UID}
+        HOST_USER_GID: ${HOST_USER_GID}
+        OS_NAME: ${OS_NAME}
+    mem_limit: ${GOHAN_ES_MEM_LIM} # for mem_limit to work, make sure docker-compose is v2.4
+    cpus: ${GOHAN_ES_CPUS}
+    cpu_shares: 2048
+    container_name: es03
+    networks:
+      - ${GOHAN_DOCKER_NET}
+    environment:
+      - ELASTIC_USERNAME=${GOHAN_ES_USERNAME}
+      - ELASTIC_PASSWORD=${GOHAN_ES_PASSWORD}
+      - node.name=es03
+      - cluster.name=es-docker-cluster
+      - ${GOHAN_ES_JAVA_OPTS}
+      # - xpack.security.enabled=true
+      # - discovery.type=${GOHAN_ES_DISC_TYP}
+      - discovery.seed_hosts=es01
+      - cluster.initial_master_nodes=es01,es02,es03
       # - bootstrap.memory_lock=true
     volumes: 
       - ${GOHAN_ES2_DATA_DIR}:/usr/share/elasticsearch/data
