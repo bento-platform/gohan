@@ -689,6 +689,17 @@ func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interfa
 	zygosityMatchMap := make(map[string]interface{})
 
 	switch genotype {
+	// Haploid
+	case gq.REFERENCE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.Reference,
+		}
+
+	case gq.ALTERNATE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.Alternate,
+		}
+	// Diploid
 	case gq.HETEROZYGOUS:
 		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 			"query": z.Heterozygous,
