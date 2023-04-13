@@ -23,7 +23,7 @@ import (
 	es7 "github.com/elastic/go-elasticsearch/v7"
 )
 
-const variantsIndex = "variants"
+const wildcardVariantsIndex = "variants-*"
 
 func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id string) (map[string]interface{}, error) {
 
@@ -67,7 +67,7 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex(variantsIndex),
+		es.Search.WithIndex(wildcardVariantsIndex),
 		es.Search.WithBody(&buf),
 		es.Search.WithTrackTotalHits(true),
 		es.Search.WithPretty(),
@@ -283,7 +283,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex(variantsIndex),
+		es.Search.WithIndex(wildcardVariantsIndex),
 		es.Search.WithBody(&buf),
 		es.Search.WithTrackTotalHits(true),
 		es.Search.WithPretty(),
@@ -470,7 +470,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	// Perform the search request.
 	res, searchErr := es.Count(
 		es.Count.WithContext(context.Background()),
-		es.Count.WithIndex(variantsIndex),
+		es.Count.WithIndex(wildcardVariantsIndex),
 		es.Count.WithBody(&buf),
 		es.Count.WithPretty(),
 	)
@@ -551,7 +551,7 @@ func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex(variantsIndex),
+		es.Search.WithIndex(wildcardVariantsIndex),
 		es.Search.WithBody(&buf),
 		es.Search.WithTrackTotalHits(true),
 		es.Search.WithPretty(),
@@ -621,7 +621,7 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 
 	// Perform the delete request.
 	deleteRes, deleteErr := es.DeleteByQuery(
-		[]string{variantsIndex},
+		[]string{wildcardVariantsIndex},
 		bytes.NewReader(buf.Bytes()),
 	)
 	if deleteErr != nil {

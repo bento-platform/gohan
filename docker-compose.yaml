@@ -152,7 +152,7 @@ services:
       - DATA=/drs/bento_drs/data/obj/  # DRS file objects, vs. the database
       - INTERNAL_PORT=${GOHAN_DRS_INTERNAL_PORT}
     volumes:
-      - ${GOHAN_DRS_DATA_DIR}:/drs/data
+      - ${GOHAN_DRS_DATA_DIR}:/drs/bento_drs/data
       - ${GOHAN_API_DRS_BRIDGE_HOST_DIR}:${GOHAN_DRS_API_DRS_BRIDGE_DIR_CONTAINERIZED}
     healthcheck:
       test: [ "CMD", "curl", "http://localhost:${GOHAN_DRS_INTERNAL_PORT}" ]

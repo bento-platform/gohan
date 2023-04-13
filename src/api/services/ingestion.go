@@ -40,6 +40,7 @@ type (
 		Initialized                    bool
 		IngestRequestChan              chan *ingest.VariantIngestRequest
 		IngestRequestMap               map[string]*ingest.VariantIngestRequest
+		IngestRequestMapMux            sync.RWMutex
 		GeneIngestRequestChan          chan *ingest.GeneIngestRequest
 		GeneIngestRequestMap           map[string]*ingest.GeneIngestRequest
 		IngestionBulkIndexingCapacity  int
@@ -58,6 +59,7 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 		Initialized:                    false,
 		IngestRequestChan:              make(chan *ingest.VariantIngestRequest),
 		IngestRequestMap:               map[string]*ingest.VariantIngestRequest{},
+		IngestRequestMapMux:            sync.RWMutex{},
 		GeneIngestRequestChan:          make(chan *ingest.GeneIngestRequest),
 		GeneIngestRequestMap:           map[string]*ingest.GeneIngestRequest{},
 		IngestionBulkIndexingCapacity:  cfg.Api.BulkIndexingCap,
@@ -73,7 +75,6 @@ func NewIngestionService(es *elasticsearch.Client, cfg *models.Config) *Ingestio
 	//the chances of 100% successful upload, though the longer it may take (negligible)
 
 	bi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
-		Index:      "variants",
 		Client:     iz.ElasticsearchClient,
 		NumWorkers: numWorkers,
 		// FlushBytes:    int(flushBytes),  // The flush threshold in bytes (default: 5MB ?)
@@ -109,7 +110,9 @@ func (i *IngestionService) Init() {
 					}
 
 					variantIngestionRequest.UpdatedAt = time.Now().String()
+					i.IngestRequestMapMux.Lock()
 					i.IngestRequestMap[variantIngestionRequest.Id.String()] = variantIngestionRequest
+					i.IngestRequestMapMux.Unlock()
 
 				case geneIngestionRequest := <-i.GeneIngestRequestChan:
 					if geneIngestionRequest.State == ingest.Queued {
@@ -136,6 +139,7 @@ func (i *IngestionService) Init() {
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
+							Index:  fmt.Sprintf("variants-%s", strings.ToLower(queuedVariant.Chrom)),
 
 							// Body is an `io.Reader` with the payload
 							Body: bytes.NewReader(variantData),
@@ -774,6 +778,9 @@ func (i *IngestionService) ProcessVcf(
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
+	i.IngestRequestMapMux.Lock()
+	defer i.IngestRequestMapMux.Unlock()
+
 	for _, v := range i.IngestRequestMap {
 		if v.Filename == filename && (v.State == ingest.Queued || v.State == ingest.Running) {
 			return true
