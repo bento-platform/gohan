@@ -669,13 +669,7 @@ func addAllelesToShouldMap(alleles []string, genotype c.GenotypeQuery, allelesSh
 				// queried allele should be present on the left side of the pair with an empty right side
 				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
 					"query_string": map[string]interface{}{
-						"fields": []string{"sample.variation.alleles.left.keyword"},
-						"query":  alleles[0],
-					}})
-				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": map[string]interface{}{
-						"fields": []string{"sample.variation.alleles.right.keyword"},
-						"query":  "",
+						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:\"\"",
 					}})
 
 			} else {
