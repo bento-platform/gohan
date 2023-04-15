@@ -527,7 +527,9 @@ func (i *IngestionService) ProcessVcf(
 						// support for multi-sampled calls
 						// assume first component of allValues is the genotype
 						genoTypeValue := allValues[0]
-						if filterOutHomozygousReferences && (genoTypeValue == "0|0" || genoTypeValue == "0/0") {
+						if filterOutHomozygousReferences &&
+							(genoTypeValue == "0" || // haploid type references
+								genoTypeValue == "0|0" || genoTypeValue == "0/0") { // diploid type homezygous references
 							// skip adding this sample to the 'tmpSamples' list which
 							// then goes to be further processed into a variant document
 
@@ -839,7 +841,7 @@ func (i *IngestionService) ProcessVcf(
 	// let all lines be queued up and processed
 	_fileWG.Wait()
 
-	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", gzippedFilePath, skippedHomozygousReferencesCount)
+	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Reference and/or Homozygous-Reference calls: %d\n", gzippedFilePath, skippedHomozygousReferencesCount)
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
