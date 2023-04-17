@@ -204,6 +204,16 @@ func TestCanGetVariantsInDescendingPositionOrder(t *testing.T) {
 	})
 }
 
+func TestCanGetReferenceSamples(t *testing.T) {
+	// trigger
+	runAndValidateGenotypeQueryResults(t, gq.REFERENCE, validateReferenceSample)
+}
+
+func TestCanGetAlternateSamples(t *testing.T) {
+	// trigger
+	runAndValidateGenotypeQueryResults(t, gq.ALTERNATE, validateAlternateSample)
+}
+
 func TestCanGetHeterozygousSamples(t *testing.T) {
 	// trigger
 	runAndValidateGenotypeQueryResults(t, gq.HETEROZYGOUS, validateHeterozygousSample)
@@ -799,18 +809,23 @@ func makeGetVariantsCall(url string, ignoreStatusCode bool, _t *testing.T) dtos.
 }
 
 // --- sample validation
+func validateReferenceSample(__t *testing.T, call *dtos.VariantCall) {
+	assert.True(__t, call.GenotypeType == z.ZygosityToString(z.Reference))
+}
+
+func validateAlternateSample(__t *testing.T, call *dtos.VariantCall) {
+	assert.True(__t, call.GenotypeType == z.ZygosityToString(z.Alternate))
+}
+
 func validateHeterozygousSample(__t *testing.T, call *dtos.VariantCall) {
-	// assert.True(__t, sample.Variation.Genotype.Zygosity == z.Heterozygous)
 	assert.True(__t, call.GenotypeType == z.ZygosityToString(z.Heterozygous))
 }
 
 func validateHomozygousReferenceSample(__t *testing.T, call *dtos.VariantCall) {
-	// assert.True(__t, sample.Variation.Genotype.Zygosity == z.HomozygousReference)
 	assert.True(__t, call.GenotypeType == z.ZygosityToString(z.HomozygousReference))
 }
 
 func validateHomozygousAlternateSample(__t *testing.T, call *dtos.VariantCall) {
-	// assert.True(__t, sample.Variation.Genotype.Zygosity == z.HomozygousAlternate)
 	assert.True(__t, call.GenotypeType == z.ZygosityToString(z.HomozygousAlternate))
 }
 
