@@ -748,7 +748,6 @@ func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interfa
 		}
 	}
 
-	// Not all genotype-queries are compatible yet, i.e. Haploid types `REFERENCE` and `ALTERNATE`
 	// - verify zygosity-map is not empty before adding to the must-map
 	if len(zygosityMatchMap) > 0 {
 		mustMap = append(mustMap, map[string]interface{}{

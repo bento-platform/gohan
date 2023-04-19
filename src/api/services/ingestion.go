@@ -342,7 +342,7 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 
 func (i *IngestionService) ProcessVcf(
 	gzippedFilePath string, drsFileId string, tableId string,
-	assemblyId constants.AssemblyId, filterOutHomozygousReferences bool,
+	assemblyId constants.AssemblyId, filterOutReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
 	// ---   reopen gzipped file after having been copied to the temporary api-drs
@@ -527,7 +527,7 @@ func (i *IngestionService) ProcessVcf(
 						// support for multi-sampled calls
 						// assume first component of allValues is the genotype
 						genoTypeValue := allValues[0]
-						if filterOutHomozygousReferences &&
+						if filterOutReferences &&
 							(genoTypeValue == "0" || // haploid type references
 								genoTypeValue == "0|0" || genoTypeValue == "0/0") { // diploid type homezygous references
 							// skip adding this sample to the 'tmpSamples' list which
