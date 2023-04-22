@@ -746,22 +746,22 @@ func (i *IngestionService) ProcessVcf(
 						// ...  REF		ALT			...
 						// ...  G		CT,CTT,CTTT
 
-						var alleles indexes.AllelePair
+						alleles := make([]string, 0)
 						// hold a temporary pointer to the current state of this-variant's 'alt' and 'ref' for brevity
 						tmpVariantAlt := tmpVariant["alt"].([]string)
 						tmpVariantRef := tmpVariant["ref"].([]string)
 
 						if alleleLeft > 0 {
-							alleles.Left = tmpVariantAlt[alleleLeft-1]
+							alleles = append(alleles, tmpVariantAlt[alleleLeft-1])
 						} else {
-							alleles.Left = tmpVariantRef[0]
+							alleles = append(alleles, tmpVariantRef[0])
 						}
 
 						if ploidy == p.Diploid {
 							if alleleRight > 0 {
-								alleles.Right = tmpVariantAlt[alleleRight-1]
+								alleles = append(alleles, tmpVariantAlt[alleleRight-1])
 							} else {
-								alleles.Right = tmpVariantRef[0]
+								alleles = append(alleles, tmpVariantRef[0])
 							}
 						}
 

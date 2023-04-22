@@ -677,7 +677,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 
 						SampleId:     sampleId,
 						GenotypeType: zygosity.ZygosityToString(variant.Sample.Variation.Genotype.Zygosity),
-						Alleles:      []string{alleles.Left, alleles.Right},
+						Alleles:      alleles,
 
 						AssemblyId: variant.AssemblyId,
 						DocumentId: docId,
