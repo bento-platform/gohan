@@ -33,6 +33,9 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) map[strin
 
 		results, bucketsError := esRepo.GetVariantsBucketsByKeywordAndTableId(cfg, es, keyword, "")
 		if bucketsError != nil {
+			resultsMux.Lock()
+			defer resultsMux.Unlock()
+
 			resultsMap[key] = map[string]interface{}{
 				"error": "Something went wrong. Please contact the administrator!",
 			}
