@@ -32,8 +32,7 @@ type Config struct {
 
 	AuthX struct {
 		IsAuthorizationEnabled  bool   `yaml:"isAuthorizationEnabled" envconfig:"GOHAN_AUTHZ_ENABLED"`
-		OidcPublicJwksUrl       string `yaml:"oidcPublicJwksUrl" envconfig:"GOHAN_PUBLIC_AUTHN_JWKS_URL"`
-		OpaUrl                  string `yaml:"opaUrl" envconfig:"GOHAN_PRIVATE_AUTHZ_URL"`
+		AuthorizationUrl        string `yaml:"authorizationUrl" envconfig:"GOHAN_AUTHZ_URL"`
 		RequiredHeadersCommaSep string `yaml:"requiredHeadersCommaSep" envconfig:"GOHAN_AUTHZ_REQHEADS"`
 	} `yaml:"authx"`
 }

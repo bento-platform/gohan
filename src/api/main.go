@@ -56,8 +56,7 @@ func main() {
 		"\tDRS Username : %s\n\n"+
 
 		"\tAuthorization Enabled : %t\n"+
-		"\tOIDC Public JWKS Url : %s\n"+
-		"\tOPA Url : %s\n"+
+		"\tAuthorization Url : %s\n"+
 		"\tRequired HTTP Headers: %s\n\n"+
 
 		"Running on Port : %s\n",
@@ -74,8 +73,7 @@ func main() {
 		cfg.Api.BridgeDirectory, cfg.Drs.BridgeDirectory,
 		cfg.Drs.Url, cfg.Drs.Username,
 		cfg.AuthX.IsAuthorizationEnabled,
-		cfg.AuthX.OidcPublicJwksUrl,
-		cfg.AuthX.OpaUrl,
+		cfg.AuthX.AuthorizationUrl,
 		strings.Split(cfg.AuthX.RequiredHeadersCommaSep, ","),
 		cfg.Api.Port)
 	// --
