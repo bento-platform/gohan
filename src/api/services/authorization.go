@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"gohan/api/models"
+	authz "gohan/api/models/authorization"
+	authzc "gohan/api/models/constants/authorization"
+	dtos "gohan/api/models/dtos/authorization"
 	e "gohan/api/models/dtos/errors"
 	"net/http"
 	"strings"
@@ -39,27 +42,47 @@ func (a *AuthzService) GetAuthorizationUrl() string {
 
 func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnTokenString string) error {
 	//	- validate authn token against external authorization service
-	// TODO: formalize data structure as a dto
-	permissionRequestJson := map[string]interface{}{
-		"requested_resource":   map[string]interface{}{"everything": true},
-		"required_permissions": []string{"query:data"},
+	permissionRequestJson := dtos.PermissionRequestDto{
+		RequestedResource: authz.ResourceEverything{Everything: true},
+		RequiredPermissions: authz.PermissionsList{
+			List: []authz.Permission{
+				{Verb: authzc.QUERY, Noun: authzc.DATA},
+			},
+		},
 	}
 
-	permJsonData, permissionJsonMarshallErr := json.Marshal(permissionRequestJson)
+	permJsonData, permissionJsonMarshallErr := json.Marshal(&permissionRequestJson)
 	if permissionJsonMarshallErr != nil {
 		fmt.Printf("%s\n", permissionJsonMarshallErr.Error())
 		return errors.New(publicAuthzErrorMessage)
 	}
 
-	permRes, permReqErr := http.Post(a.GetAuthorizationUrl(), "application/json", bytes.NewBuffer(permJsonData))
+	// Create a Bearer string by appending string access token
+	var bearer = "Bearer " + authnTokenString
+
+	// Create a new request using http
+	evaluateUrl := fmt.Sprintf("%s/%s/%s", a.GetAuthorizationUrl(), "policy", "evaluate")
+	permReq, permReqErr := http.NewRequest("POST", evaluateUrl, bytes.NewBuffer(permJsonData))
 	if permReqErr != nil {
 		fmt.Printf("%s\n", permReqErr.Error())
 		return errors.New(publicAuthzErrorMessage)
 	}
+	// add authorization header to the req
+	permReq.Header.Add("Authorization", bearer)
+	permReq.Header.Add("Content-Type", "application/json")
+
+	// Send req using http Client
+	client := &http.Client{}
+	permRes, permResErr := client.Do(permReq)
+	if permResErr != nil {
+		fmt.Printf("%s\n", permResErr.Error())
+		return errors.New(publicAuthzErrorMessage)
+	}
+
 	defer permRes.Body.Close()
 
 	// check http status code
-	if permRes.StatusCode == 403 {
+	if permRes.StatusCode != 200 {
 		return errors.New("access denied")
 	}
 
@@ -67,12 +90,12 @@ func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnTokenString s
 	var permJson map[string]interface{}
 	json.NewDecoder(permRes.Body).Decode(&permJson)
 
-	if accessPermitted, isMapContainsKey := permJson["result"]; isMapContainsKey {
-		if accessPermitted != true {
+	if accessPermitted, isMapContainsKey := permJson["decision"]; isMapContainsKey {
+		if accessPermitted.(bool) {
 			return errors.New("access denied")
 		}
 	} else {
-		fmt.Printf("%s\n", "Missing 'result' key from Opa response!")
+		fmt.Printf("%s\n", "Missing 'decision' key from authorization service response!")
 		return errors.New(publicAuthzErrorMessage)
 	}
 
