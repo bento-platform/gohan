@@ -90,12 +90,12 @@ func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnTokenString s
 	var permJson map[string]interface{}
 	json.NewDecoder(permRes.Body).Decode(&permJson)
 
-	if accessPermitted, isMapContainsKey := permJson["decision"]; isMapContainsKey {
-		if accessPermitted.(bool) {
+	if accessPermitted, isMapContainsKey := permJson["result"]; isMapContainsKey {
+		if !(accessPermitted.(bool)) {
 			return errors.New("access denied")
 		}
 	} else {
-		fmt.Printf("%s\n", "Missing 'decision' key from authorization service response!")
+		fmt.Printf("%s\n", "Missing 'result' key from authorization service response!")
 		return errors.New(publicAuthzErrorMessage)
 	}
 
