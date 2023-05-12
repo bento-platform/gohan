@@ -11,8 +11,10 @@ type PermissionRequestDto struct {
 }
 
 func (p *PermissionRequestDto) MarshalJSON() ([]byte, error) {
+	// customize the request serialized format
+	// as permissions representation is specific
 	rpl, _ := json.Marshal(&p.RequiredPermissions)
-	rrl, _ := json.Marshal(p.RequestedResource)
+	rrl, _ := json.Marshal(&p.RequestedResource)
 	res := map[string]interface{}{
 		"requested_resource":   string(rrl),
 		"required_permissions": string(rpl),

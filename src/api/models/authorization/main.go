@@ -23,10 +23,14 @@ type PermissionsList struct {
 }
 
 func (p *PermissionsList) MarshalJSON() ([]byte, error) {
+	// serialize struct as a simple json list of the contents
+	// rather than an object with a "list" key and [...] value
 	rpStrs := make([]interface{}, 0)
 	for _, rp := range p.List {
 		rpStrs = append(rpStrs, fmt.Sprintf("%s:%s", rp.Verb, rp.Noun))
 	}
+	// i.e : '["verb1:noun1", "verb2:noun2", ...]'
+	// instead of '{"list": [{"verb":<verb1>, "noun": <noun1>},{"verb":<verb2>, "noun": <noun2>}]}'
 
 	return json.Marshal(&rpStrs)
 }
