@@ -46,10 +46,8 @@ func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(
 	requiredPermissions []authz.Permission) error {
 	//	- validate authn token against external authorization service
 	permissionRequestJson := dtos.PermissionRequestDto{
-		RequestedResource: requestedResource,
-		RequiredPermissions: authz.PermissionsList{
-			List: requiredPermissions,
-		},
+		RequestedResource:   requestedResource,
+		RequiredPermissions: requiredPermissions,
 	}
 
 	permJsonData, permissionJsonMarshallErr := json.Marshal(&permissionRequestJson)

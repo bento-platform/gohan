@@ -2,20 +2,27 @@ package authorization
 
 import (
 	"encoding/json"
+	"fmt"
 	mauthz "gohan/api/models/authorization"
 )
 
 type PermissionRequestDto struct {
 	RequestedResource   mauthz.Resource
-	RequiredPermissions mauthz.PermissionsList
+	RequiredPermissions []mauthz.Permission
 }
 
 func (p *PermissionRequestDto) MarshalJSON() ([]byte, error) {
 	// customize the request serialized format:
-	// - serialize and then deserialize permissions
-	rpl, _ := json.Marshal(&p.RequiredPermissions)
-	var reqPermStrArr []string
-	json.Unmarshal([]byte(rpl), &reqPermStrArr)
+
+	// serialize permissions as a simple json list of the contents
+	// concatenated with a colon ':'
+	reqPermStrArr := make([]string, 0)
+	for _, rp := range p.RequiredPermissions {
+		reqPermStrArr = append(reqPermStrArr, fmt.Sprintf("%s:%s", rp.Verb, rp.Noun))
+	}
+	// i.e : '["verb1:noun1", "verb2:noun2", ...]'
+	// instead of '{"requiredPermissions": [{"verb":<verb1>, "noun": <noun1>},{"verb":<verb2>, "noun": <noun2>}]}'
+
 	// - serialize and then deserialize requested resource
 	rrl, _ := json.Marshal(&p.RequestedResource)
 	var reqResMap map[string]interface{}
