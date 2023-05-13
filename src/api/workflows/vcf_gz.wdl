@@ -4,7 +4,7 @@ workflow vcf_gz {
     Array[String] original_vcf_gz_file_paths
     String assembly_id
     String table_id
-    String filter_out_homozygous_references
+    String filter_out_references
     String temp_token
     String temp_token_host
 
@@ -15,7 +15,7 @@ workflow vcf_gz {
                    vcf_gz_file_name = file_name,
                    assembly_id = assembly_id,
                    table_id = table_id,
-                   filter_out_homozygous_references = filter_out_homozygous_references,
+                   filter_out_references = filter_out_references,
                    temp_token = temp_token,
                    temp_token_host = temp_token_host
 
@@ -28,14 +28,14 @@ task vcf_gz_gohan {
     String vcf_gz_file_name
     String assembly_id
     String table_id
-    String filter_out_homozygous_references
+    String filter_out_references
     String temp_token
     String temp_token_host
 
     command {
         echo "Using temporary-token : ${temp_token}"
 
-        QUERY="fileNames=${vcf_gz_file_name}&assemblyId=${assembly_id}&tableId=${table_id}&filterOutHomozygousReferences=${filter_out_homozygous_references}"
+        QUERY="fileNames=${vcf_gz_file_name}&assemblyId=${assembly_id}&tableId=${table_id}&filterOutReferences=${filter_out_references}"
         
         # TODO: refactor
         # append temporary-token header if present

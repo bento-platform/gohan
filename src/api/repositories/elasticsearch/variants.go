@@ -152,7 +152,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 			}})
 	}
 
-	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, shouldMap)
+	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, genotype, shouldMap)
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
@@ -367,7 +367,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			}})
 	}
 
-	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, shouldMap)
+	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, genotype, shouldMap)
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
@@ -657,27 +657,59 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 
 // -- internal use only --
 
-func addAllelesToShouldMap(alleles []string, allelesShouldMap []map[string]interface{}) ([]map[string]interface{}, int) {
+func addAllelesToShouldMap(alleles []string, genotype c.GenotypeQuery, allelesShouldMap []map[string]interface{}) ([]map[string]interface{}, int) {
 	minimumShouldMatch := 0
 
 	if len(alleles) > 0 {
 		switch len(alleles) {
 		case 1:
-			// any allele can be present on either side of the pair
-			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " OR sample.variation.alleles.right.keyword:" + alleles[0],
-				}})
+			if genotype == gq.ALTERNATE || genotype == gq.REFERENCE {
+				// haploid case
+
+				// queried allele should be present on the left side of the pair with an empty right side
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": map[string]interface{}{
+						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:\"\"",
+					}})
+
+			} else {
+				// assume diploid-type of search as default
+
+				//  queried allele can be present on either side of the pair
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": map[string]interface{}{
+						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " OR sample.variation.alleles.right.keyword:" + alleles[0],
+					}})
+			}
 		case 2:
-			// treat as a left/right pair
-			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:" + alleles[1],
-				}})
-			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[1] + " AND sample.variation.alleles.right.keyword:" + alleles[0],
-				}})
+			if genotype == gq.ALTERNATE || genotype == gq.REFERENCE {
+				// haploid case
+
+				// either queried allele can be present on the left side of the pair with an empty right side
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": map[string]interface{}{
+						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:\"\"",
+					}})
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": map[string]interface{}{
+						"query": "sample.variation.alleles.left.keyword:" + alleles[1] + " AND sample.variation.alleles.right.keyword:\"\"",
+					}})
+
+			} else {
+				// assume diploid-type of search as default
+
+				// treat as a left/right pair
+				// either queried allele can be present on the left or right side of the pair
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": map[string]interface{}{
+						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:" + alleles[1],
+					}})
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": map[string]interface{}{
+						"query": "sample.variation.alleles.left.keyword:" + alleles[1] + " AND sample.variation.alleles.right.keyword:" + alleles[0],
+					}})
+			}
+			// TODO: triploid ?
 		}
 		minimumShouldMatch = 1
 	}
@@ -689,6 +721,17 @@ func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interfa
 	zygosityMatchMap := make(map[string]interface{})
 
 	switch genotype {
+	// Haploid
+	case gq.REFERENCE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.Reference,
+		}
+
+	case gq.ALTERNATE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.Alternate,
+		}
+	// Diploid
 	case gq.HETEROZYGOUS:
 		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 			"query": z.Heterozygous,
@@ -705,7 +748,6 @@ func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interfa
 		}
 	}
 
-	// Not all genotype-queries are compatible yet, i.e. Haploid types `REFERENCE` and `ALTERNATE`
 	// - verify zygosity-map is not empty before adding to the must-map
 	if len(zygosityMatchMap) > 0 {
 		mustMap = append(mustMap, map[string]interface{}{
