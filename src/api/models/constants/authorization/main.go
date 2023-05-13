@@ -1,19 +1,21 @@
 package authorization
 
-import "gohan/api/models/constants"
+type PermissionVerb string
+type PermissionNoun string
+type PermissionLevel string
 
 const (
-	QUERY    constants.PermissionVerb = "query"
-	DOWNLOAD constants.PermissionVerb = "download"
-	VIEW     constants.PermissionVerb = "view"
-	CREATE   constants.PermissionVerb = "create"
-	EDIT     constants.PermissionVerb = "edit"
-	DELEVE   constants.PermissionVerb = "delete"
-	INGEST   constants.PermissionVerb = "ingest"
-	ANALYZE  constants.PermissionVerb = "analyze"
-	EXPORT   constants.PermissionVerb = "export"
+	QUERY    PermissionVerb = "query"
+	DOWNLOAD PermissionVerb = "download"
+	VIEW     PermissionVerb = "view"
+	CREATE   PermissionVerb = "create"
+	EDIT     PermissionVerb = "edit"
+	DELEVE   PermissionVerb = "delete"
+	INGEST   PermissionVerb = "ingest"
+	ANALYZE  PermissionVerb = "analyze"
+	EXPORT   PermissionVerb = "export"
 )
 
 const (
-	DATA constants.PermissionNoun = "data"
+	DATA PermissionNoun = "data"
 )

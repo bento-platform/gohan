@@ -1,7 +1,7 @@
 package authorization
 
 import (
-	c "gohan/api/models/constants"
+	authzConstants "gohan/api/models/constants/authorization"
 )
 
 type Resource interface{}
@@ -12,7 +12,7 @@ type ResourceEverything struct {
 // TODO: implement ResourceSpecific
 
 type Permission struct {
-	Verb  c.PermissionVerb
-	Noun  c.PermissionNoun
-	Level c.PermissionLevel
+	Verb  authzConstants.PermissionVerb
+	Noun  authzConstants.PermissionNoun
+	Level authzConstants.PermissionLevel
 }
