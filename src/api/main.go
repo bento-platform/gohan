@@ -12,6 +12,7 @@ import (
 	variantsMvc "gohan/api/mvc/variants"
 	workflowsMvc "gohan/api/mvc/workflows"
 	"gohan/api/services"
+	authzServices "gohan/api/services/authorization"
 	"gohan/api/services/sanitation"
 	variantsService "gohan/api/services/variants"
 	"gohan/api/utils"
@@ -89,7 +90,7 @@ func main() {
 	//		rather than have one global http client ?)
 
 	// Service Singletons
-	az := services.NewAuthzService(&cfg)
+	az := authzServices.NewAuthzService(&cfg)
 	iz := services.NewIngestionService(es, &cfg)
 	vs := variantsService.NewVariantService(&cfg)
 
@@ -118,9 +119,6 @@ func main() {
 		}
 	})
 
-	// Global Middleware (optional)
-	e.Use(az.MandateAuthorizationTokensMiddleware)
-
 	// Begin MVC Routes
 	// -- Root
 	e.GET("/", func(c echo.Context) error {
@@ -145,7 +143,9 @@ func main() {
 	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary)
 
 	// -- Variants
-	e.GET("/variants/overview", variantsMvc.GetVariantsOverview)
+	e.GET("/variants/overview", variantsMvc.GetVariantsOverview,
+		gam.QueryDataPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
 
 	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,
 		// middleware

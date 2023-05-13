@@ -6,7 +6,7 @@ import (
 )
 
 type PermissionRequestDto struct {
-	RequestedResource   mauthz.ResourceEverything // TODO: ResourceSpecific
+	RequestedResource   mauthz.Resource
 	RequiredPermissions mauthz.PermissionsList
 }
 

@@ -5,6 +5,8 @@ import (
 	"gohan/api/services"
 	variantsService "gohan/api/services/variants"
 
+	authzModels "gohan/api/models/authorization"
+
 	es7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/labstack/echo"
 )
@@ -14,9 +16,11 @@ type (
 	//  an elasticsearch client and other variables
 	GohanContext struct {
 		echo.Context
-		Es7Client        *es7.Client
-		Config           *models.Config
-		IngestionService *services.IngestionService
-		VariantService   *variantsService.VariantService
+		Es7Client           *es7.Client
+		Config              *models.Config
+		IngestionService    *services.IngestionService
+		VariantService      *variantsService.VariantService
+		RequestedResource   authzModels.Resource
+		RequiredPermissions []authzModels.Permission
 	}
 )

@@ -6,6 +6,7 @@ import (
 	c "gohan/api/models/constants"
 )
 
+type Resource interface{}
 type ResourceEverything struct {
 	Everything bool `json:"everything"`
 }

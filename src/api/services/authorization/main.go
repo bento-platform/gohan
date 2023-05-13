@@ -1,13 +1,13 @@
-package services
+package authorization
 
 import (
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gohan/api/contexts"
 	"gohan/api/models"
 	authz "gohan/api/models/authorization"
-	authzc "gohan/api/models/constants/authorization"
 	dtos "gohan/api/models/dtos/authorization"
 	e "gohan/api/models/dtos/errors"
 	"net/http"
@@ -40,14 +40,15 @@ func (a *AuthzService) GetAuthorizationUrl() string {
 	return a.authorizationUrl
 }
 
-func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(authnTokenString string) error {
+func (a *AuthzService) EnsureRepositoryAccessPermittedForUser(
+	authnTokenString string,
+	requestedResource authz.Resource,
+	requiredPermissions []authz.Permission) error {
 	//	- validate authn token against external authorization service
 	permissionRequestJson := dtos.PermissionRequestDto{
-		RequestedResource: authz.ResourceEverything{Everything: true},
+		RequestedResource: requestedResource,
 		RequiredPermissions: authz.PermissionsList{
-			List: []authz.Permission{
-				{Verb: authzc.QUERY, Noun: authzc.DATA},
-			},
+			List: requiredPermissions,
 		},
 	}
 
@@ -118,7 +119,7 @@ func (a *AuthzService) FetchAuthorizationHeader(headers http.Header) (string, er
 	return authnToken, nil
 }
 
-func (a *AuthzService) MandateAuthorizationTokensMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+func (a *AuthzService) ValidateTokenPermissionsAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if a.IsEnabled() {
 			// check request headers
@@ -128,7 +129,10 @@ func (a *AuthzService) MandateAuthorizationTokensMiddleware(next echo.HandlerFun
 			}
 
 			// check user permission
-			accessError := a.EnsureRepositoryAccessPermittedForUser(authnToken)
+			gc := c.(*contexts.GohanContext)
+			requestedResource := gc.RequestedResource
+			requiredPermissions := gc.RequiredPermissions
+			accessError := a.EnsureRepositoryAccessPermittedForUser(authnToken, requestedResource, requiredPermissions)
 			if accessError != nil {
 				return echo.NewHTTPError(http.StatusUnauthorized, e.CreateSimpleUnauthorized(accessError.Error()))
 			}
