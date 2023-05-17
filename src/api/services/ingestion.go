@@ -11,6 +11,7 @@ import (
 	"gohan/api/models"
 	"gohan/api/models/constants"
 	"gohan/api/models/constants/chromosome"
+	p "gohan/api/models/constants/ploidy"
 	z "gohan/api/models/constants/zygosity"
 	"gohan/api/models/ingest"
 	"gohan/api/models/ingest/structs"
@@ -341,7 +342,7 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 
 func (i *IngestionService) ProcessVcf(
 	gzippedFilePath string, drsFileId string, tableId string,
-	assemblyId constants.AssemblyId, filterOutHomozygousReferences bool,
+	assemblyId constants.AssemblyId, filterOutReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
 	// ---   reopen gzipped file after having been copied to the temporary api-drs
@@ -526,7 +527,9 @@ func (i *IngestionService) ProcessVcf(
 						// support for multi-sampled calls
 						// assume first component of allValues is the genotype
 						genoTypeValue := allValues[0]
-						if filterOutHomozygousReferences && (genoTypeValue == "0|0" || genoTypeValue == "0/0") {
+						if filterOutReferences &&
+							(genoTypeValue == "0" || // haploid type references
+								genoTypeValue == "0|0" || genoTypeValue == "0/0") { // diploid type homezygous references
 							// skip adding this sample to the 'tmpSamples' list which
 							// then goes to be further processed into a variant document
 
@@ -605,69 +608,130 @@ func (i *IngestionService) ProcessVcf(
 						// create genotype from value
 						gtString := tmpValueStrings[k]
 
-						phased := strings.Contains(gtString, "|")
+						var ploidy constants.Ploidy
+						// as defined by
+						// https://samtools.github.io/hts-specs/VCFv4.1.pdf , page 25
+						//		"...
+						//		 0 		as a haploid it is represented by a single byte 	0x02
+						//		 1 		as a haploid it is represented by a single byte 	0x04
+						//		..."
+
+						// determine ploidy
+						if !strings.Contains(gtString, "|") && !strings.Contains(gtString, "/") {
+							ploidy = p.Haploid
+						} else {
+							// assume number of "|" or "/" present is 1
+							ploidy = p.Diploid
+						}
+						// TODO: handle triploid?
 
 						var (
+							zyg                constants.Zygosity
+							phased             bool
 							alleleStringSplits []string
 							alleleLeft         int = -1
 							alleleRight        int = -1
 							errLeft            error
 							errRight           error
 						)
-						if phased {
-							alleleStringSplits = strings.Split(gtString, "|")
-						} else {
-							alleleStringSplits = strings.Split(gtString, "/")
-						}
 
-						switch len(alleleStringSplits) {
-						case 1:
-							if alleleStringSplits[0] == "." {
+						switch ploidy {
+						case p.Haploid:
+							// handle haploid
+
+							// -- allele
+							//		piggy-back off of diploid implementation and use
+							//		alleleLeft to store the haploid single allele
+							if gtString == "." {
 								alleleLeft = 0
 							} else {
 								// -- if error, probably an unknown character -- assign -1
-								alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
+								alleleLeft, errLeft = strconv.Atoi(gtString)
 								if errLeft != nil {
 									alleleLeft = -1
 								}
 							}
-						case 2:
-							// convert string to int
-							// - check and handle when 'gtString' contains '.'s
-							if alleleStringSplits[0] == "." && alleleStringSplits[1] == "." {
-								alleleLeft = 0
-								alleleRight = 0
+
+							// -- zygosity:
+							if alleleLeft == -1 {
+								zyg = z.Unknown
 							} else {
-								// -- if error, probably an unknown character -- assign -1
-								alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
-								if errLeft != nil {
-									alleleLeft = -1
-								}
-
-								alleleRight, errRight = strconv.Atoi(alleleStringSplits[1])
-								if errRight != nil {
-									alleleRight = -1
-								}
-							}
-							// default (0) : let default -1 and -1 be handled
-						}
-
-						// -- zygosity:
-						var zyg constants.Zygosity
-						if alleleLeft == -1 || alleleRight == -1 {
-							zyg = z.Unknown
-						} else {
-							switch alleleLeft == alleleRight {
-							case true:
-								switch alleleLeft * alleleRight {
-								case 0:
-									zyg = z.HomozygousReference
+								switch alleleLeft {
 								default:
-									zyg = z.HomozygousAlternate
+									zyg = z.Alternate
+									// covers 1 and greater
+
+								case 0:
+									zyg = z.Reference
 								}
-							case false:
-								zyg = z.Heterozygous
 							}
+
+						case p.Diploid:
+							// handle diploid
+
+							// -- phase
+							phased := strings.Contains(gtString, "|")
+
+							if phased {
+								alleleStringSplits = strings.Split(gtString, "|")
+							} else {
+								alleleStringSplits = strings.Split(gtString, "/")
+							}
+
+							// -- alleles
+							switch len(alleleStringSplits) {
+							case 1:
+								if alleleStringSplits[0] == "." {
+									alleleLeft = 0
+								} else {
+									// -- if error, probably an unknown character -- assign -1
+									alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
+									if errLeft != nil {
+										alleleLeft = -1
+									}
+								}
+							case 2:
+								// convert string to int
+								// - check and handle when 'gtString' contains '.'s
+								if alleleStringSplits[0] == "." && alleleStringSplits[1] == "." {
+									alleleLeft = 0
+									alleleRight = 0
+								} else {
+									// -- if error, probably an unknown character -- assign -1
+									alleleLeft, errLeft = strconv.Atoi(alleleStringSplits[0])
+									if errLeft != nil {
+										alleleLeft = -1
+									}
+
+									alleleRight, errRight = strconv.Atoi(alleleStringSplits[1])
+									if errRight != nil {
+										alleleRight = -1
+									}
+								}
+								// default (0) : let default -1 and -1 be handled
+							}
+
+							// -- zygosity:
+							if alleleLeft == -1 || alleleRight == -1 {
+								zyg = z.Unknown
+							} else {
+								switch alleleLeft == alleleRight {
+								case true:
+									switch alleleLeft * alleleRight {
+									case 0:
+										zyg = z.HomozygousReference
+									default:
+										zyg = z.HomozygousAlternate
+									}
+								case false:
+									zyg = z.Heterozygous
+								}
+							}
+
+							// TODO: handle triploid?
+
+							// default:
+							// 	// error ?
 						}
 
 						//   By this point, tmpVariant["alt"] is populated with
@@ -692,10 +756,13 @@ func (i *IngestionService) ProcessVcf(
 						} else {
 							alleles.Left = tmpVariantRef[0]
 						}
-						if alleleRight > 0 {
-							alleles.Right = tmpVariantAlt[alleleRight-1]
-						} else {
-							alleles.Right = tmpVariantRef[0]
+
+						if ploidy == p.Diploid {
+							if alleleRight > 0 {
+								alleles.Right = tmpVariantAlt[alleleRight-1]
+							} else {
+								alleles.Right = tmpVariantRef[0]
+							}
 						}
 
 						variation.Genotype = indexes.Genotype{
@@ -774,7 +841,7 @@ func (i *IngestionService) ProcessVcf(
 	// let all lines be queued up and processed
 	_fileWG.Wait()
 
-	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Homozygous Reference calls: %d\n", gzippedFilePath, skippedHomozygousReferencesCount)
+	fmt.Printf("File %s waited for and complete!\n\t- Number of skipped Reference and/or Homozygous-Reference calls: %d\n", gzippedFilePath, skippedHomozygousReferencesCount)
 }
 
 func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {

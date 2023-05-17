@@ -237,14 +237,14 @@ func VariantsIngest(c echo.Context) error {
 
 	// -- optional filter
 	var (
-		filterOutHomozygousReferences bool = false // default
-		fohrErr                       error
+		filterOutReferences bool = false // default
+		fohrErr             error
 	)
-	filterOutHomozygousReferencesQP := c.QueryParam("filterOutHomozygousReferences")
-	if len(filterOutHomozygousReferencesQP) > 0 {
-		filterOutHomozygousReferences, fohrErr = strconv.ParseBool(filterOutHomozygousReferencesQP)
+	filterOutReferencesQP := c.QueryParam("filterOutReferences")
+	if len(filterOutReferencesQP) > 0 {
+		filterOutReferences, fohrErr = strconv.ParseBool(filterOutReferencesQP)
 		if fohrErr != nil {
-			fmt.Printf("Error parsing filterOutHomozygousReferences: %s, [%s] - defaulting to 'false'\n", filterOutHomozygousReferencesQP, fohrErr)
+			fmt.Printf("Error parsing filterOutReferences: %s, [%s] - defaulting to 'false'\n", filterOutReferencesQP, fohrErr)
 			// defaults to false
 		}
 	}
@@ -435,7 +435,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
 				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
 				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				reqStat.State = ingest.Done
