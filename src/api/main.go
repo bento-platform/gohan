@@ -144,11 +144,17 @@ func main() {
 
 	// -- Variants
 	e.GET("/variants/overview", variantsMvc.GetVariantsOverview,
-		gam.QueryDataPermissionAttribute,
+		// middleware
+		// - authorization
+		gam.ViewDataEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute)
 
 	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,
 		// middleware
+		// - authorization
+		gam.QueryDataEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
@@ -156,6 +162,10 @@ func main() {
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/get/by/sampleId", variantsMvc.VariantsGetBySampleId,
 		// middleware
+		// - authorization
+		gam.QueryDataEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
@@ -165,13 +175,19 @@ func main() {
 	e.GET("/variants/get/by/documentId", variantsMvc.VariantsGetByDocumentId)
 
 	e.GET("/variants/count/by/variantId", variantsMvc.VariantsCountByVariantId,
-		// middleware
+		// - authorization
+		gam.QueryDataEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/count/by/sampleId", variantsMvc.VariantsCountBySampleId,
-		// middleware
+		// - authorization
+		gam.QueryDataEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,

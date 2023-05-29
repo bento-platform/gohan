@@ -8,16 +8,32 @@ import (
 	"github.com/labstack/echo"
 )
 
-func QueryDataPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
+func ViewDataEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		gc := c.(*contexts.GohanContext)
-		gc.RequestedResource = authzModels.ResourceEverything{
-			Everything: true,
-		}
-		gc.RequiredPermissions = []authzModels.Permission{{
-			Verb: authzConstants.QUERY,
-			Noun: authzConstants.DATA,
-		}}
+		addResourceEverything(gc)
+		addPermissions(gc, authzConstants.VIEW, authzConstants.DATA)
 		return next(gc)
 	}
+}
+func QueryDataEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		gc := c.(*contexts.GohanContext)
+		addResourceEverything(gc)
+		addPermissions(gc, authzConstants.QUERY, authzConstants.DATA)
+		return next(gc)
+	}
+}
+
+// -- helper functions
+func addResourceEverything(gc *contexts.GohanContext) {
+	gc.RequestedResource = authzModels.ResourceEverything{
+		Everything: true,
+	}
+}
+func addPermissions(gc *contexts.GohanContext, verb authzConstants.PermissionVerb, noun authzConstants.PermissionNoun) {
+	gc.RequiredPermissions = []authzModels.Permission{{
+		Verb: verb,
+		Noun: noun,
+	}}
 }
