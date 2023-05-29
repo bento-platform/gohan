@@ -10,7 +10,7 @@ const (
 	VIEW     PermissionVerb = "view"
 	CREATE   PermissionVerb = "create"
 	EDIT     PermissionVerb = "edit"
-	DELEVE   PermissionVerb = "delete"
+	DELETE   PermissionVerb = "delete"
 	INGEST   PermissionVerb = "ingest"
 	ANALYZE  PermissionVerb = "analyze"
 	EXPORT   PermissionVerb = "export"

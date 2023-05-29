@@ -136,11 +136,31 @@ func main() {
 	e.GET("/data-types/variant/metadata_schema", dataTypesMvc.GetVariantDataTypeMetadataSchema)
 
 	// -- Tables
-	e.GET("/tables", tablesMvc.GetTables)
-	e.POST("/tables", tablesMvc.CreateTable)
-	e.GET("/tables/:id", tablesMvc.GetTables)
-	e.DELETE("/tables/:id", tablesMvc.DeleteTable)
-	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary)
+	e.GET("/tables", tablesMvc.GetTables,
+		// middleware
+		// - authorization
+		gam.ViewEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
+	e.POST("/tables", tablesMvc.CreateTable,
+		// middleware
+		// - authorization
+		gam.CreateEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
+	e.GET("/tables/:id", tablesMvc.GetTables,
+		// middleware
+		// - authorization
+		gam.ViewEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
+	e.DELETE("/tables/:id", tablesMvc.DeleteTable,
+		// middleware
+		// - authorization
+		gam.DeleteEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
+	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary,
+		// middleware
+		// - authorization
+		gam.ViewEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
 
 	// -- Variants
 	e.GET("/variants/overview", variantsMvc.GetVariantsOverview,
@@ -152,7 +172,7 @@ func main() {
 	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,
 		// middleware
 		// - authorization
-		gam.ViewEverythingPermissionAttribute,
+		gam.QueryEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute,
 		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,

@@ -24,6 +24,22 @@ func QueryEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc 
 		return next(gc)
 	}
 }
+func CreateEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		gc := c.(*contexts.GohanContext)
+		addResourceEverything(gc)
+		addPermissions(gc, authzConstants.CREATE, authzConstants.GOHAN)
+		return next(gc)
+	}
+}
+func DeleteEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		gc := c.(*contexts.GohanContext)
+		addResourceEverything(gc)
+		addPermissions(gc, authzConstants.DELETE, authzConstants.GOHAN)
+		return next(gc)
+	}
+}
 
 // -- helper functions
 func addResourceEverything(gc *contexts.GohanContext) {
