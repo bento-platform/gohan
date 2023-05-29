@@ -1,7 +1,6 @@
 package serviceInfo
 
 import (
-	"fmt"
 	"gohan/api/contexts"
 	serviceInfo "gohan/api/models/constants/service-info"
 
@@ -14,12 +13,16 @@ import (
 func GetServiceInfo(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"bento": map[string]interface{}{
-			"serviceKind": "gohan",
+			"dataService": true,
+			"serviceKind": serviceInfo.SERVICE_ARTIFACT,
 		},
-		"id":   serviceInfo.SERVICE_ID,
-		"name": serviceInfo.SERVICE_NAME,
-		"type": fmt.Sprintf("%s:%s", serviceInfo.SERVICE_TYPE_NO_VER, c.(*contexts.GohanContext).Config.SemVer),
-
+		"type": map[string]interface{}{
+			"artifact": serviceInfo.SERVICE_ARTIFACT,
+			"group":    serviceInfo.SERVICE_TYPE_NO_VER,
+			"version":  c.(*contexts.GohanContext).Config.SemVer,
+		},
+		"id":          serviceInfo.SERVICE_ID,
+		"name":        serviceInfo.SERVICE_NAME,
 		"description": serviceInfo.SERVICE_DESCRIPTION,
 		"organization": map[string]string{
 			"name": "C3G",
