@@ -13,6 +13,9 @@ import (
 // Spec: https://github.com/ga4gh-discovery/ga4gh-service-info
 func GetServiceInfo(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]interface{}{
+		"bento": map[string]interface{}{
+			"serviceKind": "gohan",
+		},
 		"id":   serviceInfo.SERVICE_ID,
 		"name": serviceInfo.SERVICE_NAME,
 		"type": fmt.Sprintf("%s:%s", serviceInfo.SERVICE_TYPE_NO_VER, c.(*contexts.GohanContext).Config.SemVer),
