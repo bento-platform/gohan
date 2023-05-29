@@ -150,13 +150,12 @@ func VariantsIngest(c echo.Context) error {
 				}
 
 				// Filter only .vcf.gz files
-				// if fileName != "" {
 				if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
 					fileNames = append(fileNames, relativePathFileName)
 				} else {
 					fmt.Printf("Skipping %s\n", relativePathFileName)
 				}
-				// }
+
 				return nil
 			})
 		if err != nil {

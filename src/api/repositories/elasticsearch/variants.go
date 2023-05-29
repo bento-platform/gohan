@@ -656,7 +656,6 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 }
 
 // -- internal use only --
-
 func addAllelesToShouldMap(alleles []string, genotype c.GenotypeQuery, allelesShouldMap []map[string]interface{}) ([]map[string]interface{}, int) {
 	minimumShouldMatch := 0
 
@@ -665,49 +664,33 @@ func addAllelesToShouldMap(alleles []string, genotype c.GenotypeQuery, allelesSh
 		case 1:
 			if genotype == gq.ALTERNATE || genotype == gq.REFERENCE {
 				// haploid case
-
-				// queried allele should be present on the left side of the pair with an empty right side
+				// - queried allele should be present on the left side of the pair with an empty right side
 				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": map[string]interface{}{
-						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:\"\"",
-					}})
+					"query_string": allelesShouldMapBuilder(alleles[0], "AND", "\"\"")})
 
 			} else {
 				// assume diploid-type of search as default
-
-				//  queried allele can be present on either side of the pair
+				// - queried allele can be present on either side of the pair
 				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": map[string]interface{}{
-						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " OR sample.variation.alleles.right.keyword:" + alleles[0],
-					}})
+					"query_string": allelesShouldMapBuilder(alleles[0], "OR", alleles[0])})
 			}
 		case 2:
 			if genotype == gq.ALTERNATE || genotype == gq.REFERENCE {
 				// haploid case
-
-				// either queried allele can be present on the left side of the pair with an empty right side
+				// - either queried allele can be present on the left side of the pair with an empty right side
 				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": map[string]interface{}{
-						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:\"\"",
-					}})
+					"query_string": allelesShouldMapBuilder(alleles[0], "AND", "\"\"")})
 				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": map[string]interface{}{
-						"query": "sample.variation.alleles.left.keyword:" + alleles[1] + " AND sample.variation.alleles.right.keyword:\"\"",
-					}})
+					"query_string": allelesShouldMapBuilder(alleles[1], "AND", "\"\"")})
 
 			} else {
 				// assume diploid-type of search as default
-
-				// treat as a left/right pair
-				// either queried allele can be present on the left or right side of the pair
+				// - treat as a left/right pair;
+				//   either queried allele can be present on the left or right side of the pair
 				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": map[string]interface{}{
-						"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:" + alleles[1],
-					}})
+					"query_string": allelesShouldMapBuilder(alleles[0], "AND", alleles[1])})
 				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": map[string]interface{}{
-						"query": "sample.variation.alleles.left.keyword:" + alleles[1] + " AND sample.variation.alleles.right.keyword:" + alleles[0],
-					}})
+					"query_string": allelesShouldMapBuilder(alleles[1], "AND", alleles[0])})
 			}
 			// TODO: triploid ?
 		}
@@ -715,6 +698,12 @@ func addAllelesToShouldMap(alleles []string, genotype c.GenotypeQuery, allelesSh
 	}
 
 	return allelesShouldMap, minimumShouldMatch
+}
+func allelesShouldMapBuilder(alleleLeft string, operator string, alleleRight string) map[string]interface{} {
+	return map[string]interface{}{
+		"query_string": map[string]interface{}{
+			"query": "sample.variation.alleles.left.keyword:" + alleleLeft + " " + operator + " sample.variation.alleles.right.keyword:" + alleleRight,
+		}}
 }
 
 func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interface{}) []map[string]interface{} {
