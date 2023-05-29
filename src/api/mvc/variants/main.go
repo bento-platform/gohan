@@ -115,6 +115,39 @@ func VariantsIngest(c echo.Context) error {
 	// get vcf files
 	var vcfGzfiles []string
 
+	// helper function
+	accumulatorWalkFunc := func(bucket *[]string) func(absoluteFileName string, info os.FileInfo, err error) error {
+		return func(absoluteFileName string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if absoluteFileName == vcfPath {
+				// skip
+				return nil
+			}
+
+			// keep track of relative path
+			relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
+
+			// verify if there is a relative path
+			directoryPath, fileName := path.Split(relativePathFileName)
+			if directoryPath == "/" {
+				relativePathFileName = fileName // effectively strips the leading '/' away
+			}
+
+			// Filter only .vcf.gz files
+			if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
+				*bucket = append(*bucket, relativePathFileName)
+			} else {
+				fmt.Printf("Skipping %s\n", relativePathFileName)
+			}
+
+			return nil
+		}
+	}
+	//
+
 	dirName := c.QueryParam("directory")
 	if dirName != "" {
 		if strings.HasPrefix(dirName, cfg.Drs.BridgeDirectory) {
@@ -129,35 +162,7 @@ func VariantsIngest(c echo.Context) error {
 			}
 		}
 
-		err := filepath.Walk(fmt.Sprintf("%s/%s", vcfPath, dirName),
-			func(absoluteFileName string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-
-				if absoluteFileName == vcfPath {
-					// skip
-					return nil
-				}
-
-				// keep track of relative path
-				relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
-
-				// verify if there is a relative path
-				directoryPath, fileName := path.Split(relativePathFileName)
-				if directoryPath == "/" {
-					relativePathFileName = fileName // effectively strips the leading '/' away
-				}
-
-				// Filter only .vcf.gz files
-				if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
-					fileNames = append(fileNames, relativePathFileName)
-				} else {
-					fmt.Printf("Skipping %s\n", relativePathFileName)
-				}
-
-				return nil
-			})
+		err := filepath.Walk(fmt.Sprintf("%s/%s", vcfPath, dirName), accumulatorWalkFunc(&fileNames))
 		if err != nil {
 			log.Println(err)
 		}
@@ -187,36 +192,7 @@ func VariantsIngest(c echo.Context) error {
 		// rather than load all available files and looping over them
 		// -----
 		// Read all files and temporarily catalog all .vcf.gz files
-		err := filepath.Walk(vcfPath,
-			func(absoluteFileName string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-
-				if absoluteFileName == vcfPath {
-					// skip
-					return nil
-				}
-
-				// keep track of relative path
-				relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
-
-				// verify if there is a relative path
-				directoryPath, fileName := path.Split(relativePathFileName)
-				if directoryPath == "/" {
-					relativePathFileName = fileName // effectively strips the leading '/' away
-				}
-
-				// Filter only .vcf.gz files
-				// if fileName != "" {
-				if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
-					vcfGzfiles = append(vcfGzfiles, relativePathFileName)
-				} else {
-					fmt.Printf("Skipping %s\n", relativePathFileName)
-				}
-				// }
-				return nil
-			})
+		err := filepath.Walk(vcfPath, accumulatorWalkFunc(&vcfGzfiles))
 		if err != nil {
 			log.Println(err)
 		}
