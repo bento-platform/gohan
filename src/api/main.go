@@ -146,13 +146,13 @@ func main() {
 	e.GET("/variants/overview", variantsMvc.GetVariantsOverview,
 		// middleware
 		// - authorization
-		gam.ViewDataEverythingPermissionAttribute,
+		gam.ViewEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute)
 
 	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,
 		// middleware
 		// - authorization
-		gam.QueryDataEverythingPermissionAttribute,
+		gam.ViewEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute,
 		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
@@ -163,7 +163,7 @@ func main() {
 	e.GET("/variants/get/by/sampleId", variantsMvc.VariantsGetBySampleId,
 		// middleware
 		// - authorization
-		gam.QueryDataEverythingPermissionAttribute,
+		gam.QueryEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute,
 		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
@@ -176,7 +176,7 @@ func main() {
 
 	e.GET("/variants/count/by/variantId", variantsMvc.VariantsCountByVariantId,
 		// - authorization
-		gam.QueryDataEverythingPermissionAttribute,
+		gam.QueryEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute,
 		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
@@ -185,7 +185,7 @@ func main() {
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/count/by/sampleId", variantsMvc.VariantsCountBySampleId,
 		// - authorization
-		gam.QueryDataEverythingPermissionAttribute,
+		gam.QueryEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute,
 		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,

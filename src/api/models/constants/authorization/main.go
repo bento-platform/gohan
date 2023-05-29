@@ -17,5 +17,5 @@ const (
 )
 
 const (
-	DATA PermissionNoun = "data"
+	GOHAN PermissionNoun = "gohan"
 )
