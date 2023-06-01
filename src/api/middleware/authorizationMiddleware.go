@@ -12,7 +12,7 @@ func ViewEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		gc := c.(*contexts.GohanContext)
 		addResourceEverything(gc)
-		addPermissions(gc, authzConstants.VIEW, authzConstants.GOHAN)
+		addPermissions(gc, authzConstants.VIEW, authzConstants.DATA)
 		return next(gc)
 	}
 }
@@ -20,7 +20,7 @@ func QueryEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc 
 	return func(c echo.Context) error {
 		gc := c.(*contexts.GohanContext)
 		addResourceEverything(gc)
-		addPermissions(gc, authzConstants.QUERY, authzConstants.GOHAN)
+		addPermissions(gc, authzConstants.QUERY, authzConstants.DATA)
 		return next(gc)
 	}
 }
@@ -28,7 +28,7 @@ func CreateEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc
 	return func(c echo.Context) error {
 		gc := c.(*contexts.GohanContext)
 		addResourceEverything(gc)
-		addPermissions(gc, authzConstants.CREATE, authzConstants.GOHAN)
+		addPermissions(gc, authzConstants.CREATE, authzConstants.DATA)
 		return next(gc)
 	}
 }
@@ -36,7 +36,7 @@ func DeleteEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc
 	return func(c echo.Context) error {
 		gc := c.(*contexts.GohanContext)
 		addResourceEverything(gc)
-		addPermissions(gc, authzConstants.DELETE, authzConstants.GOHAN)
+		addPermissions(gc, authzConstants.DELETE, authzConstants.DATA)
 		return next(gc)
 	}
 }
