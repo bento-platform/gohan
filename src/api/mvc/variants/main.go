@@ -111,57 +111,13 @@ func VariantsIngest(c echo.Context) error {
 	ingestionService := c.(*contexts.GohanContext).IngestionService
 
 	// retrieve query parameters (comman separated)
-	fileNames := strings.Split(c.QueryParam("fileNames"), ",")
-	for i, fileName := range fileNames {
-		if fileName == "" {
-			// TODO: create a standard response object
-			return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
-		} else {
-			// remove DRS bridge directory base path from the requested filenames (if present)
-			if strings.HasPrefix(fileName, cfg.Drs.BridgeDirectory) {
-				replaced := strings.Replace(fileName, cfg.Drs.BridgeDirectory, "", 1)
-
-				replacedDirectory, replacedFileName := path.Split(replaced)
-				// strip the leading '/' away
-				if replacedDirectory == "/" {
-					fileNames[i] = replacedFileName
-				} else {
-					fileNames[i] = replaced
-				}
-			}
-		}
-	}
-
-	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
-	tableId := c.QueryParam("tableId")
-	// TODO: validate table exists in elasticsearch
-
-	// -- optional filter
-	var (
-		filterOutHomozygousReferences bool = false // default
-		fohrErr                       error
-	)
-	filterOutHomozygousReferencesQP := c.QueryParam("filterOutHomozygousReferences")
-	if len(filterOutHomozygousReferencesQP) > 0 {
-		filterOutHomozygousReferences, fohrErr = strconv.ParseBool(filterOutHomozygousReferencesQP)
-		if fohrErr != nil {
-			fmt.Printf("Error parsing filterOutHomozygousReferences: %s, [%s] - defaulting to 'false'\n", filterOutHomozygousReferencesQP, fohrErr)
-			// defaults to false
-		}
-	}
-
-	startTime := time.Now()
-	fmt.Printf("Ingest Start: %s\n", startTime)
-
+	var fileNames []string
 	// get vcf files
 	var vcfGzfiles []string
 
-	// TODO: simply load files by filename provided
-	// rather than load all available files and looping over them
-	// -----
-	// Read all files and temporarily catalog all .vcf.gz files
-	err := filepath.Walk(vcfPath,
-		func(absoluteFileName string, info os.FileInfo, err error) error {
+	// helper function
+	accumulatorWalkFunc := func(bucket *[]string) func(absoluteFileName string, info os.FileInfo, err error) error {
+		return func(absoluteFileName string, info os.FileInfo, err error) error {
 			if err != nil {
 				return err
 			}
@@ -181,28 +137,98 @@ func VariantsIngest(c echo.Context) error {
 			}
 
 			// Filter only .vcf.gz files
-			// if fileName != "" {
 			if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
-				vcfGzfiles = append(vcfGzfiles, relativePathFileName)
+				*bucket = append(*bucket, relativePathFileName)
 			} else {
 				fmt.Printf("Skipping %s\n", relativePathFileName)
 			}
-			// }
-			return nil
-		})
-	if err != nil {
-		log.Println(err)
-	}
 
-	// Locate fileName from request inside found files
-	for _, fileName := range fileNames {
-		if !utils.StringInSlice(fileName, vcfGzfiles) {
-			return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
+			return nil
 		}
 	}
-	// -----
+	//
+
+	dirName := c.QueryParam("directory")
+	if dirName != "" {
+		if strings.HasPrefix(dirName, cfg.Drs.BridgeDirectory) {
+			replaced := strings.Replace(dirName, cfg.Drs.BridgeDirectory, "", 1)
+
+			replacedFullPath, replacedDirName := path.Split(replaced)
+			// strip the leading '/' away
+			if replacedFullPath == "/" {
+				dirName = replacedDirName
+			} else {
+				dirName = replaced
+			}
+		}
+
+		err := filepath.Walk(fmt.Sprintf("%s/%s", vcfPath, dirName), accumulatorWalkFunc(&fileNames))
+		if err != nil {
+			log.Println(err)
+		}
+	} else {
+		fileNames = strings.Split(c.QueryParam("fileNames"), ",")
+		for i, fileName := range fileNames {
+			if fileName == "" {
+				// TODO: create a standard response object
+				return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
+			} else {
+				// remove DRS bridge directory base path from the requested filenames (if present)
+				if strings.HasPrefix(fileName, cfg.Drs.BridgeDirectory) {
+					replaced := strings.Replace(fileName, cfg.Drs.BridgeDirectory, "", 1)
+
+					replacedDirectory, replacedFileName := path.Split(replaced)
+					// strip the leading '/' away
+					if replacedDirectory == "/" {
+						fileNames[i] = replacedFileName
+					} else {
+						fileNames[i] = replaced
+					}
+				}
+			}
+		}
+
+		// TODO: simply load files by filename provided
+		// rather than load all available files and looping over them
+		// -----
+		// Read all files and temporarily catalog all .vcf.gz files
+		err := filepath.Walk(vcfPath, accumulatorWalkFunc(&vcfGzfiles))
+		if err != nil {
+			log.Println(err)
+		}
+
+		// Locate fileName from request inside found files
+		for _, fileName := range fileNames {
+			if !utils.StringInSlice(fileName, vcfGzfiles) {
+				return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
+			}
+		}
+		// -----
+	}
+
+	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
+	tableId := c.QueryParam("tableId")
+	// TODO: validate table exists in elasticsearch
+
+	// -- optional filter
+	var (
+		filterOutReferences bool = false // default
+		fohrErr             error
+	)
+	filterOutReferencesQP := c.QueryParam("filterOutReferences")
+	if len(filterOutReferencesQP) > 0 {
+		filterOutReferences, fohrErr = strconv.ParseBool(filterOutReferencesQP)
+		if fohrErr != nil {
+			fmt.Printf("Error parsing filterOutReferences: %s, [%s] - defaulting to 'false'\n", filterOutReferencesQP, fohrErr)
+			// defaults to false
+		}
+	}
+
+	startTime := time.Now()
+	fmt.Printf("Ingest Start: %s\n", startTime)
 
 	// ingest vcf
+	// ingserviceMux := sync.RWMutex{}
 	responseDtos := []ingest.IngestResponseDTO{}
 	for _, fileName := range fileNames {
 
@@ -239,7 +265,9 @@ func VariantsIngest(c echo.Context) error {
 			ingestionService.ConcurrentFileIngestionQueue <- true
 			go func(gzippedFileName string, reqStat *ingest.VariantIngestRequest) {
 				// free up a spot in the queue
-				defer func() { <-ingestionService.ConcurrentFileIngestionQueue }()
+				defer func() {
+					<-ingestionService.ConcurrentFileIngestionQueue
+				}()
 
 				fmt.Printf("Begin running %s !\n", gzippedFileName)
 				reqStat.State = ingest.Running
@@ -382,7 +410,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
 				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
 				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				reqStat.State = ingest.Done

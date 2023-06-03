@@ -30,7 +30,7 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"default":  "GRCh38",
 				},
 				{
-					"id":       "filter_out_homozygous_references",
+					"id":       "filter_out_references",
 					"type":     "enum",
 					"required": true,
 					"values":   []string{"true", "false"}, // simulate boolean type

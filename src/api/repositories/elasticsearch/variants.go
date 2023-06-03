@@ -23,7 +23,7 @@ import (
 	es7 "github.com/elastic/go-elasticsearch/v7"
 )
 
-const variantsIndex = "variants"
+const wildcardVariantsIndex = "variants-*"
 
 func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id string) (map[string]interface{}, error) {
 
@@ -67,7 +67,7 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex(variantsIndex),
+		es.Search.WithIndex(wildcardVariantsIndex),
 		es.Search.WithBody(&buf),
 		es.Search.WithTrackTotalHits(true),
 		es.Search.WithPretty(),
@@ -152,7 +152,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 			}})
 	}
 
-	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, shouldMap)
+	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, genotype, shouldMap)
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
@@ -283,7 +283,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex(variantsIndex),
+		es.Search.WithIndex(wildcardVariantsIndex),
 		es.Search.WithBody(&buf),
 		es.Search.WithTrackTotalHits(true),
 		es.Search.WithPretty(),
@@ -367,7 +367,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			}})
 	}
 
-	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, shouldMap)
+	shouldMap, minimumShouldMatch = addAllelesToShouldMap(alleles, genotype, shouldMap)
 
 	if reference != "" {
 		mustMap = append(mustMap, map[string]interface{}{
@@ -470,7 +470,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	// Perform the search request.
 	res, searchErr := es.Count(
 		es.Count.WithContext(context.Background()),
-		es.Count.WithIndex(variantsIndex),
+		es.Count.WithIndex(wildcardVariantsIndex),
 		es.Count.WithBody(&buf),
 		es.Count.WithPretty(),
 	)
@@ -551,7 +551,7 @@ func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch
 	// Perform the search request.
 	res, searchErr := es.Search(
 		es.Search.WithContext(context.Background()),
-		es.Search.WithIndex(variantsIndex),
+		es.Search.WithIndex(wildcardVariantsIndex),
 		es.Search.WithBody(&buf),
 		es.Search.WithTrackTotalHits(true),
 		es.Search.WithPretty(),
@@ -621,7 +621,7 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 
 	// Perform the delete request.
 	deleteRes, deleteErr := es.DeleteByQuery(
-		[]string{variantsIndex},
+		[]string{wildcardVariantsIndex},
 		bytes.NewReader(buf.Bytes()),
 	)
 	if deleteErr != nil {
@@ -656,39 +656,71 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 }
 
 // -- internal use only --
-
-func addAllelesToShouldMap(alleles []string, allelesShouldMap []map[string]interface{}) ([]map[string]interface{}, int) {
+func addAllelesToShouldMap(alleles []string, genotype c.GenotypeQuery, allelesShouldMap []map[string]interface{}) ([]map[string]interface{}, int) {
 	minimumShouldMatch := 0
 
 	if len(alleles) > 0 {
 		switch len(alleles) {
 		case 1:
-			// any allele can be present on either side of the pair
-			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " OR sample.variation.alleles.right.keyword:" + alleles[0],
-				}})
+			if genotype == gq.ALTERNATE || genotype == gq.REFERENCE {
+				// haploid case
+				// - queried allele should be present on the left side of the pair with an empty right side
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": allelesShouldMapBuilder(alleles[0], "AND", "\"\"")})
+
+			} else {
+				// assume diploid-type of search as default
+				// - queried allele can be present on either side of the pair
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": allelesShouldMapBuilder(alleles[0], "OR", alleles[0])})
+			}
 		case 2:
-			// treat as a left/right pair
-			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[0] + " AND sample.variation.alleles.right.keyword:" + alleles[1],
-				}})
-			allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": "sample.variation.alleles.left.keyword:" + alleles[1] + " AND sample.variation.alleles.right.keyword:" + alleles[0],
-				}})
+			if genotype == gq.ALTERNATE || genotype == gq.REFERENCE {
+				// haploid case
+				// - either queried allele can be present on the left side of the pair with an empty right side
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": allelesShouldMapBuilder(alleles[0], "AND", "\"\"")})
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": allelesShouldMapBuilder(alleles[1], "AND", "\"\"")})
+
+			} else {
+				// assume diploid-type of search as default
+				// - treat as a left/right pair;
+				//   either queried allele can be present on the left or right side of the pair
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": allelesShouldMapBuilder(alleles[0], "AND", alleles[1])})
+				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
+					"query_string": allelesShouldMapBuilder(alleles[1], "AND", alleles[0])})
+			}
+			// TODO: triploid ?
 		}
 		minimumShouldMatch = 1
 	}
 
 	return allelesShouldMap, minimumShouldMatch
 }
+func allelesShouldMapBuilder(alleleLeft string, operator string, alleleRight string) map[string]interface{} {
+	return map[string]interface{}{
+		"query_string": map[string]interface{}{
+			"query": "sample.variation.alleles.left.keyword:" + alleleLeft + " " + operator + " sample.variation.alleles.right.keyword:" + alleleRight,
+		}}
+}
 
 func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interface{}) []map[string]interface{} {
 	zygosityMatchMap := make(map[string]interface{})
 
 	switch genotype {
+	// Haploid
+	case gq.REFERENCE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.Reference,
+		}
+
+	case gq.ALTERNATE:
+		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
+			"query": z.Alternate,
+		}
+	// Diploid
 	case gq.HETEROZYGOUS:
 		zygosityMatchMap["sample.variation.genotype.zygosity"] = map[string]interface{}{
 			"query": z.Heterozygous,
@@ -705,7 +737,6 @@ func addZygosityToMustMap(genotype c.GenotypeQuery, mustMap []map[string]interfa
 		}
 	}
 
-	// Not all genotype-queries are compatible yet, i.e. Haploid types `REFERENCE` and `ALTERNATE`
 	// - verify zygosity-map is not empty before adding to the must-map
 	if len(zygosityMatchMap) > 0 {
 		mustMap = append(mustMap, map[string]interface{}{
