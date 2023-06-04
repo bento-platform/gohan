@@ -24,6 +24,14 @@ func CreateEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc
 		return next(gc)
 	}
 }
+func IngestEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		gc := c.(*contexts.GohanContext)
+		addResourceEverything(gc)
+		addPermissions(gc, authzConstants.INGEST, authzConstants.DATA)
+		return next(gc)
+	}
+}
 func DeleteEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		gc := c.(*contexts.GohanContext)

@@ -217,6 +217,10 @@ func main() {
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
+		// - authorization
+		gam.IngestEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateTableIdAttribute)
 	e.GET("/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
@@ -224,18 +228,34 @@ func main() {
 
 	e.GET("/private/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
+		// - authorization
+		gam.IngestEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateTableIdAttribute)
 	e.GET("/private/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	// --
 
 	// -- Genes
-	e.GET("/genes/overview", genesMvc.GetGenesOverview)
+	e.GET("/genes/overview", genesMvc.GetGenesOverview,
+		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
 	e.GET("/genes/search", genesMvc.GenesGetByNomenclatureWildcard,
 		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute)
+	e.GET("/genes/ingestion/run", genesMvc.GenesIngest,
+		// middleware
+		// - authorization
+		gam.IngestEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
 	e.GET("/genes/ingestion/requests", genesMvc.GetAllGeneIngestionRequests)
-	e.GET("/genes/ingestion/run", genesMvc.GenesIngest)
 	e.GET("/genes/ingestion/stats", genesMvc.GenesIngestionStats)
 
 	// -- Workflows
