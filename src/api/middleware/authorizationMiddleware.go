@@ -8,14 +8,6 @@ import (
 	"github.com/labstack/echo"
 )
 
-func ViewEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		gc := c.(*contexts.GohanContext)
-		addResourceEverything(gc)
-		addPermissions(gc, authzConstants.VIEW, authzConstants.DATA)
-		return next(gc)
-	}
-}
 func QueryEverythingPermissionAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		gc := c.(*contexts.GohanContext)

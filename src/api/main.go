@@ -139,7 +139,7 @@ func main() {
 	e.GET("/tables", tablesMvc.GetTables,
 		// middleware
 		// - authorization
-		gam.ViewEverythingPermissionAttribute,
+		gam.QueryEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute)
 	e.POST("/tables", tablesMvc.CreateTable,
 		// middleware
@@ -149,7 +149,7 @@ func main() {
 	e.GET("/tables/:id", tablesMvc.GetTables,
 		// middleware
 		// - authorization
-		gam.ViewEverythingPermissionAttribute,
+		gam.QueryEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute)
 	e.DELETE("/tables/:id", tablesMvc.DeleteTable,
 		// middleware
@@ -159,14 +159,14 @@ func main() {
 	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary,
 		// middleware
 		// - authorization
-		gam.ViewEverythingPermissionAttribute,
+		gam.QueryEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute)
 
 	// -- Variants
 	e.GET("/variants/overview", variantsMvc.GetVariantsOverview,
 		// middleware
 		// - authorization
-		gam.ViewEverythingPermissionAttribute,
+		gam.QueryEverythingPermissionAttribute,
 		az.ValidateTokenPermissionsAttribute)
 
 	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,

@@ -7,7 +7,6 @@ type PermissionLevel string
 const (
 	QUERY    PermissionVerb = "query"
 	DOWNLOAD PermissionVerb = "download"
-	VIEW     PermissionVerb = "view"
 	CREATE   PermissionVerb = "create"
 	EDIT     PermissionVerb = "edit"
 	DELETE   PermissionVerb = "delete"
