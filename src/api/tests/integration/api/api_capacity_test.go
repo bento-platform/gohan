@@ -45,7 +45,7 @@ package api
 // 			defer _combWg.Done()
 // 			defer func() { <-simultaneousRequestsQueue }()
 
-// 			url := cfg.Api.Url + fmt.Sprintf("/variants/ingestion/run?fileNames=%s&assemblyId=GRCH37&filterOutHomozygousReferences=true", _vcfgz)
+// 			url := cfg.Api.Url + fmt.Sprintf("/variants/ingestion/run?fileNames=%s&assemblyId=GRCH37&filterOutReferences=true", _vcfgz)
 
 // 			fmt.Printf("Calling %s\n", url)
 // 			request, _ := http.NewRequest("GET", url, nil)

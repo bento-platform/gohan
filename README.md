@@ -95,7 +95,7 @@
   # move vcf.gz files to `$GOHAN_API_VCF_PATH`
 
   # ingest vcf.gz
-  curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutHomozygousReferences=true\&tableId=<table id>
+  curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutReferences=true\&tableId=<table id>
   
   # monitor progress:
   curl -k https://gohan.local/variants/ingestion/requests

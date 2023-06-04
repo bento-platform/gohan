@@ -115,6 +115,39 @@ func VariantsIngest(c echo.Context) error {
 	// get vcf files
 	var vcfGzfiles []string
 
+	// helper function
+	accumulatorWalkFunc := func(bucket *[]string) func(absoluteFileName string, info os.FileInfo, err error) error {
+		return func(absoluteFileName string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if absoluteFileName == vcfPath {
+				// skip
+				return nil
+			}
+
+			// keep track of relative path
+			relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
+
+			// verify if there is a relative path
+			directoryPath, fileName := path.Split(relativePathFileName)
+			if directoryPath == "/" {
+				relativePathFileName = fileName // effectively strips the leading '/' away
+			}
+
+			// Filter only .vcf.gz files
+			if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
+				*bucket = append(*bucket, relativePathFileName)
+			} else {
+				fmt.Printf("Skipping %s\n", relativePathFileName)
+			}
+
+			return nil
+		}
+	}
+	//
+
 	dirName := c.QueryParam("directory")
 	if dirName != "" {
 		if strings.HasPrefix(dirName, cfg.Drs.BridgeDirectory) {
@@ -129,36 +162,7 @@ func VariantsIngest(c echo.Context) error {
 			}
 		}
 
-		err := filepath.Walk(fmt.Sprintf("%s/%s", vcfPath, dirName),
-			func(absoluteFileName string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-
-				if absoluteFileName == vcfPath {
-					// skip
-					return nil
-				}
-
-				// keep track of relative path
-				relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
-
-				// verify if there is a relative path
-				directoryPath, fileName := path.Split(relativePathFileName)
-				if directoryPath == "/" {
-					relativePathFileName = fileName // effectively strips the leading '/' away
-				}
-
-				// Filter only .vcf.gz files
-				// if fileName != "" {
-				if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
-					fileNames = append(fileNames, relativePathFileName)
-				} else {
-					fmt.Printf("Skipping %s\n", relativePathFileName)
-				}
-				// }
-				return nil
-			})
+		err := filepath.Walk(fmt.Sprintf("%s/%s", vcfPath, dirName), accumulatorWalkFunc(&fileNames))
 		if err != nil {
 			log.Println(err)
 		}
@@ -188,36 +192,7 @@ func VariantsIngest(c echo.Context) error {
 		// rather than load all available files and looping over them
 		// -----
 		// Read all files and temporarily catalog all .vcf.gz files
-		err := filepath.Walk(vcfPath,
-			func(absoluteFileName string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-
-				if absoluteFileName == vcfPath {
-					// skip
-					return nil
-				}
-
-				// keep track of relative path
-				relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
-
-				// verify if there is a relative path
-				directoryPath, fileName := path.Split(relativePathFileName)
-				if directoryPath == "/" {
-					relativePathFileName = fileName // effectively strips the leading '/' away
-				}
-
-				// Filter only .vcf.gz files
-				// if fileName != "" {
-				if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
-					vcfGzfiles = append(vcfGzfiles, relativePathFileName)
-				} else {
-					fmt.Printf("Skipping %s\n", relativePathFileName)
-				}
-				// }
-				return nil
-			})
+		err := filepath.Walk(vcfPath, accumulatorWalkFunc(&vcfGzfiles))
 		if err != nil {
 			log.Println(err)
 		}
@@ -237,14 +212,14 @@ func VariantsIngest(c echo.Context) error {
 
 	// -- optional filter
 	var (
-		filterOutHomozygousReferences bool = false // default
-		fohrErr                       error
+		filterOutReferences bool = false // default
+		fohrErr             error
 	)
-	filterOutHomozygousReferencesQP := c.QueryParam("filterOutHomozygousReferences")
-	if len(filterOutHomozygousReferencesQP) > 0 {
-		filterOutHomozygousReferences, fohrErr = strconv.ParseBool(filterOutHomozygousReferencesQP)
+	filterOutReferencesQP := c.QueryParam("filterOutReferences")
+	if len(filterOutReferencesQP) > 0 {
+		filterOutReferences, fohrErr = strconv.ParseBool(filterOutReferencesQP)
 		if fohrErr != nil {
-			fmt.Printf("Error parsing filterOutHomozygousReferences: %s, [%s] - defaulting to 'false'\n", filterOutHomozygousReferencesQP, fohrErr)
+			fmt.Printf("Error parsing filterOutReferences: %s, [%s] - defaulting to 'false'\n", filterOutReferencesQP, fohrErr)
 			// defaults to false
 		}
 	}
@@ -435,7 +410,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
 				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutHomozygousReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
 				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				reqStat.State = ingest.Done
