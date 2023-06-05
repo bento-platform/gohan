@@ -12,6 +12,7 @@ import (
 	variantsMvc "gohan/api/mvc/variants"
 	workflowsMvc "gohan/api/mvc/workflows"
 	"gohan/api/services"
+	authzServices "gohan/api/services/authorization"
 	"gohan/api/services/sanitation"
 	variantsService "gohan/api/services/variants"
 	"gohan/api/utils"
@@ -56,8 +57,7 @@ func main() {
 		"\tDRS Username : %s\n\n"+
 
 		"\tAuthorization Enabled : %t\n"+
-		"\tOIDC Public JWKS Url : %s\n"+
-		"\tOPA Url : %s\n"+
+		"\tAuthorization Url : %s\n"+
 		"\tRequired HTTP Headers: %s\n\n"+
 
 		"Running on Port : %s\n",
@@ -74,8 +74,7 @@ func main() {
 		cfg.Api.BridgeDirectory, cfg.Drs.BridgeDirectory,
 		cfg.Drs.Url, cfg.Drs.Username,
 		cfg.AuthX.IsAuthorizationEnabled,
-		cfg.AuthX.OidcPublicJwksUrl,
-		cfg.AuthX.OpaUrl,
+		cfg.AuthX.AuthorizationUrl,
 		strings.Split(cfg.AuthX.RequiredHeadersCommaSep, ","),
 		cfg.Api.Port)
 	// --
@@ -91,7 +90,7 @@ func main() {
 	//		rather than have one global http client ?)
 
 	// Service Singletons
-	az := services.NewAuthzService(&cfg)
+	az := authzServices.NewAuthzService(&cfg)
 	iz := services.NewIngestionService(es, &cfg)
 	vs := variantsService.NewVariantService(&cfg)
 
@@ -120,9 +119,6 @@ func main() {
 		}
 	})
 
-	// Global Middleware (optional)
-	e.Use(az.MandateAuthorizationTokensMiddleware)
-
 	// Begin MVC Routes
 	// -- Root
 	e.GET("/", func(c echo.Context) error {
@@ -140,17 +136,45 @@ func main() {
 	e.GET("/data-types/variant/metadata_schema", dataTypesMvc.GetVariantDataTypeMetadataSchema)
 
 	// -- Tables
-	e.GET("/tables", tablesMvc.GetTables)
-	e.POST("/tables", tablesMvc.CreateTable)
-	e.GET("/tables/:id", tablesMvc.GetTables)
-	e.DELETE("/tables/:id", tablesMvc.DeleteTable)
-	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary)
+	e.GET("/tables", tablesMvc.GetTables,
+		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
+	e.POST("/tables", tablesMvc.CreateTable,
+		// middleware
+		// - authorization
+		gam.CreateEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
+	e.GET("/tables/:id", tablesMvc.GetTables,
+		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
+	e.DELETE("/tables/:id", tablesMvc.DeleteTable,
+		// middleware
+		// - authorization
+		gam.DeleteEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
+	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary,
+		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
 
 	// -- Variants
-	e.GET("/variants/overview", variantsMvc.GetVariantsOverview)
+	e.GET("/variants/overview", variantsMvc.GetVariantsOverview,
+		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
 
 	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,
 		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
@@ -158,6 +182,10 @@ func main() {
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/get/by/sampleId", variantsMvc.VariantsGetBySampleId,
 		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
@@ -167,13 +195,19 @@ func main() {
 	e.GET("/variants/get/by/documentId", variantsMvc.VariantsGetByDocumentId)
 
 	e.GET("/variants/count/by/variantId", variantsMvc.VariantsCountByVariantId,
-		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/count/by/sampleId", variantsMvc.VariantsCountBySampleId,
-		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateAssemblyIdAttribute,
@@ -183,6 +217,10 @@ func main() {
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
+		// - authorization
+		gam.IngestEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateTableIdAttribute)
 	e.GET("/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
@@ -190,18 +228,34 @@ func main() {
 
 	e.GET("/private/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
+		// - authorization
+		gam.IngestEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.MandateAssemblyIdAttribute,
 		gam.MandateTableIdAttribute)
 	e.GET("/private/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	// --
 
 	// -- Genes
-	e.GET("/genes/overview", genesMvc.GetGenesOverview)
+	e.GET("/genes/overview", genesMvc.GetGenesOverview,
+		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
 	e.GET("/genes/search", genesMvc.GenesGetByNomenclatureWildcard,
 		// middleware
+		// - authorization
+		gam.QueryEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute,
+		// - everything else
 		gam.ValidateOptionalChromosomeAttribute)
+	e.GET("/genes/ingestion/run", genesMvc.GenesIngest,
+		// middleware
+		// - authorization
+		gam.IngestEverythingPermissionAttribute,
+		az.ValidateTokenPermissionsAttribute)
 	e.GET("/genes/ingestion/requests", genesMvc.GetAllGeneIngestionRequests)
-	e.GET("/genes/ingestion/run", genesMvc.GenesIngest)
 	e.GET("/genes/ingestion/stats", genesMvc.GenesIngestionStats)
 
 	// -- Workflows
