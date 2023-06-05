@@ -7,8 +7,8 @@ import (
 
 type Schema map[string]interface{}
 
-var VARIANT_TABLE_METADATA_SCHEMA Schema = map[string]interface{}{
-	"$id":         "variant:table_metadata", // TODO: Real ID
+var VARIANT_METADATA_SCHEMA Schema = map[string]interface{}{
+	"$id":         "variant:metadata", // TODO: Real ID
 	"$schema":     "http://json-schema.org/draft-07/schema#",
 	"description": "Bento variant data type metadata schema",
 	"type":        "object",

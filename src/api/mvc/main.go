@@ -13,7 +13,7 @@ import (
 	"github.com/labstack/echo"
 )
 
-func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, []string, constants.GenotypeQuery, constants.AssemblyId, string) {
+func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, []string, constants.GenotypeQuery, constants.AssemblyId) {
 	es := c.(*contexts.GohanContext).Es7Client
 
 	chromosome := c.QueryParam("chromosome")
@@ -79,11 +79,5 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 		assemblyId = a.CastToAssemblyId(assemblyIdQP)
 	}
 
-	tableId := c.QueryParam("tableId")
-	if len(tableId) == 0 {
-		// if no tableId is provided, assume "wildcard" search
-		tableId = "*"
-	}
-
-	return es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, tableId
+	return es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId
 }
