@@ -207,8 +207,6 @@ func VariantsIngest(c echo.Context) error {
 	}
 
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
-	tableId := c.QueryParam("tableId")
-	// TODO: validate table exists in elasticsearch
 
 	// -- optional filter
 	var (
@@ -410,7 +408,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
 				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
 				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				reqStat.State = ingest.Done
@@ -450,7 +448,7 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId = mvc.RetrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
 	getSampleIdsOnlyQP := c.QueryParam("getSampleIdsOnly")
@@ -536,7 +534,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 					_id, "", // note : "" is for sampleId
 					reference, alternative, alleles,
 					size, sortByPosition,
-					includeInfoInResultSet, genotype, assemblyId, tableId,
+					includeInfoInResultSet, genotype, assemblyId,
 					getSampleIdsOnly)
 			} else {
 
@@ -561,7 +559,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 						"", _id, // note : "" is for variantId
 						reference, alternative, alleles,
 						size, sortByPosition,
-						includeInfoInResultSet, genotype, assemblyId, tableId,
+						includeInfoInResultSet, genotype, assemblyId,
 						false)
 				}
 
@@ -689,7 +687,7 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId = mvc.RetrieveCommonElements(c)
 
 	respDTO := dtos.VariantCountReponse{
 		Results: make([]dtos.VariantCountResult, 0),
@@ -719,7 +717,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
-					reference, alternative, alleles, genotype, assemblyId, tableId)
+					reference, alternative, alleles, genotype, assemblyId)
 			} else {
 				// implied sampleId query
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
@@ -728,7 +726,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
-					reference, alternative, alleles, genotype, assemblyId, tableId)
+					reference, alternative, alleles, genotype, assemblyId)
 			}
 
 			if countError != nil {
