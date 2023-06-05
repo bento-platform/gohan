@@ -8,7 +8,6 @@ import (
 	dataTypesMvc "gohan/api/mvc/data-types"
 	genesMvc "gohan/api/mvc/genes"
 	serviceInfoMvc "gohan/api/mvc/service-info"
-	tablesMvc "gohan/api/mvc/tables"
 	variantsMvc "gohan/api/mvc/variants"
 	workflowsMvc "gohan/api/mvc/workflows"
 	"gohan/api/services"
@@ -139,13 +138,6 @@ func main() {
 	e.GET("/data-types/variant/schema", dataTypesMvc.GetVariantDataTypeSchema)
 	e.GET("/data-types/variant/metadata_schema", dataTypesMvc.GetVariantDataTypeMetadataSchema)
 
-	// -- Tables
-	e.GET("/tables", tablesMvc.GetTables)
-	e.POST("/tables", tablesMvc.CreateTable)
-	e.GET("/tables/:id", tablesMvc.GetTables)
-	e.DELETE("/tables/:id", tablesMvc.DeleteTable)
-	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary)
-
 	// -- Variants
 	e.GET("/variants/overview", variantsMvc.GetVariantsOverview)
 
@@ -183,15 +175,13 @@ func main() {
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
-		gam.MandateAssemblyIdAttribute,
-		gam.MandateTableIdAttribute)
+		gam.MandateAssemblyIdAttribute)
 	e.GET("/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	e.GET("/variants/ingestion/stats", variantsMvc.VariantsIngestionStats)
 
 	e.GET("/private/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
-		gam.MandateAssemblyIdAttribute,
-		gam.MandateTableIdAttribute)
+		gam.MandateAssemblyIdAttribute)
 	e.GET("/private/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	// --
 
