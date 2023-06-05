@@ -77,25 +77,10 @@
   # view catalogue
   curl -k https://gohan.local/genes/overview
 
-
-  # create table
-  DATA='{
-      "name": "Gohan Box Test Table",
-      "data_type": "variant",
-      "dataset": "00000000-0000-0000-0000-000000000000",
-      "metadata": {}
-  }'
-  curl -k -0 -v -X POST https://gohan.local/tables \
-    -H 'Content-Type:application/json' \
-    --data "$(echo $DATA)" | jq
-
-  # <obtain the table "id">
-
-
   # move vcf.gz files to `$GOHAN_API_VCF_PATH`
 
   # ingest vcf.gz
-  curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutReferences=true\&tableId=<table id>
+  curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutReferences=true
   
   # monitor progress:
   curl -k https://gohan.local/variants/ingestion/requests
@@ -481,126 +466,6 @@ Response
 
 <br />
 <br />
-
-
-**`/tables`**
-
-<br />
-
-
-Request
-> &nbsp;&nbsp;**GET** `/tables`<br/>
-
-<br/>
-
-Response
->```json  
-> [
->   {
-> 	  "id":             `string`,
->  	  "name":           `string`,
-> 	  "data_type":      `string`,
-> 	  "dataset":        `string`,
-> 	  "assembly_ids": `[]string`,
-> 	  "metadata":        {...},
-> 	  "schema":          {...},
->   },
->   ...
-> ]
-> ```
-
-<br />
-<br />
-
-
-Request
-> &nbsp;&nbsp;**POST** `/tables`<br/>
->```json
-> {
->    "name":           `string`,
->    "data_type":      `string`,
->    "dataset":        `string`,
->    "metadata":        {...},
-> }
-> ```
-
-<br/>
-
-Response
->```json
-> {
->    "id":             `string`,
->    "name":           `string`,
->    "data_type":      `string`,
->    "dataset":        `string`,
->    "assembly_ids": `[]string`,
->    "metadata":        {...},
->    "schema":          {...},
-> }
-> ```
-
-
-<br />
-<br />
-
-
-Request
-> &nbsp;&nbsp;**GET** `/tables/:id`<br/>
-> &nbsp;&nbsp;&nbsp;path params: 
->   - id : **string (UUID)** `(required)`
-
-<br/>
-
-Response
->```json
-> {
->    "id":             `string`,
->    "name":           `string`,
->    "data_type":      `string`,
->    "dataset":        `string`,
->    "assembly_ids": `[]string`,
->    "metadata":        {...},
->    "schema":          {...},
-> }
-> ```
-
-<br />
-<br />
-
-
-Request
-> &nbsp;&nbsp;**GET** `/tables/:id/summary`<br/>
-> &nbsp;&nbsp;&nbsp;path params: 
->   - id : **string (UUID)** `(required)`
-
-<br/>
-
-Response
->```json
-> {
->    "count":               `int`,
->    "data_type_specific":  {...},
-> }
-> ```
-
-<br />
-<br />
-
-
-Request
-> &nbsp;&nbsp;**DELETE** `/tables/:id`<br/>
-> &nbsp;&nbsp;&nbsp;path params: 
->   - id : **string (UUID)** `(required)`
-
-<br/>
-
-Response
-
-`Status Code:` **204**
-
-<br />
-<br />
-
 
 
 
