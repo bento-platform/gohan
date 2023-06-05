@@ -20,7 +20,6 @@ import (
 	"gohan/api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
-	es7 "github.com/elastic/go-elasticsearch/v7"
 )
 
 const wildcardVariantsIndex = "variants-*"
@@ -111,7 +110,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	reference string, alternative string, alleles []string,
 	size int, sortByPosition c.SortDirection,
 	includeInfoInResultSet bool,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string,
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId,
 	getSampleIdsOnly bool) (map[string]interface{}, error) {
 
 	// begin building the request body.
@@ -169,13 +168,6 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 				},
 			},
 		})
-	}
-
-	if tableId != "" {
-		mustMap = append(mustMap, map[string]interface{}{
-			"query_string": map[string]interface{}{
-				"query": "tableId:" + tableId,
-			}})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}
@@ -325,7 +317,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string, alleles []string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string) (map[string]interface{}, error) {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -385,14 +377,6 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			},
 		})
 	}
-
-	if tableId != "" {
-		mustMap = append(mustMap, map[string]interface{}{
-			"query_string": map[string]interface{}{
-				"query": "tableId:" + tableId,
-			}})
-	}
-
 	rangeMapSlice := []map[string]interface{}{}
 
 	// TODO: make upperbound and lowerbound nilable, somehow?
@@ -507,7 +491,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	return result, nil
 }
 
-func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch.Client, keyword string, tableId string) (map[string]interface{}, error) {
+func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) (map[string]interface{}, error) {
 	// begin building the request body.
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
@@ -523,14 +507,6 @@ func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch
 				},
 			},
 		},
-	}
-
-	if tableId != "" {
-		aggMap["query"] = map[string]interface{}{
-			"match": map[string]interface{}{
-				"tableId": tableId,
-			},
-		}
 	}
 
 	// encode the query
@@ -585,72 +561,6 @@ func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch
 	}
 
 	fmt.Printf("Query End: %s\n", time.Now())
-
-	return result, nil
-}
-
-func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string) (map[string]interface{}, error) {
-
-	// cfg := c.(*contexts.GohanContext).Config
-	// es := c.(*contexts.GohanContext).Es7Client
-
-	if cfg.Debug {
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	}
-
-	var buf bytes.Buffer
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"match": map[string]interface{}{
-				"tableId": tableId,
-			},
-		},
-	}
-
-	// encode the query
-	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		log.Fatalf("Error encoding query: %s\n", err)
-		return nil, err
-	}
-
-	if cfg.Debug {
-		// view the outbound elasticsearch query
-		myString := string(buf.Bytes()[:])
-		fmt.Println(myString)
-	}
-
-	// Perform the delete request.
-	deleteRes, deleteErr := es.DeleteByQuery(
-		[]string{wildcardVariantsIndex},
-		bytes.NewReader(buf.Bytes()),
-	)
-	if deleteErr != nil {
-		fmt.Printf("Error getting response: %s\n", deleteErr)
-		return nil, deleteErr
-	}
-
-	defer deleteRes.Body.Close()
-
-	resultString := deleteRes.String()
-	if cfg.Debug {
-		fmt.Println(resultString)
-	}
-
-	// Prepare an empty interface
-	result := make(map[string]interface{})
-
-	// Unmarshal or Decode the JSON to the empty interface.
-	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
-	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
-	if !strings.Contains(bracketString, "200") {
-		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
-	}
-
-	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
-	if umErr != nil {
-		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
-		return nil, umErr
-	}
 
 	return result, nil
 }
