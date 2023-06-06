@@ -86,6 +86,10 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) map[strin
 	wg.Add(1)
 	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
 
+	// get distribution of datasets
+	wg.Add(1)
+	go callGetBucketsByKeyword("datasets", "dataset.keyword", &wg)
+
 	wg.Wait()
 
 	return resultsMap
