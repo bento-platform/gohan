@@ -18,6 +18,7 @@ type Variant struct {
 	Sample Sample `json:"sample"`
 
 	FileId     string       `json:"fileId"`
+	Dataset    string       `json:"dataset"`
 	AssemblyId c.AssemblyId `json:"assemblyId"`
 }
 

@@ -175,13 +175,15 @@ func main() {
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
-		gam.MandateAssemblyIdAttribute)
+		gam.MandateAssemblyIdAttribute,
+		gam.MandateDatasetAttribute)
 	e.GET("/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	e.GET("/variants/ingestion/stats", variantsMvc.VariantsIngestionStats)
 
 	e.GET("/private/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
-		gam.MandateAssemblyIdAttribute)
+		gam.MandateAssemblyIdAttribute,
+		gam.MandateDatasetAttribute)
 	e.GET("/private/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	// --
 

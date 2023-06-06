@@ -207,6 +207,7 @@ func VariantsIngest(c echo.Context) error {
 	}
 
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
+	dataset := c.QueryParam("dataset")
 
 	// -- optional filter
 	var (
@@ -408,7 +409,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
 				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, dataset, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
 				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				reqStat.State = ingest.Done
