@@ -105,13 +105,13 @@ func VariantsCountBySampleId(c echo.Context) error {
 
 func VariantsIngest(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsIngest hit!\n", time.Now())
-	cfg := c.(*contexts.GohanContext).Config
+	gc := c.(*contexts.GohanContext)
+
+	cfg := gc.Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
 	drsUsername := cfg.Drs.Username
 	drsPassword := cfg.Drs.Password
-
-	ingestionService := c.(*contexts.GohanContext).IngestionService
 
 	// retrieve query parameters (comman separated)
 	var fileNames []string
@@ -209,8 +209,9 @@ func VariantsIngest(c echo.Context) error {
 		// -----
 	}
 
+	// -- from query params
 	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
-	dataset := c.QueryParam("dataset")
+	dataset := gc.Dataset
 
 	// -- optional filter
 	var (
@@ -231,6 +232,7 @@ func VariantsIngest(c echo.Context) error {
 
 	// ingest vcf
 	// ingserviceMux := sync.RWMutex{}
+	ingestionService := gc.IngestionService
 	responseDtos := []ingest.IngestResponseDTO{}
 	for _, fileName := range fileNames {
 

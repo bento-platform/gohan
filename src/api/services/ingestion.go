@@ -33,6 +33,7 @@ import (
 	"github.com/Jeffail/gabs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esutil"
+	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -341,7 +342,7 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 }
 
 func (i *IngestionService) ProcessVcf(
-	gzippedFilePath string, drsFileId string, dataset string,
+	gzippedFilePath string, drsFileId string, dataset uuid.UUID,
 	assemblyId constants.AssemblyId, filterOutReferences bool,
 	lineProcessingConcurrencyLevel int) {
 

@@ -2,10 +2,12 @@ package contexts
 
 import (
 	"gohan/api/models"
+	"gohan/api/models/constants"
 	"gohan/api/services"
 	variantsService "gohan/api/services/variants"
 
 	es7 "github.com/elastic/go-elasticsearch/v7"
+	"github.com/google/uuid"
 	"github.com/labstack/echo"
 )
 
@@ -18,5 +20,12 @@ type (
 		Config           *models.Config
 		IngestionService *services.IngestionService
 		VariantService   *variantsService.VariantService
+		QueryParameters
+	}
+
+	// Convenient storage for relevant http context data
+	QueryParameters struct {
+		AssemblyId constants.AssemblyId
+		Dataset    uuid.UUID
 	}
 )

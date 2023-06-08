@@ -2,10 +2,12 @@ package middleware
 
 import (
 	"fmt"
+	"gohan/api/contexts"
 	"gohan/api/models/dtos/errors"
 	"gohan/api/utils"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/labstack/echo"
 )
 
@@ -30,6 +32,10 @@ func MandateDatasetAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset %s - please provide a valid uuid", dataset)))
 		}
 
-		return next(c)
+		// forward a type-safe value down the pipeline
+		gc := c.(*contexts.GohanContext)
+		gc.Dataset = uuid.MustParse(dataset)
+
+		return next(gc)
 	}
 }
