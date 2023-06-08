@@ -34,7 +34,6 @@ func MandateCalibratedAlleles(next echo.HandlerFunc) echo.HandlerFunc {
 
 			for i, a := range alleles {
 				alleles[i] = strings.Replace(a, "N", "?", -1)
-				// alleles = append(alleles, strings.Replace(a, "N", "?", -1))
 			}
 		}
 
