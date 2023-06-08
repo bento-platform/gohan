@@ -317,7 +317,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string,
 	reference string, alternative string, alleles []string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId, dataset string) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -377,6 +377,14 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			},
 		})
 	}
+
+	if dataset != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"query_string": map[string]interface{}{
+				"query": "dataset:" + dataset,
+			}})
+	}
+
 	rangeMapSlice := []map[string]interface{}{}
 
 	// TODO: make upperbound and lowerbound nilable, somehow?
@@ -507,6 +515,88 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 				},
 			},
 		},
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(aggMap); err != nil {
+		log.Fatalf("Error encoding aggMap: %s\n", err)
+		return nil, err
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	if cfg.Debug {
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	// Perform the search request.
+	res, searchErr := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex(wildcardVariantsIndex),
+		es.Search.WithBody(&buf),
+		es.Search.WithTrackTotalHits(true),
+		es.Search.WithPretty(),
+	)
+	if searchErr != nil {
+		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
+	}
+
+	defer res.Body.Close()
+
+	resultString := res.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Declared an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get buckets by keyword: got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
+	}
+
+	fmt.Printf("Query End: %s\n", time.Now())
+
+	return result, nil
+}
+
+func GetVariantsBucketsByKeywordAndDataset(cfg *models.Config, es *elasticsearch.Client, keyword string, dataset string) (map[string]interface{}, error) {
+	// begin building the request body.
+	var buf bytes.Buffer
+	aggMap := map[string]interface{}{
+		"size": "0",
+		"aggs": map[string]interface{}{
+			"items": map[string]interface{}{
+				"terms": map[string]interface{}{
+					"field": keyword,
+					"size":  "10000", // increases the number of buckets returned (default is 10)
+					"order": map[string]string{
+						"_key": "asc",
+					},
+				},
+			},
+		},
+	}
+
+	if dataset != "" {
+		aggMap["query"] = map[string]interface{}{
+			"match": map[string]interface{}{
+				"dataset": dataset,
+			},
+		}
 	}
 
 	// encode the query

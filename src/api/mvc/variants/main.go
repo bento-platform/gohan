@@ -19,6 +19,7 @@ import (
 	a "gohan/api/models/constants/assembly-id"
 	s "gohan/api/models/constants/sort"
 	"gohan/api/models/dtos"
+	"gohan/api/models/dtos/errors"
 	"gohan/api/models/indexes"
 	"gohan/api/models/ingest"
 	"gohan/api/mvc"
@@ -446,6 +447,64 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 	return c.JSON(http.StatusOK, m)
 }
 
+func GetDatasetSummary(c echo.Context) error {
+	fmt.Printf("[%s] - GetDatasetSummary hit!\n", time.Now())
+
+	cfg := c.(*contexts.GohanContext).Config
+	es := c.(*contexts.GohanContext).Es7Client
+	// obtain dataset from the path
+	dataset := c.Param("dataset")
+
+	// dataset must be provided
+	if dataset == "" {
+		fmt.Println("Missing dataset")
+		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("Missing dataset - please try again"))
+	}
+
+	totalVariantsCount := 0.0
+
+	docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+		"*", 0, 0,
+		"", "", // note : both variantId and sampleId are deliberately set to ""
+		"", "", []string{}, "", "", dataset)
+	if countError != nil {
+		fmt.Printf("Failed to count variants in dataset %s\n", dataset)
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
+	}
+
+	totalVariantsCount = docs["count"].(float64)
+
+	// obtain number of samples associated with this tableId
+	resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset)
+	if bucketsError != nil {
+		fmt.Println(resultingBuckets)
+	}
+
+	// retrieve aggregations.items.buckets
+	// and count number of samples
+	bucketsMapped := []interface{}{}
+	if aggs, aggsOk := resultingBuckets["aggregations"]; aggsOk {
+		aggsMapped := aggs.(map[string]interface{})
+
+		if items, itemsOk := aggsMapped["items"]; itemsOk {
+			itemsMapped := items.(map[string]interface{})
+
+			if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
+				bucketsMapped = buckets.([]interface{})
+			}
+		}
+	}
+
+	fmt.Printf("Successfully Obtained Dataset '%s' Summary \n", dataset)
+
+	return c.JSON(http.StatusOK, &dtos.DatasetSummaryResponseDto{
+		Count: int(totalVariantsCount),
+		DataTypeSpecific: map[string]interface{}{
+			"samples": len(bucketsMapped),
+		},
+	})
+}
+
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
 	cfg := c.(*contexts.GohanContext).Config
 
@@ -718,7 +777,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					_id, "", // note : "" is for sampleId
-					reference, alternative, alleles, genotype, assemblyId)
+					reference, alternative, alleles, genotype, assemblyId, "")
 			} else {
 				// implied sampleId query
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
@@ -727,7 +786,7 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
 					"", _id, // note : "" is for variantId
-					reference, alternative, alleles, genotype, assemblyId)
+					reference, alternative, alleles, genotype, assemblyId, "")
 			}
 
 			if countError != nil {

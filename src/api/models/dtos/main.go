@@ -59,6 +59,12 @@ type VariantCall struct {
 	DocumentId string               `json:"documentId,omitempty"`
 }
 
+// --- Dataset
+type DatasetSummaryResponseDto struct {
+	Count            int                    `json:"count"`
+	DataTypeSpecific map[string]interface{} `json:"data_type_specific"` // TODO: type-safety?
+}
+
 // -- Genes
 type GenesResponseDTO struct {
 	Status  int            `json:"status"`

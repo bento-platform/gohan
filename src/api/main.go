@@ -172,6 +172,9 @@ func main() {
 		gam.MandateSampleIdsSingularAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 
+	// --- Dataset
+	e.GET("/datasets/:dataset/summary", variantsMvc.GetDatasetSummary)
+
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
