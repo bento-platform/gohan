@@ -2,6 +2,7 @@ package contexts
 
 import (
 	"gohan/api/models"
+	"gohan/api/models/constants"
 	"gohan/api/services"
 	variantsService "gohan/api/services/variants"
 
@@ -18,5 +19,11 @@ type (
 		Config           *models.Config
 		IngestionService *services.IngestionService
 		VariantService   *variantsService.VariantService
+		QueryParameters
+	}
+
+	// Convenient storage for relevant http context data
+	QueryParameters struct {
+		AssemblyId constants.AssemblyId
 	}
 )

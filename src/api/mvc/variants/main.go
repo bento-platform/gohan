@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"gohan/api/contexts"
-	a "gohan/api/models/constants/assembly-id"
 	s "gohan/api/models/constants/sort"
 	"gohan/api/models/dtos"
 	"gohan/api/models/indexes"
@@ -102,13 +101,16 @@ func VariantsCountBySampleId(c echo.Context) error {
 
 func VariantsIngest(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsIngest hit!\n", time.Now())
-	cfg := c.(*contexts.GohanContext).Config
+	gc := c.(*contexts.GohanContext)
+
+	cfg := gc.Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
 	drsUsername := cfg.Drs.Username
 	drsPassword := cfg.Drs.Password
 
-	ingestionService := c.(*contexts.GohanContext).IngestionService
+	// query parameters
+	assemblyId := gc.AssemblyId
 
 	// retrieve query parameters (comman separated)
 	var fileNames []string
@@ -206,7 +208,6 @@ func VariantsIngest(c echo.Context) error {
 		// -----
 	}
 
-	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
 	tableId := c.QueryParam("tableId")
 	// TODO: validate table exists in elasticsearch
 
@@ -228,8 +229,10 @@ func VariantsIngest(c echo.Context) error {
 	fmt.Printf("Ingest Start: %s\n", startTime)
 
 	// ingest vcf
-	// ingserviceMux := sync.RWMutex{}
-	responseDtos := []ingest.IngestResponseDTO{}
+	var (
+		ingestionService = gc.IngestionService
+		responseDtos     = []ingest.IngestResponseDTO{}
+	)
 	for _, fileName := range fileNames {
 
 		// check if there is an already existing ingestion request state
