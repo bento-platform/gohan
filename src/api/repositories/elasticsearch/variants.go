@@ -611,6 +611,8 @@ func GetVariantsBucketsByKeywordAndDataset(cfg *models.Config, es *elasticsearch
 		fmt.Println(myString)
 	}
 
+	fmt.Printf("Query Start: %s\n", time.Now())
+
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}

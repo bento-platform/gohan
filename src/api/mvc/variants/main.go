@@ -33,6 +33,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/labstack/echo"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func VariantsIngestionStats(c echo.Context) error {
@@ -461,48 +463,66 @@ func GetDatasetSummary(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("Missing dataset - please try again"))
 	}
 
-	totalVariantsCount := 0.0
+	// parallelize these two es queries
 
-	docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
-		"*", 0, 0,
-		"", "", // note : both variantId and sampleId are deliberately set to ""
-		"", "", []string{}, "", "", dataset)
-	if countError != nil {
-		fmt.Printf("Failed to count variants in dataset %s\n", dataset)
-		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
-	}
+	var (
+		totalVariantsCount = 0.0
+		bucketsMapped      = []interface{}{}
+		g                  = new(errgroup.Group)
+	)
+	// request #1
+	g.Go(func() error {
+		docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+			"*", 0, 0,
+			"", "", // note : both variantId and sampleId are deliberately set to ""
+			"", "", []string{}, "", "", dataset)
+		if countError != nil {
+			fmt.Printf("Failed to count variants in dataset %s\n", dataset)
+			return countError
+		}
 
-	totalVariantsCount = docs["count"].(float64)
+		totalVariantsCount = docs["count"].(float64)
+		return nil
+	})
 
-	// obtain number of samples associated with this tableId
-	resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset)
-	if bucketsError != nil {
-		fmt.Println(resultingBuckets)
-	}
+	// request #2
+	g.Go(func() error {
+		// obtain number of samples associated with this tableId
+		resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset)
+		if bucketsError != nil {
+			fmt.Printf("Failed to bucket dataset %s variants\n", dataset)
+			return bucketsError
+		}
 
-	// retrieve aggregations.items.buckets
-	// and count number of samples
-	bucketsMapped := []interface{}{}
-	if aggs, aggsOk := resultingBuckets["aggregations"]; aggsOk {
-		aggsMapped := aggs.(map[string]interface{})
+		// retrieve aggregations.items.buckets
+		// and count number of samples
+		if aggs, aggsOk := resultingBuckets["aggregations"]; aggsOk {
+			aggsMapped := aggs.(map[string]interface{})
 
-		if items, itemsOk := aggsMapped["items"]; itemsOk {
-			itemsMapped := items.(map[string]interface{})
+			if items, itemsOk := aggsMapped["items"]; itemsOk {
+				itemsMapped := items.(map[string]interface{})
 
-			if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
-				bucketsMapped = buckets.([]interface{})
+				if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
+					bucketsMapped = buckets.([]interface{})
+				}
 			}
 		}
-	}
-
-	fmt.Printf("Successfully Obtained Dataset '%s' Summary \n", dataset)
-
-	return c.JSON(http.StatusOK, &dtos.DatasetSummaryResponseDto{
-		Count: int(totalVariantsCount),
-		DataTypeSpecific: map[string]interface{}{
-			"samples": len(bucketsMapped),
-		},
+		return nil
 	})
+
+	// wait for all HTTP fetches to complete.
+	if err := g.Wait(); err == nil {
+		fmt.Printf("Successfully Obtained Dataset '%s' Summary \n", dataset)
+
+		return c.JSON(http.StatusOK, &dtos.DatasetSummaryResponseDto{
+			Count: int(totalVariantsCount),
+			DataTypeSpecific: map[string]interface{}{
+				"samples": len(bucketsMapped),
+			},
+		})
+	} else {
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
+	}
 }
 
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
