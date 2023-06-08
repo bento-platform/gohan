@@ -327,11 +327,7 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	es := gc.Es7Client
 
 	// Chromosome search term
-	chromosomeSearchTerm := c.QueryParam("chromosome")
-	if len(chromosomeSearchTerm) == 0 {
-		// if no chromosome is provided, assume "wildcard" search
-		chromosomeSearchTerm = "*"
-	}
+	chromosomeSearchTerm := gc.Chromosome
 
 	// Name search term
 	term := c.QueryParam("term")

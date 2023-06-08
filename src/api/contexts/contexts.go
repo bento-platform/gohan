@@ -15,17 +15,18 @@ type (
 	//  an elasticsearch client and other variables
 	GohanContext struct {
 		echo.Context
+		QueryParameters
 		Es7Client        *es7.Client
 		Config           *models.Config
 		IngestionService *services.IngestionService
 		VariantService   *variantsService.VariantService
-		QueryParameters
 	}
 
 	// Convenient storage for relevant http context data
 	QueryParameters struct {
 		AssemblyId constants.AssemblyId
 		Alleles    []string
+		Chromosome string
 		PositionBounds
 	}
 

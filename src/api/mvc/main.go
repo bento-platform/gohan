@@ -14,11 +14,7 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 	gc := c.(*contexts.GohanContext)
 	es := gc.Es7Client
 
-	chromosome := c.QueryParam("chromosome")
-	if len(chromosome) == 0 {
-		// if no chromosome is provided, assume "wildcard" search
-		chromosome = "*"
-	}
+	chromosome := gc.Chromosome
 
 	lowerBound := gc.LowerBound
 	upperBound := gc.UpperBound
