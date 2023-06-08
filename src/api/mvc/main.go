@@ -4,8 +4,6 @@ import (
 	"gohan/api/contexts"
 	"gohan/api/models/constants"
 	gq "gohan/api/models/constants/genotype-query"
-	"log"
-	"strconv"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
@@ -22,29 +20,8 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 		chromosome = "*"
 	}
 
-	lowerBoundQP := c.QueryParam("lowerBound")
-	var (
-		lowerBound int
-		lbErr      error
-	)
-	if len(lowerBoundQP) > 0 {
-		lowerBound, lbErr = strconv.Atoi(lowerBoundQP)
-		if lbErr != nil {
-			log.Fatal(lbErr)
-		}
-	}
-
-	upperBoundQP := c.QueryParam("upperBound")
-	var (
-		upperBound int
-		ubErr      error
-	)
-	if len(upperBoundQP) > 0 {
-		upperBound, ubErr = strconv.Atoi(upperBoundQP)
-		if ubErr != nil {
-			log.Fatal(ubErr)
-		}
-	}
+	lowerBound := gc.LowerBound
+	upperBound := gc.UpperBound
 
 	reference := c.QueryParam("reference")
 	alternative := c.QueryParam("alternative")

@@ -26,5 +26,11 @@ type (
 	QueryParameters struct {
 		AssemblyId constants.AssemblyId
 		Alleles    []string
+		PositionBounds
+	}
+
+	PositionBounds struct {
+		LowerBound int
+		UpperBound int
 	}
 )
