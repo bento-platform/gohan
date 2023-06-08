@@ -27,6 +27,7 @@ type (
 		AssemblyId constants.AssemblyId
 		Alleles    []string
 		Chromosome string
+		Genotype   constants.GenotypeQuery
 		PositionBounds
 	}
 

@@ -3,7 +3,6 @@ package mvc
 import (
 	"gohan/api/contexts"
 	"gohan/api/models/constants"
-	gq "gohan/api/models/constants/genotype-query"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
@@ -32,14 +31,7 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 	reference = strings.Replace(reference, "N", "?", -1)
 	alternative = strings.Replace(alternative, "N", "?", -1)
 
-	genotype := gq.UNCALLED
-	genotypeQP := c.QueryParam("genotype")
-	if len(genotypeQP) > 0 {
-		if parsedGenotype, gErr := gq.CastToGenoType(genotypeQP); gErr == nil {
-			genotype = parsedGenotype
-		}
-	}
-
+	genotype := gc.Genotype
 	assemblyId := gc.AssemblyId
 
 	tableId := c.QueryParam("tableId")
