@@ -49,8 +49,7 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 	reference := c.QueryParam("reference")
 	alternative := c.QueryParam("alternative")
 
-	var alleles []string
-	allelesQP := strings.Split(c.QueryParam("alleles"), ",")
+	alleles := gc.Alleles
 
 	// reference, alternative and alleles can have the
 	// single-wildcard character 'N', which adheres to
@@ -59,11 +58,6 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 	// swap all 'N's into '?'s for elasticsearch
 	reference = strings.Replace(reference, "N", "?", -1)
 	alternative = strings.Replace(alternative, "N", "?", -1)
-	if len(allelesQP) > 0 && allelesQP[0] != "" { // check it isn't empty
-		for _, a := range allelesQP {
-			alleles = append(alleles, strings.Replace(a, "N", "?", -1))
-		}
-	}
 
 	genotype := gq.UNCALLED
 	genotypeQP := c.QueryParam("genotype")

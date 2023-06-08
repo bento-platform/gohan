@@ -25,5 +25,6 @@ type (
 	// Convenient storage for relevant http context data
 	QueryParameters struct {
 		AssemblyId constants.AssemblyId
+		Alleles    []string
 	}
 )
