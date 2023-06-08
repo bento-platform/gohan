@@ -35,6 +35,6 @@ func ValidatePotentialGenotypeQueryParameter(next echo.HandlerFunc) echo.Handler
 		}
 
 		gc.Genotype = genotype
-		return next(c)
+		return next(gc)
 	}
 }

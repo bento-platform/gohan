@@ -55,6 +55,6 @@ func MandateCalibratedBounds(next echo.HandlerFunc) echo.HandlerFunc {
 
 		gc.LowerBound = lowerBound
 		gc.UpperBound = upperBound
-		return next(c)
+		return next(gc)
 	}
 }

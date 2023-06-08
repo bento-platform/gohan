@@ -38,6 +38,6 @@ func MandateCalibratedAlleles(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		gc.Alleles = alleles
-		return next(c)
+		return next(gc)
 	}
 }
