@@ -39,15 +39,15 @@ func OptionalAssemblyIdAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 
 		// check for assemblyId query parameter
 		assemblyId := c.QueryParam("assemblyId")
-		if len(assemblyId) >= 0 {
+		if len(assemblyId) > 0 {
 			if !assid.IsKnownAssemblyId(assemblyId) {
 				// if an id was provided and was invalid, return an error
 				return echo.NewHTTPError(http.StatusBadRequest, "Invalid assemblyId!")
 			}
-			gc.AssemblyId = assid.Unknown
-		} else {
 			// forward a type-safe value down the pipeline
 			gc.AssemblyId = constants.AssemblyId(assemblyId)
+		} else {
+			gc.AssemblyId = assid.Unknown
 		}
 
 		return next(gc)
