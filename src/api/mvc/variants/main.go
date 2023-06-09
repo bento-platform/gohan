@@ -53,12 +53,10 @@ func VariantsGetByVariantId(c echo.Context) error {
 }
 func VariantsGetBySampleId(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsGetBySampleId hit!\n", time.Now())
+
 	// retrieve sample Ids from query parameter (comma separated)
-	sampleIds := strings.Split(c.QueryParam("ids"), ",")
-	if len(sampleIds[0]) == 0 {
-		// if no ids were provided, assume "wildcard" search
-		sampleIds = []string{"*"}
-	}
+	gc := c.(*contexts.GohanContext)
+	sampleIds := gc.SampleIds
 
 	return executeGetByIds(c, sampleIds, false, false)
 }
@@ -88,15 +86,12 @@ func VariantsCountByVariantId(c echo.Context) error {
 }
 func VariantsCountBySampleId(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsCountBySampleId hit!\n", time.Now())
-	// retrieve single sample id from query parameter and map to a list
-	// to conform to function signature
-	singleSampleIdSlice := []string{c.QueryParam("id")}
-	if len(singleSampleIdSlice[0]) == 0 {
-		// if no id was provided, assume "wildcard" search
-		singleSampleIdSlice = []string{"*"}
-	}
+	// retrieve single sample id from query parameter already mapped
+	// to a slice to conform to function signature
+	gc := c.(*contexts.GohanContext)
+	expectedSingleSampleIdSlice := gc.SampleIds
 
-	return executeCountByIds(c, singleSampleIdSlice, false)
+	return executeCountByIds(c, expectedSingleSampleIdSlice, false)
 }
 
 func VariantsIngest(c echo.Context) error {

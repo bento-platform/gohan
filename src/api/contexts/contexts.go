@@ -28,6 +28,7 @@ type (
 		Alleles    []string
 		Chromosome string
 		Genotype   constants.GenotypeQuery
+		SampleIds  []string
 		PositionBounds
 	}
 
