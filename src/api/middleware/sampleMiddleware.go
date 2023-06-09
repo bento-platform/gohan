@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"gohan/api/contexts"
 	"net/http"
 	"strings"
 
@@ -8,10 +9,12 @@ import (
 )
 
 /*
-	Echo middleware to ensure a singular `id` HTTP query parameter was provided
+Echo middleware to ensure a singular `id` HTTP query parameter was provided
 */
 func MandateSampleIdsSingularAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		gc := c.(*contexts.GohanContext)
+
 		// check for id query parameter
 		sampleId := c.QueryParam("id")
 		if len(sampleId) == 0 {
@@ -19,22 +22,27 @@ func MandateSampleIdsSingularAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, "Missing 'id' query parameter for sample id querying!")
 		}
 
-		return next(c)
+		gc.SampleIds = append(gc.SampleIds, sampleId)
+		return next(gc)
 	}
 }
 
 /*
-	Echo middleware to ensure a pluralized `id` (spelled `ids`) HTTP query parameter was provided
+Echo middleware to ensure a pluralized `id` (spelled `ids`) HTTP query parameter was provided
 */
 func MandateSampleIdsPluralAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		gc := c.(*contexts.GohanContext)
+
 		// check for id's query parameter
-		sampleIds := strings.Split(c.QueryParam("ids"), ",")
-		if len(sampleIds) == 0 {
+		sampleIdQP := c.QueryParam("ids")
+		if len(sampleIdQP) == 0 {
 			// if no ids were provided return an error
 			return echo.NewHTTPError(http.StatusBadRequest, "Missing 'ids' query parameter for sample id querying!")
 		}
+		sampleIds := strings.Split(sampleIdQP, ",")
 
-		return next(c)
+		gc.SampleIds = append(gc.SampleIds, sampleIds...)
+		return next(gc)
 	}
 }

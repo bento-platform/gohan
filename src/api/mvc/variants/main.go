@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"gohan/api/contexts"
-	a "gohan/api/models/constants/assembly-id"
 	s "gohan/api/models/constants/sort"
 	"gohan/api/models/dtos"
 	"gohan/api/models/indexes"
@@ -54,12 +53,10 @@ func VariantsGetByVariantId(c echo.Context) error {
 }
 func VariantsGetBySampleId(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsGetBySampleId hit!\n", time.Now())
+
 	// retrieve sample Ids from query parameter (comma separated)
-	sampleIds := strings.Split(c.QueryParam("ids"), ",")
-	if len(sampleIds[0]) == 0 {
-		// if no ids were provided, assume "wildcard" search
-		sampleIds = []string{"*"}
-	}
+	gc := c.(*contexts.GohanContext)
+	sampleIds := gc.SampleIds
 
 	return executeGetByIds(c, sampleIds, false, false)
 }
@@ -89,26 +86,26 @@ func VariantsCountByVariantId(c echo.Context) error {
 }
 func VariantsCountBySampleId(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsCountBySampleId hit!\n", time.Now())
-	// retrieve single sample id from query parameter and map to a list
-	// to conform to function signature
-	singleSampleIdSlice := []string{c.QueryParam("id")}
-	if len(singleSampleIdSlice[0]) == 0 {
-		// if no id was provided, assume "wildcard" search
-		singleSampleIdSlice = []string{"*"}
-	}
+	// retrieve single sample id from query parameter already mapped
+	// to a slice to conform to function signature
+	gc := c.(*contexts.GohanContext)
+	expectedSingleSampleIdSlice := gc.SampleIds
 
-	return executeCountByIds(c, singleSampleIdSlice, false)
+	return executeCountByIds(c, expectedSingleSampleIdSlice, false)
 }
 
 func VariantsIngest(c echo.Context) error {
 	fmt.Printf("[%s] - VariantsIngest hit!\n", time.Now())
-	cfg := c.(*contexts.GohanContext).Config
+	gc := c.(*contexts.GohanContext)
+
+	cfg := gc.Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
 	drsUsername := cfg.Drs.Username
 	drsPassword := cfg.Drs.Password
 
-	ingestionService := c.(*contexts.GohanContext).IngestionService
+	// query parameters
+	assemblyId := gc.AssemblyId
 
 	// retrieve query parameters (comman separated)
 	var fileNames []string
@@ -206,7 +203,6 @@ func VariantsIngest(c echo.Context) error {
 		// -----
 	}
 
-	assemblyId := a.CastToAssemblyId(c.QueryParam("assemblyId"))
 	tableId := c.QueryParam("tableId")
 	// TODO: validate table exists in elasticsearch
 
@@ -228,8 +224,10 @@ func VariantsIngest(c echo.Context) error {
 	fmt.Printf("Ingest Start: %s\n", startTime)
 
 	// ingest vcf
-	// ingserviceMux := sync.RWMutex{}
-	responseDtos := []ingest.IngestResponseDTO{}
+	var (
+		ingestionService = gc.IngestionService
+		responseDtos     = []ingest.IngestResponseDTO{}
+	)
 	for _, fileName := range fileNames {
 
 		// check if there is an already existing ingestion request state

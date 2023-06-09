@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"gohan/api/contexts"
 	"gohan/api/models/dtos/errors"
 	"net/http"
 	"strings"
@@ -10,24 +11,33 @@ import (
 
 func MandateCalibratedAlleles(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		if len(c.QueryParam("alleles")) > 0 {
-			allelesQP := strings.Split(c.QueryParam("alleles"), ",")
+		gc := c.(*contexts.GohanContext)
+
+		var alleles []string
+		var allelesQP string = c.QueryParam("alleles")
+		if len(allelesQP) > 0 {
+			alleles = strings.Split(allelesQP, ",")
 
 			// ensure the allele query is properly formatted
-			if allelesQP[len(allelesQP)-1] == "" {
+			if alleles[len(alleles)-1] == "" {
 				return echo.NewHTTPError(
 					http.StatusBadRequest,
 					errors.CreateSimpleBadRequest("Found an empty allele! Please double check your request!"))
 			}
 
 			// ensure no more than 2 alleles are provided at once
-			if len(allelesQP) > 2 {
+			if len(alleles) > 2 {
 				return echo.NewHTTPError(
 					http.StatusBadRequest,
 					errors.CreateSimpleBadRequest("Too many alleles! Please only provide 1 or 2"))
 			}
+
+			for i, a := range alleles {
+				alleles[i] = strings.Replace(a, "N", "?", -1)
+			}
 		}
 
-		return next(c)
+		gc.Alleles = alleles
+		return next(gc)
 	}
 }

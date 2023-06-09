@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"gohan/api/contexts"
 	"net/http"
 	"strconv"
 
@@ -9,6 +10,8 @@ import (
 
 func MandateCalibratedBounds(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		gc := c.(*contexts.GohanContext)
+
 		var (
 			lowerBound int
 			upperBound int
@@ -50,6 +53,8 @@ func MandateCalibratedBounds(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, "Invalid lower and upper bounds!")
 		}
 
-		return next(c)
+		gc.LowerBound = lowerBound
+		gc.UpperBound = upperBound
+		return next(gc)
 	}
 }
