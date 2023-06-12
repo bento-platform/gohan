@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"fmt"
 	"gohan/api/contexts"
 	"gohan/api/models/dtos/errors"
+	"gohan/api/utils"
 	"net/http"
 	"strings"
 
@@ -32,8 +34,23 @@ func MandateCalibratedAlleles(next echo.HandlerFunc) echo.HandlerFunc {
 					errors.CreateSimpleBadRequest("Too many alleles! Please only provide 1 or 2"))
 			}
 
-			for i, a := range alleles {
-				alleles[i] = strings.Replace(a, "N", "?", -1)
+			// check validity of each provided character
+			for i, allele := range alleles {
+				// - accept lower cases, but transform to upper for elasticsearch (case sensitive)
+				upperAllele := strings.ToUpper(allele)
+				// - check validity of the rest
+				for _, nuc := range upperAllele {
+					if !utils.StringInSlice(string(nuc), utils.AcceptedNucleotideCharacters) {
+						// return status 400 if any allele is incorrect
+						return echo.NewHTTPError(
+							http.StatusBadRequest,
+							errors.CreateSimpleBadRequest(fmt.Sprintf("Nucleotide %s unacceptable! Please double check and try again.", string(nuc))))
+					}
+				}
+				// - replace 'N' with uppercase '?' for elasticsearch
+				upperAllele = strings.Replace(upperAllele, "N", "?", -1)
+
+				alleles[i] = upperAllele
 			}
 		}
 
