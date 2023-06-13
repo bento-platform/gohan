@@ -80,7 +80,7 @@
   # move vcf.gz files to `$GOHAN_API_VCF_PATH`
 
   # ingest vcf.gz
-  curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutReferences=true
+  curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutReferences=true\&dataset=00000000-0000-0000-0000-000000000000
   
   # monitor progress:
   curl -k https://gohan.local/variants/ingestion/requests
