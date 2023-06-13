@@ -21,13 +21,6 @@ type (
 		Config           *models.Config
 		IngestionService *services.IngestionService
 		VariantService   *variantsService.VariantService
-		QueryParameters
-	}
-
-	// Convenient storage for relevant http context data
-	QueryParameters struct {
-		AssemblyId constants.AssemblyId
-		Dataset    uuid.UUID
 	}
 
 	// Convenient storage for relevant http context data
@@ -37,6 +30,7 @@ type (
 		Chromosome string
 		Genotype   constants.GenotypeQuery
 		SampleIds  []string
+		Dataset    uuid.UUID
 		PositionBounds
 	}
 

@@ -109,6 +109,7 @@ func VariantsIngest(c echo.Context) error {
 
 	// query parameters
 	assemblyId := gc.AssemblyId
+	dataset := gc.Dataset
 
 	// retrieve query parameters (comman separated)
 	var fileNames []string
@@ -205,10 +206,6 @@ func VariantsIngest(c echo.Context) error {
 		}
 		// -----
 	}
-
-	// -- from query params
-	assemblyId := gc.AssemblyId
-	dataset := gc.Dataset
 
 	// -- optional filter
 	var (

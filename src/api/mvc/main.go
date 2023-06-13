@@ -3,6 +3,8 @@ package mvc
 import (
 	"gohan/api/contexts"
 	"gohan/api/models/constants"
+	a "gohan/api/models/constants/assembly-id"
+	gq "gohan/api/models/constants/genotype-query"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
