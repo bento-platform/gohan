@@ -667,32 +667,26 @@ func addAllelesToShouldMap(alleles []string, genotype c.GenotypeQuery, allelesSh
 			if genotype == gq.ALTERNATE || genotype == gq.REFERENCE {
 				// haploid case
 				// - queried allele should be present on the left side of the pair with an empty right side
-				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": allelesShouldMapBuilder(alleles[0], "AND", "\"\"")})
+				allelesShouldMap = append(allelesShouldMap, allelesShouldMapBuilder(alleles[0], "AND", "\"\""))
 
 			} else {
 				// assume diploid-type of search as default
 				// - queried allele can be present on either side of the pair
-				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": allelesShouldMapBuilder(alleles[0], "OR", alleles[0])})
+				allelesShouldMap = append(allelesShouldMap, allelesShouldMapBuilder(alleles[0], "OR", alleles[0]))
 			}
 		case 2:
 			if genotype == gq.ALTERNATE || genotype == gq.REFERENCE {
 				// haploid case
 				// - either queried allele can be present on the left side of the pair with an empty right side
-				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": allelesShouldMapBuilder(alleles[0], "AND", "\"\"")})
-				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": allelesShouldMapBuilder(alleles[1], "AND", "\"\"")})
+				allelesShouldMap = append(allelesShouldMap, allelesShouldMapBuilder(alleles[0], "AND", "\"\""))
+				allelesShouldMap = append(allelesShouldMap, allelesShouldMapBuilder(alleles[1], "AND", "\"\""))
 
 			} else {
 				// assume diploid-type of search as default
 				// - treat as a left/right pair;
 				//   either queried allele can be present on the left or right side of the pair
-				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": allelesShouldMapBuilder(alleles[0], "AND", alleles[1])})
-				allelesShouldMap = append(allelesShouldMap, map[string]interface{}{
-					"query_string": allelesShouldMapBuilder(alleles[1], "AND", alleles[0])})
+				allelesShouldMap = append(allelesShouldMap, allelesShouldMapBuilder(alleles[0], "AND", alleles[1]))
+				allelesShouldMap = append(allelesShouldMap, allelesShouldMapBuilder(alleles[1], "AND", alleles[0]))
 			}
 			// TODO: triploid ?
 		}

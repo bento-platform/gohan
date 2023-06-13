@@ -322,15 +322,12 @@ func GetAllGeneIngestionRequests(c echo.Context) error {
 
 func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	fmt.Printf("[%s] - GenesGetByNomenclatureWildcard hit!\n", time.Now())
-	cfg := c.(*contexts.GohanContext).Config
-	es := c.(*contexts.GohanContext).Es7Client
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
 
 	// Chromosome search term
-	chromosomeSearchTerm := c.QueryParam("chromosome")
-	if len(chromosomeSearchTerm) == 0 {
-		// if no chromosome is provided, assume "wildcard" search
-		chromosomeSearchTerm = "*"
-	}
+	chromosomeSearchTerm := gc.Chromosome
 
 	// Name search term
 	term := c.QueryParam("term")
@@ -338,10 +335,10 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	// Assembly ID
 	// perform wildcard search if empty/random parameter is passed
 	// - set to Unknown to trigger it
-	assId := assemblyId.Unknown
-	if assemblyId.CastToAssemblyId(c.QueryParam("assemblyId")) != assemblyId.Unknown {
+	var assId constants.AssemblyId
+	if gc.AssemblyId != assemblyId.Unknown {
 		// retrieve passed parameter if is valid
-		assId = assemblyId.CastToAssemblyId(c.QueryParam("assemblyId"))
+		assId = gc.AssemblyId
 	}
 
 	// Size

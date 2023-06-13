@@ -16,6 +16,7 @@ type (
 	//  an elasticsearch client and other variables
 	GohanContext struct {
 		echo.Context
+		QueryParameters
 		Es7Client        *es7.Client
 		Config           *models.Config
 		IngestionService *services.IngestionService
@@ -27,5 +28,20 @@ type (
 	QueryParameters struct {
 		AssemblyId constants.AssemblyId
 		Dataset    uuid.UUID
+	}
+
+	// Convenient storage for relevant http context data
+	QueryParameters struct {
+		AssemblyId constants.AssemblyId
+		Alleles    []string
+		Chromosome string
+		Genotype   constants.GenotypeQuery
+		SampleIds  []string
+		PositionBounds
+	}
+
+	PositionBounds struct {
+		LowerBound int
+		UpperBound int
 	}
 )
