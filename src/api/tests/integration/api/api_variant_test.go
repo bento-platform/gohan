@@ -27,12 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	VariantsOverviewPath                      string = "%s/variants/overview"
-	VariantsGetBySampleIdsPathWithQueryString string = "%s/variants/get/by/sampleId%s"
-	IngestionRequestsPath                     string = "%s/variants/ingestion/requests"
-)
-
 func TestWithInvalidAuthenticationToken(t *testing.T) {
 	cfg := common.InitConfig()
 
@@ -60,14 +54,14 @@ func TestWithInvalidAuthenticationToken(t *testing.T) {
 func TestVariantsOverview(t *testing.T) {
 	cfg := common.InitConfig()
 
-	overviewJson := getVariantsOverview(t, cfg)
+	overviewJson := common.GetVariantsOverview(t, cfg)
 	assert.NotNil(t, overviewJson)
 }
 
 func TestGetIngestionRequests(t *testing.T) {
 	cfg := common.InitConfig()
 
-	request, _ := http.NewRequest("GET", fmt.Sprintf(IngestionRequestsPath, cfg.Api.Url), nil)
+	request, _ := http.NewRequest("GET", fmt.Sprintf(common.IngestionRequestsPath, cfg.Api.Url), nil)
 
 	client := &http.Client{}
 	response, responseErr := client.Do(request)
@@ -657,50 +651,9 @@ func buildQueryAndMakeGetVariantsCall(
 	if commaDeliminatedAlleles != "" {
 		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&alleles=%s", commaDeliminatedAlleles))
 	}
-	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
+	url := fmt.Sprintf(common.VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
 
 	return makeGetVariantsCall(url, ignoreStatusCode, _t)
-}
-
-func getVariantsOverview(_t *testing.T, _cfg *models.Config) map[string]interface{} {
-	request, _ := http.NewRequest("GET", fmt.Sprintf(VariantsOverviewPath, _cfg.Api.Url), nil)
-
-	client := &http.Client{}
-	response, responseErr := client.Do(request)
-	assert.Nil(_t, responseErr)
-
-	defer response.Body.Close()
-
-	// this test (at the time of writing) will only work if authorization is disabled
-	shouldBe := 200
-	assert.Equal(_t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET / Status: %s ; Should be %d", response.Status, shouldBe))
-
-	//	-- interpret array of ingestion requests from response
-	overviewRespBody, overviewRespBodyErr := ioutil.ReadAll(response.Body)
-	assert.Nil(_t, overviewRespBodyErr)
-
-	//	--- transform body bytes to string
-	overviewRespBodyString := string(overviewRespBody)
-
-	//	-- check for json error
-	var overviewRespJson map[string]interface{}
-	overviewJsonUnmarshallingError := json.Unmarshal([]byte(overviewRespBodyString), &overviewRespJson)
-	assert.Nil(_t, overviewJsonUnmarshallingError)
-
-	// -- insure it's an empty array
-	chromosomesKey, ckOk := overviewRespJson["chromosomes"]
-	assert.True(_t, ckOk)
-	assert.NotNil(_t, chromosomesKey)
-
-	variantIDsKey, vidkOk := overviewRespJson["variantIDs"]
-	assert.True(_t, vidkOk)
-	assert.NotNil(_t, variantIDsKey)
-
-	sampleIDsKey, sidkOk := overviewRespJson["sampleIDs"]
-	assert.True(_t, sidkOk)
-	assert.NotNil(_t, sampleIDsKey)
-
-	return overviewRespJson
 }
 
 func getOverviewResultCombinations(chromosomeStruct interface{}, sampleIdsStruct interface{}, assemblyIdsStruct interface{}) [][]string {
@@ -721,7 +674,7 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 	cfg := common.InitConfig()
 
 	// retrieve the overview
-	overviewJson := getVariantsOverview(_t, cfg)
+	overviewJson := common.GetVariantsOverview(_t, cfg)
 
 	// ensure the response is valid
 	// TODO: error check instead of nil check

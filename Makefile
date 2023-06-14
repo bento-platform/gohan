@@ -207,8 +207,7 @@ test-api: init prepare-test-config
 	
 	cd src/api && \
 	go clean -cache && \
-	go test ./tests/unit/... -v && \
-	go test ./tests/integration/api/api_variant_test.go -v && \
+	go test ./tests/build/... -v && \
 	cd ../..
 
 	docker compose -f docker-compose.test.yaml stop

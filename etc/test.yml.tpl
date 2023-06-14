@@ -11,7 +11,7 @@ elasticsearch:
   password: "${GOHAN_ES_PASSWORD}"
 
 drs:
-  url: drs:${GOHAN_DRS_INTERNAL_PORT}
+  url: gohan-drs:${GOHAN_DRS_INTERNAL_PORT}
   username: "${GOHAN_DRS_BASIC_AUTH_USERNAME}"
   password: "${GOHAN_DRS_BASIC_AUTH_PASSWORD}"
 
