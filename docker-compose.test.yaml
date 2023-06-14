@@ -19,3 +19,10 @@ services:
     extends:
       file: docker-compose.yaml
       service: elasticsearch
+
+  drs:
+    ports:
+      - "${GOHAN_DRS_EXTERNAL_PORT}:${GOHAN_DRS_INTERNAL_PORT}"
+    extends:
+      file: docker-compose.yaml
+      service: drs
