@@ -3,7 +3,10 @@ name: Test gohan-api
 on:
   push:
     branches:
-      - "*" # TEMP
+      - "**" # TEMP
+  pull_request:
+    branches:
+      - "features/**"  # temp
 
 jobs:
   build-push:
