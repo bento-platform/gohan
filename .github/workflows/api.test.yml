@@ -1,0 +1,40 @@
+name: Build and push gohan-api
+
+on:
+  push:
+    branches:
+      - "*" # TEMP
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Load environment variables from .env file
+        uses: xom9ikk/dotenv@v2
+      
+      # - name: Run Bento build action
+      #   uses: bento-platform/bento_build_action@v0.11.0
+      #   with:
+      #     context: "{{defaultContext}}:src/api"
+      #     build-args: |
+      #       BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
+      #       BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
+      #     registry: ghcr.io
+      #     registry-username: ${{ github.actor }}
+      #     registry-password: ${{ secrets.GITHUB_TOKEN }}
+      #     image-name: ghcr.io/bento-platform/gohan-api
+      #     development-dockerfile: Dockerfile
+      #     dockerfile: Dockerfile
+      - name: Test
+        run: |
+          make test-api
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3

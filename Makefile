@@ -196,16 +196,40 @@ clean-api-drs-bridge-data:
 	
 
 ## Tests
-test-api-dev: prepare-test-config
+test-api: prepare-test-config
+	# # @# Run the tests directly from the api source directory
+	# # cd src/api && \
+	# # go clean -cache && \
+	# # go test ./tests/unit/... -v
+	docker compose -f docker-compose.test.yaml down
+	docker compose -f docker-compose.test.yaml up -d
+	# ...
+	cd src/api && \
+	go clean -cache && \
+	go test ./tests/integration/api/api_variant_test.go -v && \
+	cd ../..
+	docker compose -f docker-compose.test.yaml stop
+	#docker logs gohan-api
+
+	# go test ./tests/unit/... -v && \
+
+test-api-dev: prepare-dev-config
 	@# Run the tests
 	cd src/api && \
 	go clean -cache && \
 	go test ./tests/integration/... -v
 
+
 prepare-test-config:
 	@# Prepare environment variables dynamically via a JSON file 
 	@# since xUnit doens't support loading env variables natively
+	envsubst < ./etc/test.yml.tpl > ./src/api/tests/common/test.config.yml
+
+prepare-dev-config:
+	@# Prepare environment variables dynamically via a JSON file 
+	@# since xUnit doens't support loading env variables natively
 	envsubst < ./etc/test.config.yml.tpl > ./src/api/tests/common/test.config.yml
+
 
 clean-tests:
 	@# Clean up
