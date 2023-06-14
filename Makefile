@@ -196,11 +196,12 @@ clean-api-drs-bridge-data:
 	
 
 ## Tests
-test-api: prepare-test-config
+test-api: init prepare-test-config
 	# # @# Run the tests directly from the api source directory
 	# # cd src/api && \
 	# # go clean -cache && \
 	# # go test ./tests/unit/... -v
+	
 	docker compose -f docker-compose.test.yaml down
 	docker compose -f docker-compose.test.yaml up -d
 	# ...
