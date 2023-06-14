@@ -204,15 +204,18 @@ test-api: init prepare-test-config
 	
 	docker compose -f docker-compose.test.yaml down
 	docker compose -f docker-compose.test.yaml up -d
-	# ...
+	
 	cd src/api && \
 	go clean -cache && \
+	go test ./tests/unit/... -v && \
 	go test ./tests/integration/api/api_variant_test.go -v && \
 	cd ../..
-	docker compose -f docker-compose.test.yaml stop
-	#docker logs gohan-api
 
-	# go test ./tests/unit/... -v && \
+	docker compose -f docker-compose.test.yaml stop
+	
+	docker logs gohan-api | tail -n 50
+	docker logs elasticsearch | tail -n 50
+
 
 test-api-dev: prepare-dev-config
 	@# Run the tests

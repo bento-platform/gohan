@@ -1,4 +1,4 @@
-debug: true
+debug: false
 api:
   url: http://0.0.0.0:5000
   port: ${GOHAN_API_INTERNAL_PORT}
