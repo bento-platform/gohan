@@ -44,4 +44,5 @@ jobs:
       #     dockerfile: Dockerfile
       - name: Test
         run: |
+          apt-get install -y tabix
           make test-api
