@@ -122,6 +122,9 @@ func TestIngest(t *testing.T) {
 				foundDone = true
 				break
 			}
+			if dto.Filename == filepath.Base(containerizedVcfFilePath) && dto.State == "Error" {
+				log.Fatal(dto.Message)
+			}
 		}
 		if foundDone {
 			fmt.Println("Done, moving on..")
