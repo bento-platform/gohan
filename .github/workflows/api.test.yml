@@ -1,4 +1,4 @@
-name: Build and push gohan-api
+name: Test gohan-api
 
 on:
   push:
