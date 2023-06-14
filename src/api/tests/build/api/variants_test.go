@@ -166,10 +166,13 @@ func TestIngest(t *testing.T) {
 		if stats.NumAdded == stats.NumFlushed {
 			fmt.Println("Done, moving on..")
 			break
-		} else {
-			// pause
-			time.Sleep(3 * time.Second)
 		}
+		if stats.NumFailed > 0 {
+			log.Fatal("More than one variant failed to flush")
+		}
+
+		// pause
+		time.Sleep(3 * time.Second)
 	}
 
 	// todo: verify demo vcf was properly ingested
