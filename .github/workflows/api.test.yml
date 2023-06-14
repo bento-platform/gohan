@@ -42,7 +42,7 @@ jobs:
       #     image-name: ghcr.io/bento-platform/gohan-api
       #     development-dockerfile: Dockerfile
       #     dockerfile: Dockerfile
-      - name: Test
+      - name: API Test
         run: |
-          apt-get install -y tabix
+          sudo apt-get install -y tabix
           make test-api
