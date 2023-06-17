@@ -205,15 +205,9 @@ test-api: init prepare-test-config
 	docker compose -f docker-compose.test.yaml down
 	docker compose -f docker-compose.test.yaml up -d
 	
-	testing_error_exit()
-	{
-		docker logs gohan-api | tail -n 100
-		docker logs gohan-drs | tail -n 100
-		exit 1
-	} && \
 	cd src/api && \
 	go clean -cache && \
-	(go test ./tests/build/... -v || testing_error_exit) && \
+	(go test ./tests/build/... -v || ((docker logs gohan-api | tail -n 100) && (docker logs gohan-drs | tail -n 100) && exit 1)) && \
 	cd ../..
 
 	docker compose -f docker-compose.test.yaml stop
