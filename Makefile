@@ -54,6 +54,8 @@ init-data-dirs:
 	chmod -R 777 ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
 
 	mkdir -p ${GOHAN_DRS_DATA_DIR}
+	mkdir -p ${GOHAN_DRS_DATA_DIR}/db
+	mkdir -p ${GOHAN_DRS_DATA_DIR}/obj
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR}
 	chmod -R 777 ${GOHAN_DRS_DATA_DIR}
 
