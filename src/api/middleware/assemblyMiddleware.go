@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"gohan/api/contexts"
+	"gohan/api/models/constants"
 	assid "gohan/api/models/constants/assembly-id"
 	"net/http"
 
@@ -19,6 +21,10 @@ func MandateAssemblyIdAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 			return echo.NewHTTPError(http.StatusBadRequest, "Missing or unknown assemblyId!")
 		}
 
-		return next(c)
+		// forward a type-safe value down the pipeline
+		gc := c.(*contexts.GohanContext)
+		gc.AssemblyId = constants.AssemblyId(assemblyId)
+
+		return next(gc)
 	}
 }

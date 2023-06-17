@@ -162,7 +162,7 @@ func main() {
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
-		gam.MandateSampleIdsPluralAttribute,
+		gam.CalibrateOptionalSampleIdsPluralAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/get/by/documentId", variantsMvc.VariantsGetByDocumentId)
 
@@ -170,14 +170,16 @@ func main() {
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 	e.GET("/variants/count/by/sampleId", variantsMvc.VariantsCountBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
 		gam.MandateCalibratedBounds,
+		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
-		gam.MandateSampleIdsSingularAttribute,
+		gam.CalibrateOptionalSampleIdsSingularAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 
 	// TODO: refactor (deduplicate) --
