@@ -156,7 +156,7 @@ func GetTableSummary(c echo.Context) error {
 	// obtain other potentially relevant parameters from available query parameters
 	// (these should be empty, but utilizing this common function is convenient to set up
 	// the call to the variants index through the repository functions)
-	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, _ = mvc.RetrieveCommonElements(c)
+	var es, _, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, _ = mvc.RetrieveCommonElements(c)
 	// unused tableId from query parameter set to '_'
 
 	// table id must be provided
@@ -213,7 +213,7 @@ func GetTableSummary(c echo.Context) error {
 	totalVariantsCount := 0.0
 
 	docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
-		chromosome, lowerBound, upperBound,
+		"*", lowerBound, upperBound, // always wildcard "*" chromosome
 		"", "", // note : both variantId and sampleId are deliberately set to ""
 		reference, alternative, alleles, genotype, assemblyId, tableId)
 	if countError != nil {
