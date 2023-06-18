@@ -218,4 +218,61 @@ func TestDemoVcfIngestion(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Test Get Variants in Ascending Order", func(t *testing.T) {
+		// retrieve responses in ascending order
+		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Ascending, gq.UNCALLED, "", "")
+
+		// assert the dto response slice is plentiful
+		assert.NotNil(t, allDtoResponses)
+
+		From(allDtoResponses).ForEachT(func(dto dtos.VariantGetReponse) {
+			// ensure there is data
+			assert.NotNil(t, dto.Results)
+
+			// check the data
+			From(dto.Results).ForEachT(func(d dtos.VariantGetResult) {
+				// ensure the variants slice is plentiful
+				assert.NotNil(t, d.Calls)
+
+				latestSmallest := 0
+				From(d.Calls).ForEachT(func(dd dtos.VariantCall) {
+					// verify order
+					if latestSmallest != 0 {
+						assert.True(t, latestSmallest <= dd.Pos)
+					}
+
+					latestSmallest = dd.Pos
+				})
+			})
+		})
+	})
+
+	t.Run("Test Get Variants in Descending Order", func(t *testing.T) {
+		// retrieve responses in descending order
+		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Descending, gq.UNCALLED, "", "")
+
+		// assert the dto response slice is plentiful
+		assert.NotNil(t, allDtoResponses)
+
+		From(allDtoResponses).ForEachT(func(dto dtos.VariantGetReponse) {
+			// ensure there is data
+			assert.NotNil(t, dto.Results)
+
+			// check the data
+			From(dto.Results).ForEachT(func(d dtos.VariantGetResult) {
+				// ensure the variants slice is plentiful
+				assert.NotNil(t, d.Calls)
+
+				latestGreatest := 0
+				From(d.Calls).ForEachT(func(dd dtos.VariantCall) {
+					if latestGreatest != 0 {
+						assert.True(t, latestGreatest >= dd.Pos)
+					}
+
+					latestGreatest = dd.Pos
+				})
+			})
+		})
+	})
 }
