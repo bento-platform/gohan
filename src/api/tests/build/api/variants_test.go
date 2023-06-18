@@ -2,6 +2,8 @@ package api
 
 import (
 	"fmt"
+	"gohan/api/models/dtos"
+	"gohan/api/models/indexes"
 	ingest "gohan/api/models/ingest"
 	common "gohan/api/tests/common"
 	"gohan/api/utils"
@@ -12,8 +14,13 @@ import (
 	"testing"
 	"time"
 
+	gq "gohan/api/models/constants/genotype-query"
+	s "gohan/api/models/constants/sort"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+
+	. "github.com/ahmetb/go-linq"
 )
 
 const (
@@ -22,11 +29,11 @@ const (
 	IngestionRequestsPath                     string = "%s/variants/ingestion/requests"
 )
 
-func TestIngest(t *testing.T) {
+func TestDemoVcfIngestion(t *testing.T) {
 	cfg := common.InitConfig()
 	tableId := uuid.NewString()
 
-	assert.True(t, t.Run("Ingest Demo VCF", func(t *testing.T) {
+	t.Run("Ingest Demo VCF", func(t *testing.T) {
 		// create demo vcf string
 		sampleId := "abc1234"
 
@@ -131,19 +138,22 @@ func TestIngest(t *testing.T) {
 			// pause
 			time.Sleep(3 * time.Second)
 		}
-	}))
+	})
 
 	// verify demo vcf was properly ingested
-	// by pinging it with specific queries
-	assert.True(t, t.Run("Check Demo VCF Ingestion", func(t *testing.T) {
+	t.Run("Test Variants Overview", func(t *testing.T) {
 		// check variants overview
 		overviewJson := common.GetVariantsOverview(t, cfg)
 		assert.NotNil(t, overviewJson)
+	})
 
+	t.Run("Test Simple Chromosome Queries", func(t *testing.T) {
 		// simple chromosome-1 query
-		dtos := common.BuildQueryAndMakeGetVariantsCall("1", "*", true, "asc", "", "GRCh38", "", "", "", false, t, cfg)
-		assert.True(t, len(dtos.Results[0].Calls) > 0)
+		chromQueryResponse := common.BuildQueryAndMakeGetVariantsCall("1", "*", true, "asc", "", "GRCh38", "", "", "", false, t, cfg)
+		assert.True(t, len(chromQueryResponse.Results[0].Calls) > 0)
+	})
 
+	t.Run("Test Simple Allele Queries", func(t *testing.T) {
 		// TODO: not hardcoded tests
 		// simple allele queries
 		common.GetAndVerifyVariantsResults(cfg, t, "CAG")
@@ -156,5 +166,56 @@ func TestIngest(t *testing.T) {
 
 		// random nucleotide string of length 'allelleLen'
 		// qAllele := utils.GenerateRandomFixedLengthString(utils.AcceptedNucleotideCharacters, allelleLen)
-	}))
+	})
+
+	t.Run("Test Variant Info Present", func(t *testing.T) {
+		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, s.Undefined, gq.UNCALLED, "", "")
+
+		// assert that all of the responses include valid sets of info
+		// - * accumulate all infos into a single list using the set of
+		//   SelectManyT's and the SelectT
+		// - ** iterate over each info in the ForEachT
+		var accumulatedInfos []*indexes.Info
+
+		From(allDtoResponses).SelectManyT(func(resp dtos.VariantGetReponse) Query { // *
+			return From(resp.Results)
+		}).SelectManyT(func(data dtos.VariantGetResult) Query {
+			return From(data.Calls)
+		}).SelectManyT(func(variant dtos.VariantCall) Query {
+			return From(variant.Info)
+		}).SelectT(func(info indexes.Info) indexes.Info {
+			return info
+		}).ForEachT(func(info indexes.Info) { // **
+			accumulatedInfos = append(accumulatedInfos, &info)
+		})
+
+		if len(accumulatedInfos) == 0 {
+			t.Skip("No infos returned! Skipping --")
+		}
+
+		for infoIndex, info := range accumulatedInfos {
+			// ensure the info is not nil
+			// - s.Id can be == ""
+			// - so can s.Value
+			assert.NotNil(t, info)
+			if info.Id == "" {
+				fmt.Printf("Note: Found empty info id at index %d with value %s \n", infoIndex, info.Value)
+			}
+		}
+	})
+
+	t.Run("Test No Variant Info Present", func(t *testing.T) {
+
+		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Undefined, gq.UNCALLED, "", "")
+
+		// assert that all responses from all combinations have no results
+		for _, dtoResponse := range allDtoResponses {
+			if len(dtoResponse.Results) > 0 {
+				firstDataPointCalls := dtoResponse.Results[0].Calls
+				if len(firstDataPointCalls) > 0 {
+					assert.Nil(t, firstDataPointCalls[0].Info)
+				}
+			}
+		}
+	})
 }

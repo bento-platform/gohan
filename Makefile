@@ -204,16 +204,22 @@ test-api: init prepare-test-config
 	# # go clean -cache && \
 	# # go test ./tests/unit/... -v
 	
+	@# restart any running containers and print
 	docker compose -f docker-compose.test.yaml down
 	docker compose -f docker-compose.test.yaml up -d
 	
+	@# run build tests
+	@# - print api and drs logs in the
+	@#   event of a failued
 	cd src/api && \
 	go clean -cache && \
 	(go test ./tests/build/... -v || ((docker logs gohan-api | tail -n 100) && (docker logs gohan-drs | tail -n 100) && exit 1)) && \
 	cd ../..
 
+	@# shut down the containers and print
+	@# the tail end of the
+	@# api and elasticsearch logs
 	docker compose -f docker-compose.test.yaml stop
-	
 	docker logs gohan-api | tail -n 50
 	docker logs elasticsearch | tail -n 50
 

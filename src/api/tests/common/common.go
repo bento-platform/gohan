@@ -6,16 +6,20 @@ import (
 	"fmt"
 	"gohan/api/models"
 	c "gohan/api/models/constants"
+	a "gohan/api/models/constants/assembly-id"
 	gq "gohan/api/models/constants/genotype-query"
+
 	"gohan/api/models/dtos"
 	"gohan/api/utils"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -228,6 +232,80 @@ func BuildQueryAndMakeGetVariantsCall(
 	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
 
 	return makeGetVariantsCall(url, ignoreStatusCode, _t)
+}
+
+func GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeInfo bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, referenceAllelePattern string, alternativeAllelePattern string) []dtos.VariantGetReponse {
+	cfg := InitConfig()
+
+	// retrieve the overview
+	overviewJson := GetVariantsOverview(_t, cfg)
+
+	// ensure the response is valid
+	// TODO: error check instead of nil check
+	assert.NotNil(_t, overviewJson)
+
+	// generate all possible combinations of
+	// available samples, assemblys, and chromosomes
+	overviewCombinations := getOverviewResultCombinations(overviewJson["chromosomes"], overviewJson["sampleIDs"], overviewJson["assemblyIDs"])
+
+	// avoid overflow:
+	// - shuffle all combinations and take top x
+	x := 10
+	croppedCombinations := make([][]string, len(overviewCombinations))
+	perm := rand.Perm(len(overviewCombinations))
+	for i, v := range perm {
+		croppedCombinations[v] = overviewCombinations[i]
+	}
+	if len(croppedCombinations) > x {
+		croppedCombinations = croppedCombinations[:x]
+	}
+
+	// initialize a common slice in which to
+	// accumulate al responses asynchronously
+	allDtoResponses := []dtos.VariantGetReponse{}
+	allDtoResponsesMux := sync.RWMutex{}
+
+	var combWg sync.WaitGroup
+	for _, combination := range croppedCombinations {
+		combWg.Add(1)
+		go func(_wg *sync.WaitGroup, _combination []string) {
+			defer _wg.Done()
+
+			chrom := _combination[0]
+			sampleId := _combination[1]
+			assemblyId := a.CastToAssemblyId(_combination[2])
+
+			// make the call
+			dto := BuildQueryAndMakeGetVariantsCall(chrom, sampleId, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", false, _t, cfg)
+
+			assert.Equal(_t, 1, len(dto.Results))
+
+			// accumulate all response objects
+			// to a common slice in an
+			// asynchronous-safe manner
+			allDtoResponsesMux.Lock()
+			allDtoResponses = append(allDtoResponses, dto)
+			allDtoResponsesMux.Unlock()
+		}(&combWg, combination)
+	}
+
+	combWg.Wait()
+
+	return allDtoResponses
+}
+
+func getOverviewResultCombinations(chromosomeStruct interface{}, sampleIdsStruct interface{}, assemblyIdsStruct interface{}) [][]string {
+	var allCombinations = [][]string{}
+
+	for i, _ := range chromosomeStruct.(map[string]interface{}) {
+		for j, _ := range sampleIdsStruct.(map[string]interface{}) {
+			for k, _ := range assemblyIdsStruct.(map[string]interface{}) {
+				allCombinations = append(allCombinations, []string{i, j, k})
+			}
+		}
+	}
+
+	return allCombinations
 }
 
 func makeGetVariantsCall(url string, ignoreStatusCode bool, _t *testing.T) dtos.VariantGetReponse {

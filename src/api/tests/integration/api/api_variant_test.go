@@ -9,7 +9,6 @@ import (
 	s "gohan/api/models/constants/sort"
 	z "gohan/api/models/constants/zygosity"
 	"gohan/api/models/dtos"
-	"gohan/api/models/indexes"
 	common "gohan/api/tests/common"
 	testConsts "gohan/api/tests/common/constants"
 	ratt "gohan/api/tests/common/constants/referenceAlternativeTestType"
@@ -85,58 +84,6 @@ func TestGetIngestionRequests(t *testing.T) {
 
 	// -- ensure the response is not nil
 	assert.NotNil(t, len(ingestionRequestsRespJsonSlice))
-}
-
-func TestCanGetVariantsWithoutInfoInResultset(t *testing.T) {
-
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Undefined, gq.UNCALLED, "", "")
-
-	// assert that all responses from all combinations have no results
-	for _, dtoResponse := range allDtoResponses {
-		if len(dtoResponse.Results) > 0 {
-			firstDataPointCalls := dtoResponse.Results[0].Calls
-			if len(firstDataPointCalls) > 0 {
-				assert.Nil(t, firstDataPointCalls[0].Info)
-			}
-		}
-	}
-}
-
-func TestCanGetVariantsWithInfoInResultset(t *testing.T) {
-
-	allDtoResponses := getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, s.Undefined, gq.UNCALLED, "", "")
-
-	// assert that all of the responses include valid sets of info
-	// - * accumulate all infos into a single list using the set of
-	//   SelectManyT's and the SelectT
-	// - ** iterate over each info in the ForEachT
-	var accumulatedInfos []*indexes.Info
-
-	From(allDtoResponses).SelectManyT(func(resp dtos.VariantGetReponse) Query { // *
-		return From(resp.Results)
-	}).SelectManyT(func(data dtos.VariantGetResult) Query {
-		return From(data.Calls)
-	}).SelectManyT(func(variant dtos.VariantCall) Query {
-		return From(variant.Info)
-	}).SelectT(func(info indexes.Info) indexes.Info {
-		return info
-	}).ForEachT(func(info indexes.Info) { // **
-		accumulatedInfos = append(accumulatedInfos, &info)
-	})
-
-	if len(accumulatedInfos) == 0 {
-		t.Skip("No infos returned! Skipping --")
-	}
-
-	for infoIndex, info := range accumulatedInfos {
-		// ensure the info is not nil
-		// - s.Id can be == ""
-		// - so can s.Value
-		assert.NotNil(t, info)
-		if info.Id == "" {
-			fmt.Printf("Note: Found empty info id at index %d with value %s \n", infoIndex, info.Value)
-		}
-	}
 }
 
 func TestCanGetVariantsInAscendingPositionOrder(t *testing.T) {
