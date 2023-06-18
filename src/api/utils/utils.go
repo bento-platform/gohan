@@ -90,3 +90,12 @@ func GenerateRandomFixedLengthString(availableCharactersSlice []string, length i
 
 	return string(b)
 }
+
+func AreAllBoolsTrue(sliceOfBools []bool) bool {
+	for _, b := range sliceOfBools {
+		if !b {
+			return false
+		}
+	}
+	return true
+}

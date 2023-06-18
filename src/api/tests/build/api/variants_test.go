@@ -136,10 +136,25 @@ func TestIngest(t *testing.T) {
 	// verify demo vcf was properly ingested
 	// by pinging it with specific queries
 	assert.True(t, t.Run("Check Demo VCF Ingestion", func(t *testing.T) {
+		// check variants overview
 		overviewJson := common.GetVariantsOverview(t, cfg)
 		assert.NotNil(t, overviewJson)
 
+		// simple chromosome-1 query
 		dtos := common.BuildQueryAndMakeGetVariantsCall("1", "*", true, "asc", "", "GRCh38", "", "", "", false, t, cfg)
 		assert.True(t, len(dtos.Results[0].Calls) > 0)
+
+		// TODO: not hardcoded tests
+		// simple allele queries
+		common.GetAndVerifyVariantsResults(cfg, t, "CAG")
+		common.GetAndVerifyVariantsResults(cfg, t, "CAAAA")
+		common.GetAndVerifyVariantsResults(cfg, t, "T")
+		common.GetAndVerifyVariantsResults(cfg, t, "C")
+
+		// random number between 1 and 5
+		// allelleLen := rand.Intn(5) + 1
+
+		// random nucleotide string of length 'allelleLen'
+		// qAllele := utils.GenerateRandomFixedLengthString(utils.AcceptedNucleotideCharacters, allelleLen)
 	}))
 }

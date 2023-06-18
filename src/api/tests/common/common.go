@@ -8,6 +8,7 @@ import (
 	c "gohan/api/models/constants"
 	gq "gohan/api/models/constants/genotype-query"
 	"gohan/api/models/dtos"
+	"gohan/api/utils"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -149,6 +150,54 @@ func CreateAndGetNewFile(filePath string) (*os.File, error) {
 		return nil, newFileErr
 	}
 	return newFile, newFileErr
+}
+
+func GetAndVerifyVariantsResults(_cfg *models.Config, _t *testing.T, qAllele string) {
+	responseDtos := BuildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", qAllele, false, _t, _cfg)
+
+	assert.NotNil(_t, responseDtos.Results)
+	assert.True(_t, len(responseDtos.Results) > 0)
+	assert.NotNil(_t, responseDtos.Results[0].Calls)
+	assert.True(_t, len(responseDtos.Results[0].Calls) > 0)
+
+	// check alleles in response
+	for _, dto := range responseDtos.Results {
+		for _, call := range dto.Calls {
+			// ensure, for each call, that at least
+			// 1 of the alleles present matches the allele
+			// queried for
+			allAllelesMatchUp := false
+
+			// TODO: "does an allele exist matching the one queried"
+			// - iterate over all 'allele's in the call
+			for _, allele := range call.Alleles {
+				matched := make([]bool, len(qAllele))
+				if len(qAllele) == len(allele) {
+					for alIndex, alChar := range allele {
+						// ensure the index is within bounds (length of the allele)
+						// 'ref's are slices of strings, and not all 'ref's in these slices need to match
+						if alIndex <= len(allele) {
+							// obtain the character at the index for the iteration
+							qAlleleChar := []rune(qAllele)[alIndex]
+							if string(qAlleleChar) == "N" || alChar == qAlleleChar {
+								// if the non-wildcard characters don't match, test fails
+								// alleleMatchesUp = false
+								matched[alIndex] = true
+							}
+						} else {
+							continue
+						}
+					}
+					if utils.AreAllBoolsTrue(matched) {
+						allAllelesMatchUp = true
+						break
+					}
+				}
+			}
+
+			assert.True(_t, allAllelesMatchUp)
+		}
+	}
 }
 
 func BuildQueryAndMakeGetVariantsCall(
