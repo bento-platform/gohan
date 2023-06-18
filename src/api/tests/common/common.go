@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"gohan/api/models"
+	c "gohan/api/models/constants"
+	gq "gohan/api/models/constants/genotype-query"
+	"gohan/api/models/dtos"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -93,4 +96,65 @@ func GetVariantsOverview(_t *testing.T, _cfg *models.Config) map[string]interfac
 	assert.NotNil(_t, sampleIDsKey)
 
 	return overviewRespJson
+}
+
+func BuildQueryAndMakeGetVariantsCall(
+	chromosome string, sampleId string, includeInfo bool,
+	sortByPosition c.SortDirection, genotype c.GenotypeQuery, assemblyId c.AssemblyId,
+	referenceAllelePattern string, alternativeAllelePattern string, commaDeliminatedAlleles string,
+	ignoreStatusCode bool, _t *testing.T, _cfg *models.Config) dtos.VariantGetReponse {
+
+	queryString := fmt.Sprintf("?ids=%s&includeInfoInResultSet=%t&sortByPosition=%s&assemblyId=%s", sampleId, includeInfo, sortByPosition, assemblyId)
+
+	if chromosome != "" {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&chromosome=%s", chromosome))
+	}
+
+	if genotype != gq.UNCALLED {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&genotype=%s", string(genotype)))
+	}
+
+	if referenceAllelePattern != "" {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&reference=%s", referenceAllelePattern))
+	}
+	if alternativeAllelePattern != "" {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&alternative=%s", alternativeAllelePattern))
+	}
+	if commaDeliminatedAlleles != "" {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&alleles=%s", commaDeliminatedAlleles))
+	}
+	url := fmt.Sprintf(VariantsGetBySampleIdsPathWithQueryString, _cfg.Api.Url, queryString)
+
+	return makeGetVariantsCall(url, ignoreStatusCode, _t)
+}
+
+func makeGetVariantsCall(url string, ignoreStatusCode bool, _t *testing.T) dtos.VariantGetReponse {
+	fmt.Printf("Calling %s\n", url)
+	request, _ := http.NewRequest("GET", url, nil)
+
+	client := &http.Client{}
+	response, responseErr := client.Do(request)
+	assert.Nil(_t, responseErr)
+
+	defer response.Body.Close()
+
+	if !ignoreStatusCode {
+		// this test (at the time of writing) will only work if authorization is disabled
+		shouldBe := 200
+		assert.Equal(_t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET %s Status: %s ; Should be %d", url, response.Status, shouldBe))
+	}
+
+	//	-- interpret array of ingestion requests from response
+	respBody, respBodyErr := ioutil.ReadAll(response.Body)
+	assert.Nil(_t, respBodyErr)
+
+	//	--- transform body bytes to string
+	respBodyString := string(respBody)
+
+	//	-- convert to json and check for error
+	var respDto dtos.VariantGetReponse
+	jsonUnmarshallingError := json.Unmarshal([]byte(respBodyString), &respDto)
+	assert.Nil(_t, jsonUnmarshallingError)
+
+	return respDto
 }
