@@ -47,7 +47,7 @@ func TestGenesIngestion(t *testing.T) {
 		// check ingestion request
 		// TODO: avoid potential infinite loop
 		for {
-			fmt.Println("Checking state of the ingestion..")
+			fmt.Println("Checking state of the genes ingestion..")
 
 			// make the call
 			ingReqsUrl := fmt.Sprintf(GenesIngestionRequestsPath, cfg.Api.Url)

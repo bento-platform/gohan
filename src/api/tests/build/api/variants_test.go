@@ -84,10 +84,13 @@ func TestDemoVcfIngestion(t *testing.T) {
 		initialIngestionDtos := utils.GetRequestReturnStuff[[]ingest.IngestResponseDTO](ingestUrl)
 		assert.True(t, len(initialIngestionDtos) > 0)
 
+		// pause
+		time.Sleep(1 * time.Second)
+
 		// check ingestion request
 		// TODO: avoid potential infinite loop
 		for {
-			fmt.Println("Checking state of the ingestion..")
+			fmt.Println("Checking state of the variants ingestion..")
 
 			// make the call
 			ingReqsUrl := fmt.Sprintf("%s/variants/ingestion/requests", cfg.Api.Url)
