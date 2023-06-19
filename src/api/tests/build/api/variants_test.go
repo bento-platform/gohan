@@ -92,7 +92,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 			// make the call
 			ingReqsUrl := fmt.Sprintf("%s/variants/ingestion/requests", cfg.Api.Url)
 			ingReqDtos := utils.GetRequestReturnStuff[[]ingest.IngestResponseDTO](ingReqsUrl)
-			assert.True(t, len(initialIngestionDtos) > 0)
+			assert.True(t, len(ingReqDtos) > 0)
 
 			foundDone := false
 			for _, dto := range ingReqDtos {
