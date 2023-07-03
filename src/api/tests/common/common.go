@@ -8,6 +8,9 @@ import (
 	c "gohan/api/models/constants"
 	a "gohan/api/models/constants/assembly-id"
 	gq "gohan/api/models/constants/genotype-query"
+	s "gohan/api/models/constants/sort"
+	testConsts "gohan/api/tests/common/constants"
+	ratt "gohan/api/tests/common/constants/referenceAlternativeTestType"
 
 	"gohan/api/models/dtos"
 	"gohan/api/utils"
@@ -22,6 +25,7 @@ import (
 	"sync"
 	"testing"
 
+	. "github.com/ahmetb/go-linq"
 	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -337,4 +341,76 @@ func makeGetVariantsCall(url string, ignoreStatusCode bool, _t *testing.T) dtos.
 	assert.Nil(_t, jsonUnmarshallingError)
 
 	return respDto
+}
+
+func GetOverviewResultCombinations(chromosomeStruct interface{}, sampleIdsStruct interface{}, assemblyIdsStruct interface{}) [][]string {
+	var allCombinations = [][]string{}
+
+	for i, _ := range chromosomeStruct.(map[string]interface{}) {
+		for j, _ := range sampleIdsStruct.(map[string]interface{}) {
+			for k, _ := range assemblyIdsStruct.(map[string]interface{}) {
+				allCombinations = append(allCombinations, []string{i, j, k})
+			}
+		}
+	}
+
+	return allCombinations
+}
+
+func ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
+	genotypeQuery c.GenotypeQuery, refAltTestType testConsts.ReferenceAlternativeTestType,
+	specificValidation func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string)) {
+
+	// TODO: use some kind of Allele Enum
+	patterns := []string{"A", "C", "T", "G"}
+	var patWg sync.WaitGroup
+	for _, pat := range patterns {
+		patWg.Add(1)
+		go func(_pat string, _patWg *sync.WaitGroup) {
+			defer _patWg.Done()
+
+			switch refAltTestType {
+			case ratt.Reference:
+				runAndValidateReferenceOrAlternativeQueryResults(_t, genotypeQuery, _pat, "", specificValidation)
+			case ratt.Alternative:
+				runAndValidateReferenceOrAlternativeQueryResults(_t, genotypeQuery, "", _pat, specificValidation)
+			default:
+				println("Skipping Test -- no Ref/Alt Test Type provided")
+			}
+
+		}(pat, &patWg)
+	}
+	patWg.Wait()
+}
+
+func runAndValidateReferenceOrAlternativeQueryResults(_t *testing.T,
+	genotypeQuery c.GenotypeQuery,
+	referenceAllelePattern string, alternativeAllelePattern string,
+	specificValidation func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string)) {
+
+	allDtoResponses := GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, genotypeQuery, referenceAllelePattern, alternativeAllelePattern)
+
+	// assert that all of the responses include sample sets with the appropriate zygosity
+	// - * accumulate all variants into a single list using the set of SelectManyT's and the SelectT
+	// - ** iterate over each variant in the ForEachT
+	// var accumulatedVariants []*indexes.Variant
+	var accumulatedCalls []*dtos.VariantCall
+
+	From(allDtoResponses).SelectManyT(func(resp dtos.VariantGetReponse) Query { // *
+		return From(resp.Results)
+	}).SelectManyT(func(data dtos.VariantGetResult) Query {
+		return From(data.Calls)
+	}).ForEachT(func(call dtos.VariantCall) { // **
+		accumulatedCalls = append(accumulatedCalls, &call)
+	})
+
+	// if len(accumulatedCalls) == 0 {
+	// 	_t.Skip(fmt.Sprintf("No variants returned for patterns ref: '%s', alt: '%s'! Skipping --", referenceAllelePattern, alternativeAllelePattern))
+	// }
+
+	for _, v := range accumulatedCalls {
+		assert.NotNil(_t, v.Id)
+		specificValidation(_t, v, referenceAllelePattern, alternativeAllelePattern)
+	}
+
 }
