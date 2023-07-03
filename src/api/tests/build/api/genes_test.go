@@ -51,7 +51,7 @@ func TestGenesIngestion(t *testing.T) {
 		// TODO: avoid potential infinite loop
 		counter := 0
 		for {
-			fmt.Printf("\rChecking state of the genes ingestion.. [%d]\n", counter)
+			fmt.Printf("\rChecking state of the genes ingestion.. [%d]", counter)
 
 			// make the call
 			ingReqsUrl := fmt.Sprintf(GenesIngestionRequestsPath, cfg.Api.Url)
@@ -69,7 +69,7 @@ func TestGenesIngestion(t *testing.T) {
 				}
 			}
 			if numFilesDone == numFilesRunning {
-				fmt.Println("Done, moving on..")
+				fmt.Println("\nDone, moving on..")
 				break
 			} else {
 				// pause
@@ -82,7 +82,7 @@ func TestGenesIngestion(t *testing.T) {
 		// TODO: avoid potential infinite loop
 		counter = 0
 		for {
-			fmt.Printf("\rChecking ingestion stats.. [%d]\n", counter)
+			fmt.Printf("\rChecking ingestion stats.. [%d]", counter)
 			// pause
 			time.Sleep(3 * time.Second)
 
@@ -94,11 +94,11 @@ func TestGenesIngestion(t *testing.T) {
 			fmt.Println(stats.NumAdded)
 			fmt.Println(stats.NumFlushed)
 			if stats.NumAdded == stats.NumFlushed {
-				fmt.Println("Done, moving on..")
+				fmt.Println("\nDone, moving on..")
 				break
 			}
 			if stats.NumFailed > 0 {
-				log.Fatal("More than one gene failed to flush")
+				log.Fatal("\nMore than one gene failed to flush")
 			}
 
 			// pause

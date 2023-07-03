@@ -102,7 +102,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 		// TODO: avoid potential infinite loop
 		counter := 0
 		for {
-			fmt.Printf("\rChecking state of the variants ingestion.. [%d]\n", counter)
+			fmt.Printf("\rChecking state of the variants ingestion.. [%d]", counter)
 
 			// make the call
 			ingReqsUrl := fmt.Sprintf("%s/variants/ingestion/requests", cfg.Api.Url)
@@ -120,7 +120,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 				}
 			}
 			if foundDone {
-				fmt.Println("Done, moving on..")
+				fmt.Println("\nDone, moving on..")
 				break
 			} else {
 				// pause
@@ -133,7 +133,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 		// TODO: avoid potential infinite loop
 		counter = 0
 		for {
-			fmt.Printf("\rChecking ingestion stats.. [%d]\n", counter)
+			fmt.Printf("\rChecking ingestion stats.. [%d]", counter)
 			// pause
 			time.Sleep(3 * time.Second)
 
@@ -145,11 +145,11 @@ func TestDemoVcfIngestion(t *testing.T) {
 			fmt.Println(stats.NumAdded)
 			fmt.Println(stats.NumFlushed)
 			if stats.NumAdded == stats.NumFlushed {
-				fmt.Println("Done, moving on..")
+				fmt.Println("\nDone, moving on..")
 				break
 			}
 			if stats.NumFailed > 0 {
-				log.Fatal("More than one variant failed to flush")
+				log.Fatal("\nMore than one variant failed to flush")
 			}
 
 			// pause
