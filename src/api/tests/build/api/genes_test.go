@@ -44,10 +44,14 @@ func TestGenesIngestion(t *testing.T) {
 		initialIngestionDtos := utils.GetRequestReturnStuff[ingest.GeneIngestRequest](ingestUrl)
 		assert.True(t, len(initialIngestionDtos.Message) > 0)
 
+		// - rest
+		time.Sleep(1 * time.Second)
+
 		// check ingestion request
 		// TODO: avoid potential infinite loop
+		counter := 0
 		for {
-			fmt.Println("Checking state of the genes ingestion..")
+			fmt.Printf("\rChecking state of the genes ingestion.. [%d]\n", counter)
 
 			// make the call
 			ingReqsUrl := fmt.Sprintf(GenesIngestionRequestsPath, cfg.Api.Url)
@@ -71,12 +75,14 @@ func TestGenesIngestion(t *testing.T) {
 				// pause
 				time.Sleep(3 * time.Second)
 			}
+			counter++
 		}
 
 		// check ingestion stats
 		// TODO: avoid potential infinite loop
+		counter = 0
 		for {
-			fmt.Println("Checking ingestion stats..")
+			fmt.Printf("\rChecking ingestion stats.. [%d]\n", counter)
 			// pause
 			time.Sleep(3 * time.Second)
 
@@ -97,6 +103,7 @@ func TestGenesIngestion(t *testing.T) {
 
 			// pause
 			time.Sleep(3 * time.Second)
+			counter++
 		}
 	})
 
@@ -230,10 +237,10 @@ func buildQueryAndMakeGetGenesCall(chromosome string, term string, assemblyId c.
 
 	url := fmt.Sprintf(GenesSearchPathWithQueryString, _cfg.Api.Url, queryString)
 
-	return getGetGenesCall(url, _t)
+	return getGenesCall(url, _t)
 }
 
-func getGetGenesCall(url string, _t *testing.T) dtos.GenesResponseDTO {
+func getGenesCall(url string, _t *testing.T) dtos.GenesResponseDTO {
 	fmt.Printf("Calling %s\n", url)
 	request, _ := http.NewRequest("GET", url, nil)
 
