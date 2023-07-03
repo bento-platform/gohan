@@ -34,6 +34,13 @@ func TestDemoVcfIngestion(t *testing.T) {
 	tableId := uuid.NewString()
 
 	t.Run("Ingest Demo VCF", func(t *testing.T) {
+		// verify ingestion endpoint
+		// -- ensure nothing is running
+		initialIngestionState := utils.GetRequestReturnStuff[[]ingest.IngestResponseDTO](fmt.Sprintf(common.IngestionRequestsPath, cfg.Api.Url))
+
+		assert.NotNil(t, len(initialIngestionState))
+		assert.NotZero(t, len(initialIngestionState))
+
 		// create demo vcf string
 		sampleId := "abc1234"
 

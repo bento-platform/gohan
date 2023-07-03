@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	c "gohan/api/models/constants"
 	a "gohan/api/models/constants/assembly-id"
@@ -12,7 +11,6 @@ import (
 	common "gohan/api/tests/common"
 	testConsts "gohan/api/tests/common/constants"
 	ratt "gohan/api/tests/common/constants/referenceAlternativeTestType"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -53,37 +51,6 @@ func TestVariantsOverview(t *testing.T) {
 
 	overviewJson := common.GetVariantsOverview(t, cfg)
 	assert.NotNil(t, overviewJson)
-}
-
-func TestGetIngestionRequests(t *testing.T) {
-	cfg := common.InitConfig()
-
-	request, _ := http.NewRequest("GET", fmt.Sprintf(common.IngestionRequestsPath, cfg.Api.Url), nil)
-
-	client := &http.Client{}
-	response, responseErr := client.Do(request)
-	assert.Nil(t, responseErr)
-
-	defer response.Body.Close()
-
-	// this test (at the time of writing) will only work if authorization is disabled
-	shouldBe := 200
-	assert.Equal(t, shouldBe, response.StatusCode, fmt.Sprintf("Error -- Api GET / Status: %s ; Should be %d", response.Status, shouldBe))
-
-	//	-- interpret array of ingestion requests from response
-	ingestionRequestsRespBody, ingestionRequestsRespBodyErr := ioutil.ReadAll(response.Body)
-	assert.Nil(t, ingestionRequestsRespBodyErr)
-
-	//	--- transform body bytes to string
-	ingestionRequestsRespBodyString := string(ingestionRequestsRespBody)
-
-	//	-- check for json error
-	var ingestionRequestsRespJsonSlice []map[string]interface{}
-	ingestionRequestsStringJsonUnmarshallingError := json.Unmarshal([]byte(ingestionRequestsRespBodyString), &ingestionRequestsRespJsonSlice)
-	assert.Nil(t, ingestionRequestsStringJsonUnmarshallingError)
-
-	// -- ensure the response is not nil
-	assert.NotNil(t, len(ingestionRequestsRespJsonSlice))
 }
 
 func TestCanGetReferenceSamples(t *testing.T) {
