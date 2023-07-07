@@ -38,7 +38,7 @@ const (
 
 func TestDemoVcfIngestion(t *testing.T) {
 	cfg := common.InitConfig()
-	tableId := uuid.NewString()
+	dataset := uuid.NewString()
 
 	t.Run("Ingest Demo VCF", func(t *testing.T) {
 		// verify ingestion endpoint
@@ -90,7 +90,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 		assemblyId := "GRCh38"
 		containerizedVcfFilePath := "/data/" + filepath.Base(newGzFile)
 
-		queryString := fmt.Sprintf("assemblyId=%s&fileNames=%s&tableId=%s", assemblyId, containerizedVcfFilePath, tableId)
+		queryString := fmt.Sprintf("assemblyId=%s&fileNames=%s&dataset=%s", assemblyId, containerizedVcfFilePath, dataset)
 		ingestUrl := fmt.Sprintf("%s/variants/ingestion/run?%s", cfg.Api.Url, queryString)
 
 		initialIngestionDtos := utils.GetRequestReturnStuff[[]ingest.IngestResponseDTO](ingestUrl)

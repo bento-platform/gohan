@@ -484,7 +484,7 @@ func GetDatasetSummary(c echo.Context) error {
 
 	// request #2
 	g.Go(func() error {
-		// obtain number of samples associated with this tableId
+		// obtain number of samples associated with this dataset
 		resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset)
 		if bucketsError != nil {
 			fmt.Printf("Failed to bucket dataset %s variants\n", dataset)
