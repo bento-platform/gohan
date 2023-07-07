@@ -196,7 +196,8 @@ func main() {
 	e.GET("/genes/overview", genesMvc.GetGenesOverview)
 	e.GET("/genes/search", genesMvc.GenesGetByNomenclatureWildcard,
 		// middleware
-		gam.ValidateOptionalChromosomeAttribute)
+		gam.ValidateOptionalChromosomeAttribute,
+		gam.MandateAssemblyIdAttribute)
 	e.GET("/genes/ingestion/requests", genesMvc.GetAllGeneIngestionRequests)
 	e.GET("/genes/ingestion/run", genesMvc.GenesIngest)
 	e.GET("/genes/ingestion/stats", genesMvc.GenesIngestionStats)

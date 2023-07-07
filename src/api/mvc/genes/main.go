@@ -305,7 +305,7 @@ func GenesIngest(c echo.Context) error {
 		assemblyWg.Wait()
 	}()
 
-	return c.JSON(http.StatusOK, "{\"message\":\"please check in with /genes/overview !\"}")
+	return c.JSON(http.StatusOK, map[string]interface{}{"message": "please check in with /genes/overview !"})
 }
 
 func GetAllGeneIngestionRequests(c echo.Context) error {

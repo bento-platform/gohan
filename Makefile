@@ -51,27 +51,29 @@ init-vendor:
 init-data-dirs:
 	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
-	chmod -R 770 ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
+	chmod -R 777 ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
 
 	mkdir -p ${GOHAN_DRS_DATA_DIR}
+	mkdir -p ${GOHAN_DRS_DATA_DIR}/db
+	mkdir -p ${GOHAN_DRS_DATA_DIR}/obj
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR}
-	chmod -R 770 ${GOHAN_DRS_DATA_DIR}
+	chmod -R 777 ${GOHAN_DRS_DATA_DIR}
 
 	mkdir -p ${GOHAN_ES_DATA_DIR}
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR}
-	chmod -R 770 ${GOHAN_ES_DATA_DIR}
+	chmod -R 777 ${GOHAN_ES_DATA_DIR}
 
 	@# tmp:
 	@# (setup for when gohan needs to preprocess vcf's at ingestion time):
 	mkdir -p ${GOHAN_API_VCF_PATH}
 	mkdir -p ${GOHAN_API_VCF_PATH}/tmp
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_VCF_PATH}
-	chmod -R 770 ${GOHAN_API_VCF_PATH}/tmp
+	chmod -R 777 ${GOHAN_API_VCF_PATH}
 
 	mkdir -p ${GOHAN_API_GTF_PATH}
 	mkdir -p ${GOHAN_API_GTF_PATH}/tmp
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_GTF_PATH}
-	chmod -R 770 ${GOHAN_API_GTF_PATH}/tmp
+	chmod -R 777 ${GOHAN_API_GTF_PATH}
 	
 	@echo ".. done!"
 
@@ -196,16 +198,49 @@ clean-api-drs-bridge-data:
 	
 
 ## Tests
-test-api-dev: prepare-test-config
+test-api: init prepare-test-config
+	# # @# Run the tests directly from the api source directory
+	# # cd src/api && \
+	# # go clean -cache && \
+	# # go test ./tests/unit/... -v
+	
+	@# restart any running containers and print
+	docker compose -f docker-compose.test.yaml down
+	docker compose -f docker-compose.test.yaml up -d
+	
+	@# run build tests
+	@# - print api and drs logs in the
+	@#   event of a failued
+	cd src/api && \
+	go clean -cache && \
+	(go test ./tests/build/... -v || ((docker logs gohan-api | tail -n 100) && (docker logs gohan-drs | tail -n 100) && exit 1)) && \
+	cd ../..
+
+	@# shut down the containers and print
+	@# the tail end of the
+	@# api and elasticsearch logs
+	docker compose -f docker-compose.test.yaml stop
+	docker logs gohan-api | tail -n 50
+	docker logs elasticsearch | tail -n 50
+
+
+test-api-dev: prepare-dev-config
 	@# Run the tests
 	cd src/api && \
 	go clean -cache && \
 	go test ./tests/integration/... -v
 
+
 prepare-test-config:
 	@# Prepare environment variables dynamically via a JSON file 
 	@# since xUnit doens't support loading env variables natively
+	envsubst < ./etc/test.yml.tpl > ./src/api/tests/common/test.config.yml
+
+prepare-dev-config:
+	@# Prepare environment variables dynamically via a JSON file 
+	@# since xUnit doens't support loading env variables natively
 	envsubst < ./etc/test.config.yml.tpl > ./src/api/tests/common/test.config.yml
+
 
 clean-tests:
 	@# Clean up

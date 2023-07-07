@@ -1,0 +1,28 @@
+# # Test-only (!) compose file for the Gohan
+
+networks:
+  bridge-net:
+    external: true
+
+services:
+  api:
+    ports:
+      - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
+    extends:
+      file: docker-compose.yaml
+      service: api
+
+
+  elasticsearch:
+    ports:
+      - ${GOHAN_ES_EXTERNAL_PORT_1}:${GOHAN_ES_INTERNAL_PORT_1}
+    extends:
+      file: docker-compose.yaml
+      service: elasticsearch
+
+  drs:
+    ports:
+      - "${GOHAN_DRS_EXTERNAL_PORT}:${GOHAN_DRS_INTERNAL_PORT}"
+    extends:
+      file: docker-compose.yaml
+      service: drs
