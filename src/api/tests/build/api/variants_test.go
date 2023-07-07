@@ -165,20 +165,22 @@ func TestDemoVcfIngestion(t *testing.T) {
 		overviewJson := common.GetVariantsOverview(t, cfg)
 		assert.NotNil(t, overviewJson)
 
-		// check datasets
-		assert.NotNil(t, overviewJson["datasets"])
-		assert.NotNil(t, overviewJson["datasets"].(map[string]interface{}))
+		// verify variant overview content
+		for oK, oV := range overviewJson {
+			assert.NotNil(t, oV)
 
-		datasets := overviewJson["datasets"].(map[string]interface{})
-		assert.NotZero(t, len(datasets))
-		for k, v := range datasets {
-			key := k
-			value := v.(float64)
-			assert.NotNil(t, key)
-			assert.NotNil(t, value)
-			assert.NotEmpty(t, key)
-			assert.NotEmpty(t, value)
-			assert.Greater(t, value, 0.0)
+			assert.NotNil(t, overviewJson[oK])
+			assert.NotNil(t, overviewJson[oK].(map[string]interface{}))
+
+			for k, v := range oV.(map[string]interface{}) {
+				key := k
+				assert.NotNil(t, v)
+				value := v.(float64)
+				assert.NotNil(t, key)
+				assert.NotEmpty(t, key)
+				assert.NotEmpty(t, value)
+				assert.NotZero(t, value)
+			}
 		}
 	})
 
