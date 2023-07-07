@@ -164,6 +164,22 @@ func TestDemoVcfIngestion(t *testing.T) {
 		// check variants overview
 		overviewJson := common.GetVariantsOverview(t, cfg)
 		assert.NotNil(t, overviewJson)
+
+		// check datasets
+		assert.NotNil(t, overviewJson["datasets"])
+		assert.NotNil(t, overviewJson["datasets"].(map[string]interface{}))
+
+		datasets := overviewJson["datasets"].(map[string]interface{})
+		assert.NotZero(t, len(datasets))
+		for k, v := range datasets {
+			key := k
+			value := v.(float64)
+			assert.NotNil(t, key)
+			assert.NotNil(t, value)
+			assert.NotEmpty(t, key)
+			assert.NotEmpty(t, value)
+			assert.Greater(t, value, 0.0)
+		}
 	})
 
 	t.Run("Test Simple Chromosome Queries", func(t *testing.T) {

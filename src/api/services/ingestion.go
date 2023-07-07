@@ -420,7 +420,7 @@ func (i *IngestionService) ProcessVcf(
 
 			tmpVariant["fileId"] = drsFileId
 			tmpVariant["assemblyId"] = assemblyId
-			tmpVariant["dataset"] = dataset
+			tmpVariant["dataset"] = dataset.String()
 
 			// skip this call if need be
 			skipThisCall := false

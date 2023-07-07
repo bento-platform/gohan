@@ -449,16 +449,11 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 func GetDatasetSummary(c echo.Context) error {
 	fmt.Printf("[%s] - GetDatasetSummary hit!\n", time.Now())
 
-	cfg := c.(*contexts.GohanContext).Config
-	es := c.(*contexts.GohanContext).Es7Client
-	// obtain dataset from the path
-	dataset := c.Param("dataset")
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
 
-	// dataset must be provided
-	if dataset == "" {
-		fmt.Println("Missing dataset")
-		return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("Missing dataset - please try again"))
-	}
+	dataset := gc.Dataset
 
 	// parallelize these two es queries
 
@@ -472,7 +467,7 @@ func GetDatasetSummary(c echo.Context) error {
 		docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 			"*", 0, 0,
 			"", "", // note : both variantId and sampleId are deliberately set to ""
-			"", "", []string{}, "", "", dataset)
+			"", "", []string{}, "", "", dataset.String())
 		if countError != nil {
 			fmt.Printf("Failed to count variants in dataset %s\n", dataset)
 			return countError
@@ -485,7 +480,7 @@ func GetDatasetSummary(c echo.Context) error {
 	// request #2
 	g.Go(func() error {
 		// obtain number of samples associated with this dataset
-		resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset)
+		resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset.String())
 		if bucketsError != nil {
 			fmt.Printf("Failed to bucket dataset %s variants\n", dataset)
 			return bucketsError
