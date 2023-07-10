@@ -197,6 +197,17 @@ func TestDemoVcfIngestion(t *testing.T) {
 		byDatsetQueryResponse := common.BuildQueryAndMakeGetVariantsCall("", "*", dataset, true, "asc", "", "GRCh38", "", "", "", false, t, cfg)
 		assert.True(t, len(byDatsetQueryResponse.Results) > 0)
 		assert.True(t, len(byDatsetQueryResponse.Results[0].Calls) > 0)
+		// verify dataset ids
+		From(byDatsetQueryResponse.Results).SelectManyT(func(data dtos.VariantGetResult) Query { // *
+			return From(data.Calls)
+		}).ForEachT(func(variant dtos.VariantCall) {
+			assert.Equal(t, dataset.String(), variant.Dataset)
+		})
+
+		// test unknown random dataset id
+		shouldBeEmptyResponse := common.BuildQueryAndMakeGetVariantsCall("", "*", uuid.New(), true, "", "", "GRCh38", "", "", "", false, t, cfg)
+		assert.True(t, len(shouldBeEmptyResponse.Results) > 0)
+		assert.True(t, len(shouldBeEmptyResponse.Results[0].Calls) == 0)
 	})
 
 	t.Run("Test Simple Allele Queries", func(t *testing.T) {
