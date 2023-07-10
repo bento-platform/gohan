@@ -144,6 +144,7 @@ func main() {
 	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
+		gam.OptionalDatasetAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
@@ -151,6 +152,7 @@ func main() {
 	e.GET("/variants/get/by/sampleId", variantsMvc.VariantsGetBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
+		gam.OptionalDatasetAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
@@ -161,6 +163,7 @@ func main() {
 	e.GET("/variants/count/by/variantId", variantsMvc.VariantsCountByVariantId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
+		gam.OptionalDatasetAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
@@ -168,6 +171,7 @@ func main() {
 	e.GET("/variants/count/by/sampleId", variantsMvc.VariantsCountBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
+		gam.OptionalDatasetAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,

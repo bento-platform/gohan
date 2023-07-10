@@ -106,7 +106,7 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 
 func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
-	variantId string, sampleId string,
+	variantId string, sampleId string, datasetString string,
 	reference string, alternative string, alleles []string,
 	size int, sortByPosition c.SortDirection,
 	includeInfoInResultSet bool,
@@ -140,6 +140,15 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 			"query_string": map[string]interface{}{
 				"fields": []string{"sample.id"},
 				"query":  sampleId,
+			},
+		})
+	}
+
+	if datasetString != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"query_string": map[string]interface{}{
+				"fields": []string{"dataset.keyword"},
+				"query":  datasetString,
 			},
 		})
 	}
@@ -315,9 +324,9 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
-	variantId string, sampleId string,
+	variantId string, sampleId string, datasetString string,
 	reference string, alternative string, alleles []string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId, dataset string) (map[string]interface{}, error) {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -352,6 +361,15 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 		})
 	}
 
+	if datasetString != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"query_string": map[string]interface{}{
+				"fields": []string{"dataset.keyword"},
+				"query":  datasetString,
+			},
+		})
+	}
+
 	if alternative != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"query_string": map[string]interface{}{
@@ -376,13 +394,6 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 				},
 			},
 		})
-	}
-
-	if dataset != "" {
-		mustMap = append(mustMap, map[string]interface{}{
-			"query_string": map[string]interface{}{
-				"query": "dataset:" + dataset,
-			}})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}

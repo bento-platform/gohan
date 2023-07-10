@@ -8,10 +8,11 @@ import (
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/google/uuid"
 	"github.com/labstack/echo"
 )
 
-func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, []string, constants.GenotypeQuery, constants.AssemblyId) {
+func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, []string, constants.GenotypeQuery, constants.AssemblyId, string) {
 	gc := c.(*contexts.GohanContext)
 	es := gc.Es7Client
 
@@ -19,6 +20,12 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 
 	lowerBound := gc.LowerBound
 	upperBound := gc.UpperBound
+
+	// optional
+	datasetString := ""
+	if gc.Dataset != uuid.Nil {
+		datasetString = gc.Dataset.String()
+	}
 
 	reference := c.QueryParam("reference")
 	alternative := c.QueryParam("alternative")
@@ -47,5 +54,5 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 		assemblyId = a.CastToAssemblyId(assemblyIdQP)
 	}
 
-	return es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId
+	return es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, datasetString
 }

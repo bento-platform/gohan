@@ -208,6 +208,12 @@ func TestDemoVcfIngestion(t *testing.T) {
 		shouldBeEmptyResponse := common.BuildQueryAndMakeGetVariantsCall("", "*", uuid.New(), true, "", "", "GRCh38", "", "", "", false, t, cfg)
 		assert.True(t, len(shouldBeEmptyResponse.Results) > 0)
 		assert.True(t, len(shouldBeEmptyResponse.Results[0].Calls) == 0)
+
+		// test without dataset id
+		// - should have content
+		plentifulResponse := common.BuildQueryAndMakeGetVariantsCall("", "*", uuid.Nil, true, "", "", "GRCh38", "", "", "", false, t, cfg)
+		assert.True(t, len(plentifulResponse.Results) > 0)
+		assert.True(t, len(plentifulResponse.Results[0].Calls) > 0)
 	})
 
 	t.Run("Test Simple Allele Queries", func(t *testing.T) {
