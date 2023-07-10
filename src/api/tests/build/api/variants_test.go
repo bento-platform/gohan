@@ -38,7 +38,7 @@ const (
 
 func TestDemoVcfIngestion(t *testing.T) {
 	cfg := common.InitConfig()
-	dataset := uuid.NewString()
+	dataset := uuid.New()
 
 	t.Run("Ingest Demo VCF", func(t *testing.T) {
 		// verify ingestion endpoint
@@ -90,7 +90,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 		assemblyId := "GRCh38"
 		containerizedVcfFilePath := "/data/" + filepath.Base(newGzFile)
 
-		queryString := fmt.Sprintf("assemblyId=%s&fileNames=%s&dataset=%s", assemblyId, containerizedVcfFilePath, dataset)
+		queryString := fmt.Sprintf("assemblyId=%s&fileNames=%s&dataset=%s", assemblyId, containerizedVcfFilePath, dataset.String())
 		ingestUrl := fmt.Sprintf("%s/variants/ingestion/run?%s", cfg.Api.Url, queryString)
 
 		initialIngestionDtos := utils.GetRequestReturnStuff[[]ingest.IngestResponseDTO](ingestUrl)
@@ -182,21 +182,30 @@ func TestDemoVcfIngestion(t *testing.T) {
 				assert.NotZero(t, value)
 			}
 		}
+		fmt.Println(overviewJson)
 	})
 
 	t.Run("Test Simple Chromosome Queries", func(t *testing.T) {
 		// simple chromosome-1 query
-		chromQueryResponse := common.BuildQueryAndMakeGetVariantsCall("1", "*", true, "asc", "", "GRCh38", "", "", "", false, t, cfg)
+		chromQueryResponse := common.BuildQueryAndMakeGetVariantsCall("1", "*", dataset, true, "asc", "", "GRCh38", "", "", "", false, t, cfg)
+		assert.True(t, len(chromQueryResponse.Results) > 0)
 		assert.True(t, len(chromQueryResponse.Results[0].Calls) > 0)
+	})
+
+	t.Run("Test Query by Dataset", func(t *testing.T) {
+		// simple query by dataset using the id generated above and ingested with
+		byDatsetQueryResponse := common.BuildQueryAndMakeGetVariantsCall("", "*", dataset, true, "asc", "", "GRCh38", "", "", "", false, t, cfg)
+		assert.True(t, len(byDatsetQueryResponse.Results) > 0)
+		assert.True(t, len(byDatsetQueryResponse.Results[0].Calls) > 0)
 	})
 
 	t.Run("Test Simple Allele Queries", func(t *testing.T) {
 		// TODO: not hardcoded tests
 		// simple allele queries
-		common.GetAndVerifyVariantsResults(cfg, t, "CAG")
-		common.GetAndVerifyVariantsResults(cfg, t, "CAAAA")
-		common.GetAndVerifyVariantsResults(cfg, t, "T")
-		common.GetAndVerifyVariantsResults(cfg, t, "C")
+		common.GetAndVerifyVariantsResults(cfg, t, dataset, "CAG")
+		common.GetAndVerifyVariantsResults(cfg, t, dataset, "CAAAA")
+		common.GetAndVerifyVariantsResults(cfg, t, dataset, "T")
+		common.GetAndVerifyVariantsResults(cfg, t, dataset, "C")
 
 		// random number between 1 and 5
 		// allelleLen := rand.Intn(5) + 1
@@ -206,7 +215,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 	})
 
 	t.Run("Test Variant Info Present", func(t *testing.T) {
-		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, true, s.Undefined, gq.UNCALLED, "", "")
+		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, dataset, true, s.Undefined, gq.UNCALLED, "", "")
 
 		// assert that all of the responses include valid sets of info
 		// - * accumulate all infos into a single list using the set of
@@ -242,7 +251,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 	})
 
 	t.Run("Test No Variant Info Present", func(t *testing.T) {
-		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Undefined, gq.UNCALLED, "", "")
+		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, dataset, false, s.Undefined, gq.UNCALLED, "", "")
 
 		// assert that all responses from all combinations have no results
 		for _, dtoResponse := range allDtoResponses {
@@ -257,7 +266,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 	t.Run("Test Get Variants in Ascending Order", func(t *testing.T) {
 		// retrieve responses in ascending order
-		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Ascending, gq.UNCALLED, "", "")
+		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, dataset, false, s.Ascending, gq.UNCALLED, "", "")
 
 		// assert the dto response slice is plentiful
 		assert.NotNil(t, allDtoResponses)
@@ -286,7 +295,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 	t.Run("Test Get Variants in Descending Order", func(t *testing.T) {
 		// retrieve responses in descending order
-		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, false, s.Descending, gq.UNCALLED, "", "")
+		allDtoResponses := common.GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(t, dataset, false, s.Descending, gq.UNCALLED, "", "")
 
 		// assert the dto response slice is plentiful
 		assert.NotNil(t, allDtoResponses)
@@ -358,7 +367,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 			validateHomozygousAlternateSample(__t, call)
 		}
-		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_ALTERNATE, ratt.Reference, specificValidation)
+		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, dataset, gq.HOMOZYGOUS_ALTERNATE, ratt.Reference, specificValidation)
 
 		// Homozygous Reference Variants With Various References
 		specificValidation = func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string) {
@@ -370,7 +379,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 			validateHomozygousReferenceSample(__t, call)
 		}
-		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_REFERENCE, ratt.Reference, specificValidation)
+		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, dataset, gq.HOMOZYGOUS_REFERENCE, ratt.Reference, specificValidation)
 
 		//Heterozygous Variants With Various References
 		specificValidation = func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string) {
@@ -382,7 +391,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 			validateHeterozygousSample(__t, call)
 		}
-		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, ratt.Reference, specificValidation)
+		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, dataset, gq.HETEROZYGOUS, ratt.Reference, specificValidation)
 
 		// Homozygous Alternate Variants With Various Alternatives
 		specificValidation = func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string) {
@@ -394,7 +403,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 			validateHomozygousAlternateSample(__t, call)
 		}
-		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_ALTERNATE, ratt.Alternative, specificValidation)
+		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, dataset, gq.HOMOZYGOUS_ALTERNATE, ratt.Alternative, specificValidation)
 
 		// Homozygous Reference Variants With Various Alternatives
 		specificValidation = func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string) {
@@ -406,7 +415,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 			validateHomozygousReferenceSample(__t, call)
 		}
-		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HOMOZYGOUS_REFERENCE, ratt.Alternative, specificValidation)
+		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, dataset, gq.HOMOZYGOUS_REFERENCE, ratt.Alternative, specificValidation)
 
 		// Heterozygous Variants With Various Alternatives
 		specificValidation = func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string) {
@@ -418,13 +427,13 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 			validateHeterozygousSample(__t, call)
 		}
-		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, gq.HETEROZYGOUS, ratt.Alternative, specificValidation)
+		common.ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(t, dataset, gq.HETEROZYGOUS, ratt.Alternative, specificValidation)
 	})
 
 	t.Run("Test Can Get Variants With Wildcard Alternatives", func(t *testing.T) {
 		allele := "ATTN" // example allele - TODO: render more sophisticated randomization
 		// TODO: improve variant call testing from being 1 call to many random ones
-		dtos := common.BuildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", "", allele, "", false, t, cfg)
+		dtos := common.BuildQueryAndMakeGetVariantsCall("14", "*", dataset, true, "asc", "HETEROZYGOUS", "GRCh37", "", allele, "", false, t, cfg)
 		for _, dto := range dtos.Results {
 			for _, call := range dto.Calls {
 				// ensure, for each call, that at least
@@ -459,7 +468,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 	t.Run("Test Can Get Variants With Wildcard References", func(t *testing.T) {
 		allele := "ATTN" // example allele - TODO: render more sophisticated randomization
 		// TODO: improve variant call testing from being 1 call to many random ones
-		dtos := common.BuildQueryAndMakeGetVariantsCall("14", "*", true, "asc", "HETEROZYGOUS", "GRCh37", allele, "", "", false, t, cfg)
+		dtos := common.BuildQueryAndMakeGetVariantsCall("14", "*", dataset, true, "asc", "HETEROZYGOUS", "GRCh37", allele, "", "", false, t, cfg)
 		for _, dto := range dtos.Results {
 			for _, call := range dto.Calls {
 				// ensure, for each call, that at least
@@ -494,7 +503,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 		// iterate over all 'allele's queried for
 		qAlleles := []string{"N", "NN", "NNN", "NNNN", "NNNNN"} // wildcard alleles of different lengths
 		for _, qAllele := range qAlleles {
-			dtos := common.BuildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", qAllele, false, t, cfg)
+			dtos := common.BuildQueryAndMakeGetVariantsCall("", "*", dataset, true, "asc", "", "GRCh38", "", "", qAllele, false, t, cfg)
 			for _, dto := range dtos.Results {
 				fmt.Printf("Got %d calls from allele query %s \n", len(dto.Calls), qAllele)
 				if len(dto.Calls) == 0 {
@@ -532,7 +541,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 		// iterate over all 'allele pairs'
 		for _, qAllelePair := range qAllelePairs {
-			dtos := common.BuildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", strings.Join(qAllelePair, ","), false, t, cfg)
+			dtos := common.BuildQueryAndMakeGetVariantsCall("", "*", dataset, true, "asc", "", "GRCh38", "", "", strings.Join(qAllelePair, ","), false, t, cfg)
 			for _, dto := range dtos.Results {
 				if len(dto.Calls) == 0 {
 					continue
@@ -566,7 +575,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 			} // skip valid calls
 
 			limitedAlleles := strings.Join(qAlleles[:i], ",")
-			invalidReqResObj := common.BuildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", limitedAlleles, true, t, cfg)
+			invalidReqResObj := common.BuildQueryAndMakeGetVariantsCall("", "*", dataset, true, "asc", "", "GRCh38", "", "", limitedAlleles, true, t, cfg)
 
 			// make sure only an error was returned
 			assert.True(t, invalidReqResObj.Status == 400)
@@ -649,7 +658,7 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 			assemblyId := a.CastToAssemblyId(_combination[2])
 
 			// make the call
-			dto := common.BuildQueryAndMakeGetVariantsCall(chrom, sampleId, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", false, _t, cfg)
+			dto := common.BuildQueryAndMakeGetVariantsCall(chrom, sampleId, uuid.Nil, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", false, _t, cfg)
 
 			assert.Equal(_t, 1, len(dto.Results))
 
