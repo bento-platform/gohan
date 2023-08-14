@@ -1,5 +1,7 @@
 ARG BASE_IMAGE
 
+FROM $BASE_IMAGE
+
 RUN apt-get update -y && \
     apt-get upgrade -y && \
     apt-get install -y tabix && \
