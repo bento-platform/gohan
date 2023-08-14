@@ -8,10 +8,10 @@ LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics
 
 WORKDIR /app
 
-COPY . .
-    
-# Build gohan api
-RUN go mod vendor && go install github.com/cosmtrek/air@latest
+RUN go install github.com/cosmtrek/air@latest
+
+COPY go.mod go.sum ./
+RUN go mod download
 
 # Debian updates
 #  - tabix for indexing VCFs
