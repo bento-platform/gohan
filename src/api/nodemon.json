@@ -8,7 +8,6 @@
     },
     "ext": "go",
     "ignore": [
-      "src/",
       "node_modules/",
       "build/",
       ".github",

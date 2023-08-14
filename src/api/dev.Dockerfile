@@ -1,6 +1,4 @@
-ARG BASE_IMAGE
-
-FROM $BASE_IMAGE
+FROM ghcr.io/bento-platform/bento_base_image:node-debian-2023.03.22
 
 RUN apt-get update -y && \
     apt-get upgrade -y && \
