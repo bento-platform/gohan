@@ -11,7 +11,7 @@ WORKDIR /app
 COPY . .
     
 # Build gohan api
-RUN go mod vendor
+RUN go mod vendor && go install github.com/cosmtrek/air@latest
 
 # Debian updates
 #  - tabix for indexing VCFs
@@ -21,12 +21,9 @@ RUN apt-get update -y && \
     apt-get install -y tabix && \
     rm -rf /var/lib/apt/lists/*
 
-# Install air for hot-reload
-RUN go get -u github.com/cosmtrek/air
-
 # Copy static workflow files
 COPY workflows/*.wdl /app/workflows/
 
 # Use base image entrypoint to set up user & gosu exec the command below
 # Run
-CMD [ "air" ]
+CMD [ "air", "-c", ".air.toml" ]
