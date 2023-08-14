@@ -6,13 +6,12 @@ FROM $BUILDER_BASE_IMAGE as builder
 # Maintainer
 LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics.ca>"
 
-WORKDIR /build
+WORKDIR /app
 
 COPY . .
     
 # Build gohan api
-RUN go mod vendor && \
-    go build -ldflags="-s -w" -o gohan_api
+RUN go mod vendor
 
 # Debian updates
 #  - tabix for indexing VCFs
@@ -24,11 +23,6 @@ RUN apt-get update -y && \
 
 # Install air for hot-reload
 RUN go get -u github.com/cosmtrek/air
-
-WORKDIR /app
-
-# Copy pre-built executable from builder stage
-COPY /build/gohan_api .
 
 # Copy static workflow files
 COPY workflows/*.wdl /app/workflows/
