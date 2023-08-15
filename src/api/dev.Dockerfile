@@ -8,11 +8,6 @@ LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics
 
 WORKDIR /app
 
-RUN go install github.com/cosmtrek/air@latest
-
-COPY go.mod go.sum ./
-RUN go mod download
-
 # Debian updates
 #  - tabix for indexing VCFs
 #  - other base dependencies provided by the base image
@@ -21,9 +16,15 @@ RUN apt-get update -y && \
     apt-get install -y tabix && \
     rm -rf /var/lib/apt/lists/*
 
+RUN go install github.com/cosmtrek/air@latest
+
+COPY go.mod go.sum ./
+RUN go mod download && go mod vendor
+
 # Copy static workflow files
 COPY workflows/*.wdl /app/workflows/
 
-# Use base image entrypoint to set up user & gosu exec the command below
-# Run
-CMD [ "air", "-c", ".air.toml" ]
+# Repository mounted to the container
+WORKDIR /app/src/api
+
+CMD [ "air" ]
