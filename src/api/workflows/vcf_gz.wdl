@@ -3,7 +3,9 @@ workflow vcf_gz {
     Array[File] vcf_gz_file_names # redundant
     Array[String] original_vcf_gz_file_paths
     String assembly_id
-    String dataset
+    String project_id
+    String dataset_id
+    String service_url
     String filter_out_references
     String temp_token
     String temp_token_host
@@ -14,7 +16,7 @@ workflow vcf_gz {
             input: gohan_url = gohan_url,
                    vcf_gz_file_name = file_name,
                    assembly_id = assembly_id,
-                   dataset = dataset,
+                   dataset = dataset_id,
                    filter_out_references = filter_out_references,
                    temp_token = temp_token,
                    temp_token_host = temp_token_host

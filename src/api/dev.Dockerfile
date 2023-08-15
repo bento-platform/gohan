@@ -25,6 +25,8 @@ RUN go mod download && go mod vendor
 COPY workflows/*.wdl /app/workflows/
 
 # Repository mounted to the container
-WORKDIR /app/src/api
+# WORKDIR /app/repo/src/api
+WORKDIR /gohan-api/src/api
+
 
 CMD [ "air" ]
