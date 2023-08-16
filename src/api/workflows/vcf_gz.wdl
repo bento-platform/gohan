@@ -1,26 +1,20 @@
 workflow vcf_gz {
-    String gohan_url
-    Array[File] vcf_gz_file_names # redundant
-    Array[String] original_vcf_gz_file_paths
+    String service_url
+    Array[File] vcf_gz_file_names
     String assembly_id
     String project_id
     String dataset_id
-    String service_url
     String filter_out_references
-    String temp_token
-    String temp_token_host
+    String secret__access_token
 
-    # scatter(file_name in vcf_gz_file_names) {
-    scatter(file_name in original_vcf_gz_file_paths) {
+    scatter(file_name in vcf_gz_file_names) {
         call vcf_gz_gohan {
-            input: gohan_url = gohan_url,
+            input: gohan_url = service_url,
                    vcf_gz_file_name = file_name,
                    assembly_id = assembly_id,
                    dataset = dataset_id,
                    filter_out_references = filter_out_references,
-                   temp_token = temp_token,
-                   temp_token_host = temp_token_host
-
+                   access_token = secret__access_token,
         }
     }
 }
@@ -31,21 +25,18 @@ task vcf_gz_gohan {
     String assembly_id
     String dataset
     String filter_out_references
-    String temp_token
-    String temp_token_host
+    String access_token
 
     command {
-        echo "Using temporary-token : ${temp_token}"
-
         QUERY="fileNames=${vcf_gz_file_name}&assemblyId=${assembly_id}&dataset=${dataset}&filterOutReferences=${filter_out_references}"
         
         # TODO: refactor
         # append temporary-token header if present
-        if [ "${temp_token}" == "" ]
+        if [ "${access_token}" == "" ]
         then
             RUN_RESPONSE=$(curl -vvv "${gohan_url}/private/variants/ingestion/run?$QUERY" -k | sed 's/"/\"/g')
         else
-            RUN_RESPONSE=$(curl -vvv -H "Host: ${temp_token_host}" -H "X-TT: ${temp_token}" "${gohan_url}/private/variants/ingestion/run?$QUERY" -k | sed 's/"/\"/g')
+            RUN_RESPONSE=$(curl -vvv -H "Authorization: ${access_token}" "${gohan_url}/private/variants/ingestion/run?$QUERY" -k | sed 's/"/\"/g')
         fi
         
         echo $RUN_RESPONSE 
@@ -67,11 +58,11 @@ task vcf_gz_gohan {
             # TODO: refactor
             # fetch run requests
             # append temporary-token header if present
-            if [ "${temp_token}" == "" ]
+            if [ "${access_token}" == "" ]
             then
                 REQUESTS=$(curl -vvv "${gohan_url}/private/variants/ingestion/requests" -k)
             else
-                REQUESTS=$(curl -vvv -H "Host: ${temp_token_host}" -H "X-TT: ${temp_token}" "${gohan_url}/private/variants/ingestion/requests" -k)
+                REQUESTS=$(curl -vvv -H "Authorization: ${access_token}" "${gohan_url}/private/variants/ingestion/requests" -k)
             fi
 
             echo $REQUESTS
