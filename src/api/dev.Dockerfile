@@ -21,12 +21,7 @@ RUN go install github.com/cosmtrek/air@latest
 COPY go.mod go.sum ./
 RUN go mod download && go mod vendor
 
-# Copy static workflow files
-COPY workflows/*.wdl /app/workflows/
-
 # Repository mounted to the container
-# WORKDIR /app/repo/src/api
 WORKDIR /gohan-api/src/api
-
 
 CMD [ "air" ]
