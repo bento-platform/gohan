@@ -28,6 +28,8 @@ task vcf_gz_gohan {
     String access_token
 
     command {
+        echo "Using temporary-token : ${access_token}"
+
         QUERY="fileNames=${vcf_gz_file_name}&assemblyId=${assembly_id}&dataset=${dataset}&filterOutReferences=${filter_out_references}"
         AUTH_HEADER="Authorization: Bearer ${access_token}"
         
@@ -37,7 +39,7 @@ task vcf_gz_gohan {
         then
             RUN_RESPONSE=$(curl -vvv "${gohan_url}/private/variants/ingestion/run?$QUERY" -k | sed 's/"/\"/g')
         else
-            RUN_RESPONSE=$(curl -vvv -H $AUTH_HEADER "${gohan_url}/private/variants/ingestion/run?$QUERY" -k | sed 's/"/\"/g')
+            RUN_RESPONSE=$(curl -vvv -H "$AUTH_HEADER" "${gohan_url}/private/variants/ingestion/run?$QUERY" -k | sed 's/"/\"/g')
         fi
         
         echo $RUN_RESPONSE 
@@ -63,7 +65,7 @@ task vcf_gz_gohan {
             then
                 REQUESTS=$(curl -vvv "${gohan_url}/private/variants/ingestion/requests" -k)
             else
-                REQUESTS=$(curl -vvv -H $AUTH_HEADER "${gohan_url}/private/variants/ingestion/requests" -k)
+                REQUESTS=$(curl -vvv -H "$AUTH_HEADER" "${gohan_url}/private/variants/ingestion/requests" -k)
             fi
 
             echo $REQUESTS
