@@ -257,7 +257,7 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 	)
 	for {
 		// prepare upload request to drs
-		r, _ := http.NewRequest("POST", drsUrl+"/private/ingest", bytes.NewBufferString(data))
+		r, _ := http.NewRequest("POST", drsUrl+"/ingest", bytes.NewBufferString(data))
 
 		r.SetBasicAuth(drsUsername, drsPassword)
 		r.Header.Add("Content-Type", "application/json")
