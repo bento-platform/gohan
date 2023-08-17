@@ -495,3 +495,11 @@ Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run
 make test-api-dev
 ```
 
+## Dev Container debug
+
+Interactive debug in VSCode is only possible When using the development image of gohan-api.
+
+Using the "Attach to PID(Bento)" debug config, select the PID associated with the following path:
+```
+/gohan-api/src/api/tmp/main
+```
