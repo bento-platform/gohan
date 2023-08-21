@@ -12,6 +12,7 @@ workflow vcf_gz {
             input: gohan_url = service_url,
                    vcf_gz_file_name = file_name,
                    assembly_id = assembly_id,
+                   project = project_id,
                    dataset = dataset_id,
                    filter_out_references = filter_out_references,
                    access_token = secret__access_token,
@@ -23,6 +24,7 @@ task vcf_gz_gohan {
     String gohan_url
     String vcf_gz_file_name
     String assembly_id
+    String project
     String dataset
     String filter_out_references
     String access_token
@@ -30,7 +32,7 @@ task vcf_gz_gohan {
     command {
         echo "Using temporary-token : ${access_token}"
 
-        QUERY="fileNames=${vcf_gz_file_name}&assemblyId=${assembly_id}&dataset=${dataset}&filterOutReferences=${filter_out_references}"
+        QUERY="fileNames=${vcf_gz_file_name}&assemblyId=${assembly_id}&dataset=${dataset}&project=${project}&filterOutReferences=${filter_out_references}"
         AUTH_HEADER="Authorization: Bearer ${access_token}"
         
         # TODO: refactor

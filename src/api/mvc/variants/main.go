@@ -104,8 +104,6 @@ func VariantsIngest(c echo.Context) error {
 	cfg := gc.Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
-	drsUsername := cfg.Drs.Username
-	drsPassword := cfg.Drs.Password
 
 	// query parameters
 	assemblyId := gc.AssemblyId
@@ -148,6 +146,13 @@ func VariantsIngest(c echo.Context) error {
 		}
 	}
 	//
+
+	// Authz related
+	authHeader := c.Request().Header.Get("Authorization")
+	datasetId := c.QueryParam("dataset")
+	projectId := c.QueryParam("project")
+
+	c.Logger().Debug(authHeader, datasetId)
 
 	dirName := c.QueryParam("directory")
 	if dirName != "" {
@@ -353,7 +358,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// ---   push compressed to DRS
 				fmt.Printf("Uploading %s to DRS !\n", gzippedFileName)
-				drsFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
+				drsFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, projectId, datasetId, authHeader)
 				if drsFileId == "" {
 					msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
 					fmt.Println(msg)
@@ -367,7 +372,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// -- push tabix to DRS
 				fmt.Printf("Uploading %s to DRS !\n", tabixFileNameWithRelativePath)
-				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, projectId, datasetId, authHeader)
 				if drsTabixFileId == "" {
 					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileNameWithRelativePath
 					fmt.Println(msg)

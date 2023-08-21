@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -239,13 +240,13 @@ func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string
 	return dir, file, nil
 }
 
-func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirectory string, gzippedFileName string, drsUrl, drsUsername, drsPassword string) string {
+func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirectory string, gzippedFileName string, drsUrl string, project_id, dataset_id string, authHeader string) string {
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	data := fmt.Sprintf("{\"path\": \"%s/%s\"}", drsBridgeDirectory, gzippedFileName)
+	path := fmt.Sprintf("%s/%s", drsBridgeDirectory, gzippedFileName)
 
 	var (
 		drsId           string
@@ -257,10 +258,16 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 	)
 	for {
 		// prepare upload request to drs
-		r, _ := http.NewRequest("POST", drsUrl+"/ingest", bytes.NewBufferString(data))
+		form := url.Values{}
+		form.Add("path", path)
+		form.Add("dataset_id", dataset_id)
+		form.Add("project_id", project_id)
+		form.Add("data_type", "variant")
 
-		r.SetBasicAuth(drsUsername, drsPassword)
-		r.Header.Add("Content-Type", "application/json")
+		r, _ := http.NewRequest("POST", drsUrl+"/ingest", strings.NewReader(form.Encode()))
+
+		r.Header.Add("Authorization", authHeader)
+		r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 		client := &http.Client{}
 
