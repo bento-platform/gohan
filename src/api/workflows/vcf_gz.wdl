@@ -1,5 +1,5 @@
 workflow vcf_gz {
-    String service_url
+    String gohan_url
     Array[File] vcf_gz_file_names
     String assembly_id
     String project_id
@@ -9,7 +9,7 @@ workflow vcf_gz {
 
     scatter(file_name in vcf_gz_file_names) {
         call vcf_gz_gohan {
-            input: gohan_url = service_url,
+            input: gohan_url = gohan_url,
                    vcf_gz_file_name = file_name,
                    assembly_id = assembly_id,
                    project = project_id,

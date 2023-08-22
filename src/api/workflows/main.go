@@ -36,6 +36,13 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"values":   []string{"true", "false"}, // simulate boolean type
 					"default":  "false",
 				},
+				{
+					"id":		"gohan_url",
+					"type":		"string",
+					"required":	true,
+					"value":	"FROM_CONFIG",
+					"hidden":	true,
+				},
 			},
 			"outputs": []map[string]interface{}{
 				{
