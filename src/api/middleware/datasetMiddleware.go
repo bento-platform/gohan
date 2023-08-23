@@ -40,6 +40,22 @@ func MandateDatasetAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+func MandateDatasetPathParam(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		dataset := c.Param("dataset")
+		if !utils.IsValidUUID(dataset) {
+			fmt.Printf("Invalid dataset %s\n", dataset)
+
+			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset %s - please provide a valid uuid", dataset)))
+		}
+
+		gc := c.(*contexts.GohanContext)
+		gc.Dataset = uuid.MustParse(dataset)
+
+		return next(gc)
+	}
+}
+
 /*
 Echo middleware to ensure a `dataset` HTTP query parameter is valid if provided
 */

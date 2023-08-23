@@ -179,8 +179,12 @@ func main() {
 		gam.ValidatePotentialGenotypeQueryParameter)
 
 	// --- Dataset
-	e.GET("/datasets/:dataset/summary", variantsMvc.GetDatasetSummary)
-	e.GET("/datasets/:dataset/data-types", variantsMvc.GetDatasetDataTypes)
+	e.GET("/datasets/:dataset/summary", variantsMvc.GetDatasetSummary,
+		// middleware
+		gam.MandateDatasetPathParam)
+	e.GET("/datasets/:dataset/data-types", variantsMvc.GetDatasetDataTypes,
+		// middleware
+		gam.MandateDatasetPathParam)
 
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,

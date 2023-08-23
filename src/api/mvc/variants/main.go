@@ -453,13 +453,13 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 }
 
 func GetDatasetSummary(c echo.Context) error {
-	fmt.Printf("[%s] - GetDatasetSummary hit!\n", time.Now())
 
 	gc := c.(*contexts.GohanContext)
 	cfg := gc.Config
 	es := gc.Es7Client
 
 	dataset := gc.Dataset
+	fmt.Printf("[%s] - GetDatasetSummary hit: [%s]!\n", time.Now(), dataset.String())
 
 	// parallelize these two es queries
 
