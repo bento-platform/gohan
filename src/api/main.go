@@ -180,6 +180,7 @@ func main() {
 
 	// --- Dataset
 	e.GET("/datasets/:dataset/summary", variantsMvc.GetDatasetSummary)
+	e.GET("/datasets/:dataset/data-types", variantsMvc.GetDatasetDataTypes)
 
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,

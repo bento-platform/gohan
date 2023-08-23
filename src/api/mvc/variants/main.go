@@ -21,6 +21,7 @@ import (
 	"gohan/api/models/dtos/errors"
 	"gohan/api/models/indexes"
 	"gohan/api/models/ingest"
+	"gohan/api/models/schemas"
 	"gohan/api/mvc"
 	esRepo "gohan/api/repositories/elasticsearch"
 	variantService "gohan/api/services/variants"
@@ -510,16 +511,41 @@ func GetDatasetSummary(c echo.Context) error {
 	// wait for all HTTP fetches to complete.
 	if err := g.Wait(); err == nil {
 		fmt.Printf("Successfully Obtained Dataset '%s' Summary \n", dataset)
-
-		return c.JSON(http.StatusOK, &dtos.DatasetSummaryResponseDto{
-			Count: int(totalVariantsCount),
-			DataTypeSpecific: map[string]interface{}{
-				"samples": len(bucketsMapped),
+		payload := &dtos.DatasetDataTypeSummaryResponseDto{
+			Variant: dtos.DataTypeSummaryResponseDto{
+				Count: int(totalVariantsCount),
+				DataTypeSpecific: map[string]interface{}{
+					"samples": len(bucketsMapped),
+				},
 			},
-		})
+		}
+		return c.JSON(http.StatusOK, payload)
 	} else {
 		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
 	}
+}
+
+type DataTypeSummary struct {
+	Id        string                 `json:"id"`
+	Label     string                 `json:"label"`
+	Queryable bool                   `json:"queryable"`
+	Schema    map[string]interface{} `json:"schema"`
+	Count     int                    `json:"count"`
+}
+
+type DataTypeResponseDto = []DataTypeSummary
+
+func GetDatasetDataTypes(c echo.Context) error {
+	count := 0
+	return c.JSON(http.StatusOK, &DataTypeResponseDto{
+		DataTypeSummary{
+			Id:        "variant",
+			Label:     "Variants",
+			Queryable: true,
+			Schema:    schemas.VARIANT_SCHEMA,
+			Count:     count,
+		},
+	})
 }
 
 func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {

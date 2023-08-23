@@ -60,9 +60,13 @@ type VariantCall struct {
 }
 
 // --- Dataset
-type DatasetSummaryResponseDto struct {
+type DataTypeSummaryResponseDto struct {
 	Count            int                    `json:"count"`
 	DataTypeSpecific map[string]interface{} `json:"data_type_specific"` // TODO: type-safety?
+}
+
+type DatasetDataTypeSummaryResponseDto struct {
+	Variant DataTypeSummaryResponseDto `json:"variant"`
 }
 
 // -- Genes
