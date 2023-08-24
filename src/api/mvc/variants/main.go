@@ -452,6 +452,39 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 	return c.JSON(http.StatusOK, m)
 }
 
+func GetDatasetVariantsCount(c echo.Context) int {
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
+
+	dataset := gc.Dataset
+
+	var (
+		totalVariantsCount = 0.0
+		g                  = new(errgroup.Group)
+	)
+	// request #1
+	g.Go(func() error {
+		docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+			"*", 0, 0,
+			"", "", dataset.String(), // note : both variantId and sampleId are deliberately set to ""
+			"", "", []string{}, "", "")
+		if countError != nil {
+			fmt.Printf("Failed to count variants in dataset %s\n", dataset)
+			return countError
+		}
+
+		totalVariantsCount = docs["count"].(float64)
+		return nil
+	})
+
+	// wait for all HTTP fetches to complete.
+	if err := g.Wait(); err == nil {
+		fmt.Printf("Successfully Obtained Dataset '%s' variants count: '%f' \n", dataset, totalVariantsCount)
+	}
+	return int(totalVariantsCount)
+}
+
 func GetDatasetSummary(c echo.Context) error {
 
 	gc := c.(*contexts.GohanContext)
@@ -536,7 +569,7 @@ type DataTypeSummary struct {
 type DataTypeResponseDto = []DataTypeSummary
 
 func GetDatasetDataTypes(c echo.Context) error {
-	count := 0
+	count := GetDatasetVariantsCount(c)
 	return c.JSON(http.StatusOK, &DataTypeResponseDto{
 		DataTypeSummary{
 			Id:        "variant",
