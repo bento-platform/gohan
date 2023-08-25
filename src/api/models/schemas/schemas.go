@@ -7,6 +7,10 @@ import (
 
 type Schema map[string]interface{}
 
+var OBJECT_SCHEMA Schema = Schema{
+	"type": "object",
+}
+
 var VARIANT_METADATA_SCHEMA Schema = map[string]interface{}{
 	"$id":         "variant:metadata", // TODO: Real ID
 	"$schema":     "http://json-schema.org/draft-07/schema#",

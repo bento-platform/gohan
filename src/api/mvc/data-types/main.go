@@ -12,10 +12,11 @@ import (
 )
 
 var variantDataTypeJson = map[string]interface{}{
-	"id":        "variant",
-	"label":     "Variants",
-	"queryable": true,
-	"schema":    schemas.VARIANT_SCHEMA,
+	"id":              "variant",
+	"label":           "Variants",
+	"queryable":       true,
+	"schema":          schemas.VARIANT_SCHEMA,
+	"metadata_schema": schemas.OBJECT_SCHEMA,
 }
 
 func GetDataTypes(c echo.Context) error {
