@@ -3,6 +3,16 @@ ARG BUILDER_BASE_IMAGE
 # Stage 1 - builder
 FROM $BUILDER_BASE_IMAGE as builder
 
+LABEL org.opencontainers.image.description="Local development image for Bento Gohan."
+LABEL devcontainer.metadata='[{ \
+  "customizations": { \
+    "vscode": { \
+      "extensions": ["golang.go", "eamodio.gitlens"], \
+      "settings": {"workspaceFolder": "/gohan-api"} \
+    } \
+  } \
+}]'
+
 # Maintainer
 LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics.ca>"
 
