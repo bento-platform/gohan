@@ -56,6 +56,21 @@ func MandateDatasetPathParam(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+func MandateDataTypePathParam(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		dataType := c.Param("dataType")
+		if dataType != "variant" {
+			fmt.Printf("Invalid data-type provided: %s\n", dataType)
+			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(
+				fmt.Sprintf("invalid data-type %s - please provide a valid data-type (e.g. \"variant\")", dataType),
+			))
+		}
+		gc := c.(*contexts.GohanContext)
+		gc.DataType = dataType
+		return next(gc)
+	}
+}
+
 /*
 Echo middleware to ensure a `dataset` HTTP query parameter is valid if provided
 */

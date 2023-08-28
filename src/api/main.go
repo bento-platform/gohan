@@ -185,6 +185,9 @@ func main() {
 	e.GET("/datasets/:dataset/data-types", variantsMvc.GetDatasetDataTypes,
 		// middleware
 		gam.MandateDatasetPathParam)
+	e.DELETE("/datasets/:dataset/data-types/:dataType", variantsMvc.ClearDataset,
+		gam.MandateDatasetPathParam,
+		gam.MandateDataTypePathParam)
 
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,

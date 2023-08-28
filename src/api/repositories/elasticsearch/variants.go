@@ -668,6 +668,62 @@ func GetVariantsBucketsByKeywordAndDataset(cfg *models.Config, es *elasticsearch
 	return result, nil
 }
 
+func DeleteVariantsByDatasetId(cfg *models.Config, es *elasticsearch.Client, dataset string) (map[string]interface{}, error) {
+
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"match": map[string]interface{}{
+				"dataset": dataset,
+			},
+		},
+	}
+
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", query)
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	// Perform the delete request.
+	deleteRes, deleteErr := es.DeleteByQuery(
+		[]string{wildcardVariantsIndex},
+		bytes.NewReader(buf.Bytes()),
+	)
+	if deleteErr != nil {
+		fmt.Printf("Error getting response: %s\n", deleteErr)
+		return nil, deleteErr
+	}
+
+	defer deleteRes.Body.Close()
+
+	resultString := deleteRes.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Prepare an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the empty interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
+	}
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling variant deletion response: %s\n", umErr)
+		return nil, umErr
+	}
+
+	return result, nil
+}
+
 // -- internal use only --
 func addAllelesToShouldMap(alleles []string, genotype c.GenotypeQuery, allelesShouldMap []map[string]interface{}) ([]map[string]interface{}, int) {
 	minimumShouldMatch := 0

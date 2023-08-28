@@ -31,6 +31,7 @@ type (
 		Genotype   constants.GenotypeQuery
 		SampleIds  []string
 		Dataset    uuid.UUID
+		DataType   string
 		PositionBounds
 	}
 

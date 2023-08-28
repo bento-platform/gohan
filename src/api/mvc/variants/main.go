@@ -558,6 +558,41 @@ func GetDatasetSummary(c echo.Context) error {
 	}
 }
 
+func ClearDataset(c echo.Context) error {
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
+
+	dataset := gc.Dataset
+	dataType := gc.DataType
+	fmt.Printf("[%s] - ClearDataset hit: [%s] - [%s]!\n", time.Now(), dataset.String(), dataType)
+
+	var (
+		deletionCount = 0.0
+		g             = new(errgroup.Group)
+	)
+	// request #1
+	g.Go(func() error {
+		deleteResponse, delErr := esRepo.DeleteVariantsByDatasetId(cfg, es, dataset.String())
+
+		if delErr != nil {
+			fmt.Printf("Failed to delete dataset %s variants\n", dataset)
+			return delErr
+		}
+
+		deletionCount = deleteResponse["deleted"].(float64)
+
+		return nil
+	})
+
+	if err := g.Wait(); err == nil {
+		fmt.Printf("Deleted %f variants from dataset %s\n", deletionCount, dataset)
+		return c.NoContent(http.StatusNoContent)
+	} else {
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
+	}
+}
+
 type DataTypeSummary struct {
 	Id        string                 `json:"id"`
 	Label     string                 `json:"label"`
