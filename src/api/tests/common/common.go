@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	. "github.com/ahmetb/go-linq"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -160,8 +161,8 @@ func CreateAndGetNewFile(filePath string) (*os.File, error) {
 	return newFile, newFileErr
 }
 
-func GetAndVerifyVariantsResults(_cfg *models.Config, _t *testing.T, qAllele string) {
-	responseDtos := BuildQueryAndMakeGetVariantsCall("", "*", true, "asc", "", "GRCh38", "", "", qAllele, false, _t, _cfg)
+func GetAndVerifyVariantsResults(_cfg *models.Config, _t *testing.T, dataset uuid.UUID, qAllele string) {
+	responseDtos := BuildQueryAndMakeGetVariantsCall("", "*", dataset, true, "asc", "", "GRCh38", "", "", qAllele, false, _t, _cfg)
 
 	assert.NotNil(_t, responseDtos.Results)
 	assert.True(_t, len(responseDtos.Results) > 0)
@@ -209,7 +210,7 @@ func GetAndVerifyVariantsResults(_cfg *models.Config, _t *testing.T, qAllele str
 }
 
 func BuildQueryAndMakeGetVariantsCall(
-	chromosome string, sampleId string, includeInfo bool,
+	chromosome string, sampleId string, dataset uuid.UUID, includeInfo bool,
 	sortByPosition c.SortDirection, genotype c.GenotypeQuery, assemblyId c.AssemblyId,
 	referenceAllelePattern string, alternativeAllelePattern string, commaDeliminatedAlleles string,
 	ignoreStatusCode bool, _t *testing.T, _cfg *models.Config) dtos.VariantGetReponse {
@@ -218,6 +219,10 @@ func BuildQueryAndMakeGetVariantsCall(
 
 	if chromosome != "" {
 		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&chromosome=%s", chromosome))
+	}
+
+	if dataset != uuid.Nil && dataset.String() != "" {
+		queryString = fmt.Sprintf("%s%s", queryString, fmt.Sprintf("&dataset=%s", dataset.String()))
 	}
 
 	if genotype != gq.UNCALLED {
@@ -238,7 +243,7 @@ func BuildQueryAndMakeGetVariantsCall(
 	return makeGetVariantsCall(url, ignoreStatusCode, _t)
 }
 
-func GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, includeInfo bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, referenceAllelePattern string, alternativeAllelePattern string) []dtos.VariantGetReponse {
+func GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, dataset uuid.UUID, includeInfo bool, sortByPosition c.SortDirection, genotype c.GenotypeQuery, referenceAllelePattern string, alternativeAllelePattern string) []dtos.VariantGetReponse {
 	cfg := InitConfig()
 
 	// retrieve the overview
@@ -280,7 +285,7 @@ func GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 			assemblyId := a.CastToAssemblyId(_combination[2])
 
 			// make the call
-			dto := BuildQueryAndMakeGetVariantsCall(chrom, sampleId, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", false, _t, cfg)
+			dto := BuildQueryAndMakeGetVariantsCall(chrom, sampleId, dataset, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", false, _t, cfg)
 
 			assert.Equal(_t, 1, len(dto.Results))
 
@@ -358,7 +363,7 @@ func GetOverviewResultCombinations(chromosomeStruct interface{}, sampleIdsStruct
 }
 
 func ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
-	genotypeQuery c.GenotypeQuery, refAltTestType testConsts.ReferenceAlternativeTestType,
+	dataset uuid.UUID, genotypeQuery c.GenotypeQuery, refAltTestType testConsts.ReferenceAlternativeTestType,
 	specificValidation func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string)) {
 
 	// TODO: use some kind of Allele Enum
@@ -371,9 +376,9 @@ func ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
 
 			switch refAltTestType {
 			case ratt.Reference:
-				runAndValidateReferenceOrAlternativeQueryResults(_t, genotypeQuery, _pat, "", specificValidation)
+				runAndValidateReferenceOrAlternativeQueryResults(_t, dataset, genotypeQuery, _pat, "", specificValidation)
 			case ratt.Alternative:
-				runAndValidateReferenceOrAlternativeQueryResults(_t, genotypeQuery, "", _pat, specificValidation)
+				runAndValidateReferenceOrAlternativeQueryResults(_t, dataset, genotypeQuery, "", _pat, specificValidation)
 			default:
 				println("Skipping Test -- no Ref/Alt Test Type provided")
 			}
@@ -384,11 +389,11 @@ func ExecuteReferenceOrAlternativeQueryTestsOfVariousPatterns(_t *testing.T,
 }
 
 func runAndValidateReferenceOrAlternativeQueryResults(_t *testing.T,
-	genotypeQuery c.GenotypeQuery,
+	dataset uuid.UUID, genotypeQuery c.GenotypeQuery,
 	referenceAllelePattern string, alternativeAllelePattern string,
 	specificValidation func(__t *testing.T, call *dtos.VariantCall, referenceAllelePattern string, alternativeAllelePattern string)) {
 
-	allDtoResponses := GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, true, s.Undefined, genotypeQuery, referenceAllelePattern, alternativeAllelePattern)
+	allDtoResponses := GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t, dataset, true, s.Undefined, genotypeQuery, referenceAllelePattern, alternativeAllelePattern)
 
 	// assert that all of the responses include sample sets with the appropriate zygosity
 	// - * accumulate all variants into a single list using the set of SelectManyT's and the SelectT

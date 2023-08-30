@@ -34,7 +34,6 @@ jobs:
       #   with:
       #     context: "{{defaultContext}}:src/api"
       #     build-args: |
-      #       BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
       #       BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
       #     registry: ghcr.io
       #     registry-username: ${{ github.actor }}

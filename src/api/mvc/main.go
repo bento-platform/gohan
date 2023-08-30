@@ -3,9 +3,12 @@ package mvc
 import (
 	"gohan/api/contexts"
 	"gohan/api/models/constants"
+	a "gohan/api/models/constants/assembly-id"
+	gq "gohan/api/models/constants/genotype-query"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/google/uuid"
 	"github.com/labstack/echo"
 )
 
@@ -17,6 +20,12 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 
 	lowerBound := gc.LowerBound
 	upperBound := gc.UpperBound
+
+	// optional
+	datasetString := ""
+	if gc.Dataset != uuid.Nil {
+		datasetString = gc.Dataset.String()
+	}
 
 	reference := c.QueryParam("reference")
 	alternative := c.QueryParam("alternative")
@@ -31,14 +40,19 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 	reference = strings.Replace(reference, "N", "?", -1)
 	alternative = strings.Replace(alternative, "N", "?", -1)
 
-	genotype := gc.Genotype
-	assemblyId := gc.AssemblyId
-
-	tableId := c.QueryParam("tableId")
-	if len(tableId) == 0 {
-		// if no tableId is provided, assume "wildcard" search
-		tableId = "*"
+	genotype := gq.UNCALLED
+	genotypeQP := c.QueryParam("genotype")
+	if len(genotypeQP) > 0 {
+		if parsedGenotype, gErr := gq.CastToGenoType(genotypeQP); gErr == nil {
+			genotype = parsedGenotype
+		}
 	}
 
-	return es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, tableId
+	assemblyId := a.Unknown
+	assemblyIdQP := c.QueryParam("assemblyId")
+	if len(assemblyIdQP) > 0 && a.IsKnownAssemblyId(assemblyIdQP) {
+		assemblyId = a.CastToAssemblyId(assemblyIdQP)
+	}
+
+	return es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, datasetString
 }

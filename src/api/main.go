@@ -8,7 +8,6 @@ import (
 	dataTypesMvc "gohan/api/mvc/data-types"
 	genesMvc "gohan/api/mvc/genes"
 	serviceInfoMvc "gohan/api/mvc/service-info"
-	tablesMvc "gohan/api/mvc/tables"
 	variantsMvc "gohan/api/mvc/variants"
 	workflowsMvc "gohan/api/mvc/workflows"
 	"gohan/api/services"
@@ -139,19 +138,13 @@ func main() {
 	e.GET("/data-types/variant/schema", dataTypesMvc.GetVariantDataTypeSchema)
 	e.GET("/data-types/variant/metadata_schema", dataTypesMvc.GetVariantDataTypeMetadataSchema)
 
-	// -- Tables
-	e.GET("/tables", tablesMvc.GetTables)
-	e.POST("/tables", tablesMvc.CreateTable)
-	e.GET("/tables/:id", tablesMvc.GetTables)
-	e.DELETE("/tables/:id", tablesMvc.DeleteTable)
-	e.GET("/tables/:id/summary", tablesMvc.GetTableSummary)
-
 	// -- Variants
 	e.GET("/variants/overview", variantsMvc.GetVariantsOverview)
 
 	e.GET("/variants/get/by/variantId", variantsMvc.VariantsGetByVariantId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
+		gam.OptionalDatasetAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
@@ -159,6 +152,7 @@ func main() {
 	e.GET("/variants/get/by/sampleId", variantsMvc.VariantsGetBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
+		gam.OptionalDatasetAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
@@ -169,6 +163,7 @@ func main() {
 	e.GET("/variants/count/by/variantId", variantsMvc.VariantsCountByVariantId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
+		gam.OptionalDatasetAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
@@ -176,24 +171,36 @@ func main() {
 	e.GET("/variants/count/by/sampleId", variantsMvc.VariantsCountBySampleId,
 		// middleware
 		gam.ValidateOptionalChromosomeAttribute,
+		gam.OptionalDatasetAttribute,
 		gam.MandateCalibratedBounds,
 		gam.MandateCalibratedAlleles,
 		gam.MandateAssemblyIdAttribute,
 		gam.CalibrateOptionalSampleIdsSingularAttribute,
 		gam.ValidatePotentialGenotypeQueryParameter)
 
+	// --- Dataset
+	e.GET("/datasets/:dataset/summary", variantsMvc.GetDatasetSummary,
+		// middleware
+		gam.MandateDatasetPathParam)
+	e.GET("/datasets/:dataset/data-types", variantsMvc.GetDatasetDataTypes,
+		// middleware
+		gam.MandateDatasetPathParam)
+	e.DELETE("/datasets/:dataset/data-types/:dataType", variantsMvc.ClearDataset,
+		gam.MandateDatasetPathParam,
+		gam.MandateDataTypePathParam)
+
 	// TODO: refactor (deduplicate) --
 	e.GET("/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
 		gam.MandateAssemblyIdAttribute,
-		gam.MandateTableIdAttribute)
+		gam.MandateDatasetAttribute)
 	e.GET("/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	e.GET("/variants/ingestion/stats", variantsMvc.VariantsIngestionStats)
 
 	e.GET("/private/variants/ingestion/run", variantsMvc.VariantsIngest,
 		// middleware
 		gam.MandateAssemblyIdAttribute,
-		gam.MandateTableIdAttribute)
+		gam.MandateDatasetAttribute)
 	e.GET("/private/variants/ingestion/requests", variantsMvc.GetAllVariantIngestionRequests)
 	// --
 

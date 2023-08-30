@@ -1,4 +1,5 @@
-.vscode
+.vscode/*
+!.vscode/launch.json
 .DS_store
 .idea
 
@@ -12,6 +13,7 @@ data/
 data-x/
 
 # vcfs
+vcfs/*
 */vcfs/*.txt
 */vcfs/*.vcf
 */vcfs/*.vcf.gz

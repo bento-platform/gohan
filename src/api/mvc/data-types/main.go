@@ -12,13 +12,13 @@ import (
 )
 
 var variantDataTypeJson = map[string]interface{}{
-	"id":        "variant",
-	"label":     "Variants",
-	"queryable": true,
-	"schema":    schemas.VARIANT_SCHEMA,
+	"id":              "variant",
+	"label":           "Variants",
+	"queryable":       true,
+	"schema":          schemas.VARIANT_SCHEMA,
+	"metadata_schema": schemas.OBJECT_SCHEMA,
 }
 
-// "metadata_schema": schemas.VARIANT_TABLE_METADATA_SCHEMA,
 func GetDataTypes(c echo.Context) error {
 	es := c.(*contexts.GohanContext).Es7Client
 	cfg := c.(*contexts.GohanContext).Config
@@ -44,7 +44,7 @@ func GetVariantDataTypeSchema(c echo.Context) error {
 }
 
 func GetVariantDataTypeMetadataSchema(c echo.Context) error {
-	return c.JSON(http.StatusOK, schemas.VARIANT_TABLE_METADATA_SCHEMA)
+	return c.JSON(http.StatusOK, schemas.VARIANT_METADATA_SCHEMA)
 }
 
 // - helpers

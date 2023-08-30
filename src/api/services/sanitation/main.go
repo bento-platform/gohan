@@ -1,20 +1,13 @@
 package sanitation
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	es7 "github.com/elastic/go-elasticsearch/v7"
 	"github.com/go-co-op/gocron"
-	"github.com/mitchellh/mapstructure"
 
 	"gohan/api/models"
-	"gohan/api/models/indexes"
-	esRepo "gohan/api/repositories/elasticsearch"
-
-	variantsService "gohan/api/services/variants"
 )
 
 type (
@@ -46,7 +39,7 @@ func (ss *SanitationService) Init() {
 		//   context, that would mean performing something like
 		//   - removing duplicate documents
 		//   - cleaning documents that have broken pseudo-foreign keys
-		//     - variants -> tables
+		//     - variants -> tables (no longer necessary)
 		//   etc...
 		go func() {
 			// setup cron job
@@ -54,71 +47,7 @@ func (ss *SanitationService) Init() {
 
 			// clean variant documents with non-existing tables
 			s.Every(1).Days().At("04:00:00").Do(func() { // 12am EST
-				fmt.Printf("[%s] - Running variant documents cleanup..\n", time.Now())
-
-				// - get all available tables
-				tables, tablesError := esRepo.GetTables(ss.Config, ss.Es7Client, context.Background(), "", "variant")
-				if tablesError != nil {
-					fmt.Printf("[%s] - Error getting tables : %v..\n", time.Now(), tablesError)
-					return
-				}
-
-				// gather data from "hits"
-				docsHits := tables["hits"].(map[string]interface{})["hits"]
-				allDocHits := []map[string]interface{}{}
-				mapstructure.Decode(docsHits, &allDocHits)
-
-				// grab _source for each hit
-				tableIds := make([]string, 0)
-				for _, r := range allDocHits {
-					source := r["_source"]
-					byteSlice, _ := json.Marshal(source)
-
-					// cast map[string]interface{} to table
-					var resultingTable indexes.Table
-					if err := json.Unmarshal(byteSlice, &resultingTable); err != nil {
-						fmt.Println("failed to unmarshal:", err)
-						continue
-					}
-
-					// accumulate structs
-					tableIds = append(tableIds, resultingTable.Id)
-				}
-				fmt.Printf("[%s] - Table IDs found : %v..\n", time.Now(), tableIds)
-
-				// - obtain distribution of table IDs accross all variants
-				// TODO: refactor not use variants-mvc package to access this (anti-pattern)
-				variantsOverview := variantsService.GetVariantsOverview(ss.Es7Client, ss.Config)
-				if variantsOverview == nil {
-					return
-				}
-				if variantsOverview["tableIDs"] == nil {
-					return
-				}
-
-				variantTableIdsCountsMap := variantsOverview["tableIDs"].(map[string]interface{})
-
-				variantTableIds := make([]string, 0)
-				for _variantTableId, _ := range variantTableIdsCountsMap {
-					// ignore variant count set to _
-
-					// accumulate IDs found in list
-					variantTableIds = append(variantTableIds, _variantTableId)
-				}
-				fmt.Printf("[%s] - Tables IDs found across all variants : %v..\n", time.Now(), variantTableIds)
-
-				// obtain set-difference between variant-table IDs table IDs
-				setDiff := setDifference(tableIds, variantTableIds)
-				fmt.Printf("[%s] - Variant Table ID Difference: %v..\n", time.Now(), setDiff)
-
-				// delete variants with table IDs found in this set difference
-				for _, differentId := range setDiff {
-					// TODO: refactor
-					// fire and forget
-					go func(_differentId string) {
-						_, _ = esRepo.DeleteVariantsByTableId(ss.Es7Client, ss.Config, _differentId)
-					}(differentId)
-				}
+				// nothing for now
 			})
 
 			// starts the scheduler in blocking mode, which blocks

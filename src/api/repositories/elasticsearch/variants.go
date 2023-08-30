@@ -20,7 +20,6 @@ import (
 	"gohan/api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
-	es7 "github.com/elastic/go-elasticsearch/v7"
 )
 
 const wildcardVariantsIndex = "variants-*"
@@ -107,11 +106,11 @@ func GetDocumentsByDocumentId(cfg *models.Config, es *elasticsearch.Client, id s
 
 func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
-	variantId string, sampleId string,
+	variantId string, sampleId string, datasetString string,
 	reference string, alternative string, alleles []string,
 	size int, sortByPosition c.SortDirection,
 	includeInfoInResultSet bool,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string,
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId,
 	getSampleIdsOnly bool) (map[string]interface{}, error) {
 
 	// begin building the request body.
@@ -145,6 +144,15 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 		})
 	}
 
+	if datasetString != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"query_string": map[string]interface{}{
+				"fields": []string{"dataset.keyword"},
+				"query":  datasetString,
+			},
+		})
+	}
+
 	if alternative != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"query_string": map[string]interface{}{
@@ -169,13 +177,6 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 				},
 			},
 		})
-	}
-
-	if tableId != "" {
-		mustMap = append(mustMap, map[string]interface{}{
-			"query_string": map[string]interface{}{
-				"query": "tableId:" + tableId,
-			}})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}
@@ -323,9 +324,9 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
-	variantId string, sampleId string,
+	variantId string, sampleId string, datasetString string,
 	reference string, alternative string, alleles []string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId, tableId string) (map[string]interface{}, error) {
+	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -360,6 +361,15 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 		})
 	}
 
+	if datasetString != "" {
+		mustMap = append(mustMap, map[string]interface{}{
+			"query_string": map[string]interface{}{
+				"fields": []string{"dataset.keyword"},
+				"query":  datasetString,
+			},
+		})
+	}
+
 	if alternative != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"query_string": map[string]interface{}{
@@ -384,13 +394,6 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 				},
 			},
 		})
-	}
-
-	if tableId != "" {
-		mustMap = append(mustMap, map[string]interface{}{
-			"query_string": map[string]interface{}{
-				"query": "tableId:" + tableId,
-			}})
 	}
 
 	rangeMapSlice := []map[string]interface{}{}
@@ -507,7 +510,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	return result, nil
 }
 
-func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch.Client, keyword string, tableId string) (map[string]interface{}, error) {
+func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) (map[string]interface{}, error) {
 	// begin building the request body.
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
@@ -523,14 +526,6 @@ func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch
 				},
 			},
 		},
-	}
-
-	if tableId != "" {
-		aggMap["query"] = map[string]interface{}{
-			"match": map[string]interface{}{
-				"tableId": tableId,
-			},
-		}
 	}
 
 	// encode the query
@@ -589,28 +584,103 @@ func GetVariantsBucketsByKeywordAndTableId(cfg *models.Config, es *elasticsearch
 	return result, nil
 }
 
-func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string) (map[string]interface{}, error) {
+func GetVariantsBucketsByKeywordAndDataset(cfg *models.Config, es *elasticsearch.Client, keyword string, dataset string) (map[string]interface{}, error) {
+	// begin building the request body.
+	var buf bytes.Buffer
+	aggMap := map[string]interface{}{
+		"size": "0",
+		"aggs": map[string]interface{}{
+			"items": map[string]interface{}{
+				"terms": map[string]interface{}{
+					"field": keyword,
+					"size":  "10000", // increases the number of buckets returned (default is 10)
+					"order": map[string]string{
+						"_key": "asc",
+					},
+				},
+			},
+		},
+	}
 
-	// cfg := c.(*contexts.GohanContext).Config
-	// es := c.(*contexts.GohanContext).Es7Client
+	if dataset != "" {
+		aggMap["query"] = map[string]interface{}{
+			"match": map[string]interface{}{
+				"dataset": dataset,
+			},
+		}
+	}
+
+	// encode the query
+	if err := json.NewEncoder(&buf).Encode(aggMap); err != nil {
+		log.Fatalf("Error encoding aggMap: %s\n", err)
+		return nil, err
+	}
+
+	if cfg.Debug {
+		// view the outbound elasticsearch query
+		myString := string(buf.Bytes()[:])
+		fmt.Println(myString)
+	}
+
+	fmt.Printf("Query Start: %s\n", time.Now())
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
+	// Perform the search request.
+	res, searchErr := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex(wildcardVariantsIndex),
+		es.Search.WithBody(&buf),
+		es.Search.WithTrackTotalHits(true),
+		es.Search.WithPretty(),
+	)
+	if searchErr != nil {
+		fmt.Printf("Error getting response: %s\n", searchErr)
+		return nil, searchErr
+	}
+
+	defer res.Body.Close()
+
+	resultString := res.String()
+	if cfg.Debug {
+		fmt.Println(resultString)
+	}
+
+	// Declared an empty interface
+	result := make(map[string]interface{})
+
+	// Unmarshal or Decode the JSON to the interface.
+	// Known bug: response comes back with a preceding '[200 OK] ' which needs trimming
+	bracketString, jsonBodyString := utils.GetLeadingStringInBetweenSquareBrackets(resultString)
+	if !strings.Contains(bracketString, "200") {
+		return nil, fmt.Errorf("failed to get buckets by keyword: got '%s'", bracketString)
+	}
+	// umErr := json.Unmarshal([]byte(resultString[9:]), &result)
+	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
+	if umErr != nil {
+		fmt.Printf("Error unmarshalling response: %s\n", umErr)
+		return nil, umErr
+	}
+
+	fmt.Printf("Query End: %s\n", time.Now())
+
+	return result, nil
+}
+
+func DeleteVariantsByDatasetId(cfg *models.Config, es *elasticsearch.Client, dataset string) (map[string]interface{}, error) {
 
 	var buf bytes.Buffer
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"match": map[string]interface{}{
-				"tableId": tableId,
+				"dataset": dataset,
 			},
 		},
 	}
 
-	// encode the query
 	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		log.Fatalf("Error encoding query: %s\n", err)
-		return nil, err
+		log.Fatalf("Error encoding query: %s\n", query)
 	}
 
 	if cfg.Debug {
@@ -645,10 +715,9 @@ func DeleteVariantsByTableId(es *es7.Client, cfg *models.Config, tableId string)
 	if !strings.Contains(bracketString, "200") {
 		return nil, fmt.Errorf("failed to get documents by id : got '%s'", bracketString)
 	}
-
 	umErr := json.Unmarshal([]byte(jsonBodyString), &result)
 	if umErr != nil {
-		fmt.Printf("Error unmarshalling gene search response: %s\n", umErr)
+		fmt.Printf("Error unmarshalling variant deletion response: %s\n", umErr)
 		return nil, umErr
 	}
 

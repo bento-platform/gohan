@@ -31,7 +31,7 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) map[strin
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
-		results, bucketsError := esRepo.GetVariantsBucketsByKeywordAndTableId(cfg, es, keyword, "")
+		results, bucketsError := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
 		if bucketsError != nil {
 			resultsMux.Lock()
 			defer resultsMux.Unlock()
@@ -86,9 +86,9 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) map[strin
 	wg.Add(1)
 	go callGetBucketsByKeyword("assemblyIDs", "assemblyId.keyword", &wg)
 
-	// get distribution of table IDs
+	// get distribution of datasets
 	wg.Add(1)
-	go callGetBucketsByKeyword("tableIDs", "tableId.keyword", &wg)
+	go callGetBucketsByKeyword("datasets", "dataset.keyword", &wg)
 
 	wg.Wait()
 

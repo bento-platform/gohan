@@ -14,7 +14,7 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 			"description": "This ingestion workflow will validate and ingest a BGZip-Compressed-VCF into Elasticsearch.",
 			"data_type":   "variant",
 			"file":        "vcf_gz.wdl",
-			"purpose":     "ingestion",
+			"action":     "ingestion",
 			"inputs": []map[string]interface{}{
 				{
 					"id":         "vcf_gz_file_names",
@@ -35,6 +35,13 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"required": true,
 					"values":   []string{"true", "false"}, // simulate boolean type
 					"default":  "false",
+				},
+				{
+					"id":		"gohan_url",
+					"type":		"string",
+					"required":	true,
+					"value":	"FROM_CONFIG",
+					"hidden":	true,
 				},
 			},
 			"outputs": []map[string]interface{}{

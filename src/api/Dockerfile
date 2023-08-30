@@ -1,5 +1,5 @@
 ARG BUILDER_BASE_IMAGE
-ARG BASE_IMAGE
+ARG BASE_PROD_IMAGE
 
 # Stage 1 - builder
 FROM $BUILDER_BASE_IMAGE as builder
@@ -15,9 +15,7 @@ COPY . .
 RUN go mod vendor && \
     go build -ldflags="-s -w" -o gohan_api
 
-
-# Stage two - executioner
-FROM $BASE_IMAGE
+FROM $BASE_PROD_IMAGE
 
 # Debian updates
 #  - tabix for indexing VCFs
