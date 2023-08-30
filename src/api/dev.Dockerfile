@@ -33,5 +33,8 @@ RUN go mod download && go mod vendor
 
 # Repository mounted to the container
 WORKDIR /gohan-api/src/api
+COPY entrypoint.bash .
+COPY run.dev.bash .
 
-CMD [ "air" ]
+ENTRYPOINT [ "bash", "./entrypoint.bash" ]
+CMD [ "bash", "./run.dev.bash" ]
