@@ -29,7 +29,9 @@ jobs:
         run: |
           cp ./etc/example.env .env
           source .env
-          echo "GOHAN_API_BASE_IMAGE=$GOHAN_API_BASE_IMAGE" >> $GITHUB_ENV
+          echo "GOHAN_API_BUILDER_BASE_IMAGE=$GOHAN_API_BUILDER_BASE_IMAGE" >> $GITHUB_ENV
+          echo "GOHAN_API_DEV_BASE_IMAGE=$GOHAN_API_DEV_BASE_IMAGE" >> $GITHUB_ENV
+          echo "GOHAN_API_PROD_BASE_IMAGE=$GOHAN_API_PROD_BASE_IMAGE" >> $GITHUB_ENV
 
       - name: Load environment variables from .env file
         uses: xom9ikk/dotenv@v2
@@ -39,7 +41,9 @@ jobs:
         with:
           context: "{{defaultContext}}:src/api"
           build-args: |
-            BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
+            BUILDER_BASE_IMAGE=${{ env.GOHAN_API_BUILDER_BASE_IMAGE }}
+            BASE_DEV_IMAGE=${{ env.GOHAN_API_DEV_BASE_IMAGE }}
+            BASE_PROD_IMAGE=${{ env.GOHAN_API_PROD_BASE_IMAGE }}
           registry: ghcr.io
           registry-username: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}

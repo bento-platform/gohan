@@ -32,7 +32,9 @@ services:
     build:
       context: $PWD/src/api
       args:
-        BASE_IMAGE: ${GOHAN_API_BASE_IMAGE}
+        BUILDER_BASE_IMAGE: ${GOHAN_API_BUILDER_BASE_IMAGE}
+        BASE_PROD_IMAGE: ${GOHAN_API_PROD_BASE_IMAGE}
+        BASE_DEV_IMAGE: ${GOHAN_API_PROD_BASE_IMAGE}
         # also passed in as an ENV from within Dockerfile :
         GOHAN_API_INTERNAL_PORT: ${GOHAN_API_INTERNAL_PORT} 
     networks:

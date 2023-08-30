@@ -1,6 +1,6 @@
-ARG BASE_IMAGE
+ARG BASE_DEV_IMAGE
 
-FROM $BASE_IMAGE
+FROM $BASE_DEV_IMAGE
 
 LABEL org.opencontainers.image.description="Local development image for Bento Gohan."
 LABEL devcontainer.metadata='[{ \
