@@ -1,7 +1,6 @@
-ARG BUILDER_BASE_IMAGE
+ARG BASE_IMAGE
 
-# Stage 1 - builder
-FROM $BUILDER_BASE_IMAGE as builder
+FROM $BASE_IMAGE
 
 LABEL org.opencontainers.image.description="Local development image for Bento Gohan."
 LABEL devcontainer.metadata='[{ \
@@ -37,4 +36,4 @@ COPY entrypoint.bash .
 COPY run.dev.bash .
 
 ENTRYPOINT [ "bash", "./entrypoint.bash" ]
-CMD [ "bash", "./run.dev.bash" ]
+CMD [ "air" ]
