@@ -13,5 +13,7 @@ chown -R bento_user:bento_user ./
 chown -R bento_user:bento_user /app
 chmod -R o-rwx src/api/tmp
 
+cd /gohan-api/src/api || exit
+
 # Drop into bento_user from root and execute the CMD specified for the image
 exec gosu bento_user "$@"
