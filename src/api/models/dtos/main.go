@@ -55,7 +55,18 @@ type VariantCall struct {
 	// TODO: GenotypeProbability, PhredScaleLikelyhood ?
 
 	AssemblyId constants.AssemblyId `json:"assemblyId,omitempty"`
+	Dataset    string               `json:"dataset,omitempty"`
 	DocumentId string               `json:"documentId,omitempty"`
+}
+
+// --- Dataset
+type DataTypeSummaryResponseDto struct {
+	Count            int                    `json:"count"`
+	DataTypeSpecific map[string]interface{} `json:"data_type_specific"` // TODO: type-safety?
+}
+
+type DatasetDataTypeSummaryResponseDto struct {
+	Variant DataTypeSummaryResponseDto `json:"variant"`
 }
 
 // -- Genes
@@ -65,26 +76,6 @@ type GenesResponseDTO struct {
 	Term    string         `json:"term"`
 	Count   int            `json:"count"`
 	Results []indexes.Gene `json:"results"` // []Gene
-}
-
-// -- Tables
-type CreateTableRequestDto struct {
-	Name     string                 `json:"name"`
-	DataType string                 `json:"data_type"`
-	Dataset  string                 `json:"dataset"`
-	Metadata map[string]interface{} `json:"metadata"` // TODO: type-safety?
-}
-type CreateTableResponseDto struct {
-	// --- testing: combine dto with an index model
-	//     - makes for a clean 'single-layer' json response object
-	indexes.Table
-
-	Message string `json:"message,omitempty"`
-	Error   string `json:"error,omitempty"`
-}
-type TableSummaryResponseDto struct {
-	Count            int                    `json:"count"`
-	DataTypeSpecific map[string]interface{} `json:"data_type_specific"` // TODO: type-safety?
 }
 
 // -- Errors

@@ -18,8 +18,10 @@ import (
 	"gohan/api/contexts"
 	s "gohan/api/models/constants/sort"
 	"gohan/api/models/dtos"
+	"gohan/api/models/dtos/errors"
 	"gohan/api/models/indexes"
 	"gohan/api/models/ingest"
+	"gohan/api/models/schemas"
 	"gohan/api/mvc"
 	esRepo "gohan/api/repositories/elasticsearch"
 	variantService "gohan/api/services/variants"
@@ -31,6 +33,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/labstack/echo"
+
+	"golang.org/x/sync/errgroup"
 )
 
 func VariantsIngestionStats(c echo.Context) error {
@@ -101,11 +105,10 @@ func VariantsIngest(c echo.Context) error {
 	cfg := gc.Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
-	drsUsername := cfg.Drs.Username
-	drsPassword := cfg.Drs.Password
 
 	// query parameters
 	assemblyId := gc.AssemblyId
+	dataset := gc.Dataset
 
 	// retrieve query parameters (comman separated)
 	var fileNames []string
@@ -144,6 +147,13 @@ func VariantsIngest(c echo.Context) error {
 		}
 	}
 	//
+
+	// Authz related
+	authHeader := c.Request().Header.Get("Authorization")
+	datasetId := c.QueryParam("dataset")
+	projectId := c.QueryParam("project")
+
+	c.Logger().Debug(authHeader, datasetId)
 
 	dirName := c.QueryParam("directory")
 	if dirName != "" {
@@ -202,9 +212,6 @@ func VariantsIngest(c echo.Context) error {
 		}
 		// -----
 	}
-
-	tableId := c.QueryParam("tableId")
-	// TODO: validate table exists in elasticsearch
 
 	// -- optional filter
 	var (
@@ -352,7 +359,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// ---   push compressed to DRS
 				fmt.Printf("Uploading %s to DRS !\n", gzippedFileName)
-				drsFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, drsUsername, drsPassword)
+				drsFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, projectId, datasetId, authHeader)
 				if drsFileId == "" {
 					msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
 					fmt.Println(msg)
@@ -366,7 +373,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// -- push tabix to DRS
 				fmt.Printf("Uploading %s to DRS !\n", tabixFileNameWithRelativePath)
-				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, drsUsername, drsPassword)
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, projectId, datasetId, authHeader)
 				if drsTabixFileId == "" {
 					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileNameWithRelativePath
 					fmt.Println(msg)
@@ -408,7 +415,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
 				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, tableId, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, dataset, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
 				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				reqStat.State = ingest.Done
@@ -445,10 +452,175 @@ func GetAllVariantIngestionRequests(c echo.Context) error {
 	return c.JSON(http.StatusOK, m)
 }
 
-func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
-	cfg := c.(*contexts.GohanContext).Config
+func GetDatasetVariantsCount(c echo.Context) int {
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
+	dataset := gc.Dataset
+
+	var (
+		totalVariantsCount = 0.0
+		g                  = new(errgroup.Group)
+	)
+	// request #1
+	g.Go(func() error {
+		docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+			"*", 0, 0,
+			"", "", dataset.String(), // note : both variantId and sampleId are deliberately set to ""
+			"", "", []string{}, "", "")
+		if countError != nil {
+			fmt.Printf("Failed to count variants in dataset %s\n", dataset)
+			return countError
+		}
+
+		totalVariantsCount = docs["count"].(float64)
+		return nil
+	})
+
+	// wait for all HTTP fetches to complete.
+	if err := g.Wait(); err == nil {
+		fmt.Printf("Successfully Obtained Dataset '%s' variants count: '%f' \n", dataset, totalVariantsCount)
+	}
+	return int(totalVariantsCount)
+}
+
+func GetDatasetSummary(c echo.Context) error {
+
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
+
+	dataset := gc.Dataset
+	fmt.Printf("[%s] - GetDatasetSummary hit: [%s]!\n", time.Now(), dataset.String())
+
+	// parallelize these two es queries
+
+	var (
+		totalVariantsCount = 0.0
+		bucketsMapped      = []interface{}{}
+		g                  = new(errgroup.Group)
+	)
+	// request #1
+	g.Go(func() error {
+		docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
+			"*", 0, 0,
+			"", "", dataset.String(), // note : both variantId and sampleId are deliberately set to ""
+			"", "", []string{}, "", "")
+		if countError != nil {
+			fmt.Printf("Failed to count variants in dataset %s\n", dataset)
+			return countError
+		}
+
+		totalVariantsCount = docs["count"].(float64)
+		return nil
+	})
+
+	// request #2
+	g.Go(func() error {
+		// obtain number of samples associated with this dataset
+		resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset.String())
+		if bucketsError != nil {
+			fmt.Printf("Failed to bucket dataset %s variants\n", dataset)
+			return bucketsError
+		}
+
+		// retrieve aggregations.items.buckets
+		// and count number of samples
+		if aggs, aggsOk := resultingBuckets["aggregations"]; aggsOk {
+			aggsMapped := aggs.(map[string]interface{})
+
+			if items, itemsOk := aggsMapped["items"]; itemsOk {
+				itemsMapped := items.(map[string]interface{})
+
+				if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
+					bucketsMapped = buckets.([]interface{})
+				}
+			}
+		}
+		return nil
+	})
+
+	// wait for all HTTP fetches to complete.
+	if err := g.Wait(); err == nil {
+		fmt.Printf("Successfully Obtained Dataset '%s' Summary \n", dataset)
+		payload := &dtos.DatasetDataTypeSummaryResponseDto{
+			Variant: dtos.DataTypeSummaryResponseDto{
+				Count: int(totalVariantsCount),
+				DataTypeSpecific: map[string]interface{}{
+					"samples": len(bucketsMapped),
+				},
+			},
+		}
+		return c.JSON(http.StatusOK, payload)
+	} else {
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
+	}
+}
+
+func ClearDataset(c echo.Context) error {
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
+
+	dataset := gc.Dataset
+	dataType := gc.DataType
+	fmt.Printf("[%s] - ClearDataset hit: [%s] - [%s]!\n", time.Now(), dataset.String(), dataType)
+
+	var (
+		deletionCount = 0.0
+		g             = new(errgroup.Group)
+	)
+	// request #1
+	g.Go(func() error {
+		deleteResponse, delErr := esRepo.DeleteVariantsByDatasetId(cfg, es, dataset.String())
+
+		if delErr != nil {
+			fmt.Printf("Failed to delete dataset %s variants\n", dataset)
+			return delErr
+		}
+
+		deletionCount = deleteResponse["deleted"].(float64)
+
+		return nil
+	})
+
+	if err := g.Wait(); err == nil {
+		fmt.Printf("Deleted %f variants from dataset %s\n", deletionCount, dataset)
+		return c.NoContent(http.StatusNoContent)
+	} else {
+		return c.JSON(http.StatusInternalServerError, errors.CreateSimpleInternalServerError("Something went wrong.. Please try again later!"))
+	}
+}
+
+type DataTypeSummary struct {
+	Id        string                 `json:"id"`
+	Label     string                 `json:"label"`
+	Queryable bool                   `json:"queryable"`
+	Schema    map[string]interface{} `json:"schema"`
+	Count     int                    `json:"count"`
+}
+
+type DataTypeResponseDto = []DataTypeSummary
+
+func GetDatasetDataTypes(c echo.Context) error {
+	count := GetDatasetVariantsCount(c)
+	return c.JSON(http.StatusOK, &DataTypeResponseDto{
+		DataTypeSummary{
+			Id:        "variant",
+			Label:     "Variants",
+			Queryable: true,
+			Schema:    schemas.VARIANT_SCHEMA,
+			Count:     count,
+		},
+	})
+}
+
+func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocumentIdQuery bool) error {
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+
+	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, datasetString = mvc.RetrieveCommonElements(c)
 
 	// retrieve other query parameters relevent to this 'get' query ---
 	getSampleIdsOnlyQP := c.QueryParam("getSampleIdsOnly")
@@ -531,10 +703,10 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 
 				docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
-					_id, "", // note : "" is for sampleId
+					_id, "", datasetString, // note : "" is for sampleId
 					reference, alternative, alleles,
 					size, sortByPosition,
-					includeInfoInResultSet, genotype, assemblyId, tableId,
+					includeInfoInResultSet, genotype, assemblyId,
 					getSampleIdsOnly)
 			} else {
 
@@ -556,10 +728,10 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 
 					docs, searchErr = esRepo.GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 						chromosome, lowerBound, upperBound,
-						"", _id, // note : "" is for variantId
+						"", _id, datasetString, // note : "" is for variantId
 						reference, alternative, alleles,
 						size, sortByPosition,
-						includeInfoInResultSet, genotype, assemblyId, tableId,
+						includeInfoInResultSet, genotype, assemblyId,
 						false)
 				}
 
@@ -651,9 +823,9 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 						SampleId:     sampleId,
 						GenotypeType: zygosity.ZygosityToString(variant.Sample.Variation.Genotype.Zygosity),
 						Alleles:      []string{alleles.Left, alleles.Right},
-
-						AssemblyId: variant.AssemblyId,
-						DocumentId: docId,
+						Dataset:      variant.Dataset,
+						AssemblyId:   variant.AssemblyId,
+						DocumentId:   docId,
 					})
 				}
 			}
@@ -685,9 +857,10 @@ func executeGetByIds(c echo.Context, ids []string, isVariantIdQuery bool, isDocu
 }
 
 func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) error {
-	cfg := c.(*contexts.GohanContext).Config
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
 
-	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, tableId = mvc.RetrieveCommonElements(c)
+	var es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, datasetString = mvc.RetrieveCommonElements(c)
 
 	respDTO := dtos.VariantCountReponse{
 		Results: make([]dtos.VariantCountResult, 0),
@@ -716,8 +889,8 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
-					_id, "", // note : "" is for sampleId
-					reference, alternative, alleles, genotype, assemblyId, tableId)
+					_id, "", datasetString, // note : "" is for sampleId
+					reference, alternative, alleles, genotype, assemblyId)
 			} else {
 				// implied sampleId query
 				fmt.Printf("Executing Count-Samples for SampleId %s\n", _id)
@@ -725,8 +898,8 @@ func executeCountByIds(c echo.Context, ids []string, isVariantIdQuery bool) erro
 
 				docs, countError = esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 					chromosome, lowerBound, upperBound,
-					"", _id, // note : "" is for variantId
-					reference, alternative, alleles, genotype, assemblyId, tableId)
+					"", _id, datasetString, // note : "" is for variantId
+					reference, alternative, alleles, genotype, assemblyId)
 			}
 
 			if countError != nil {

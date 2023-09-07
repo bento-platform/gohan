@@ -37,3 +37,14 @@ type IngestResponseDTO struct {
 	State    State     `json:"state"`
 	Message  string    `json:"message"`
 }
+
+type IngestStatsDto struct {
+	NumAdded    int
+	NumFlushed  int
+	NumFailed   int
+	NumIndexed  int
+	NumCreated  int
+	NumUpdated  int
+	NumDeleted  int
+	NumRequests int
+}

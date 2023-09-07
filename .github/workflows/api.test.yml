@@ -1,0 +1,47 @@
+name: Test gohan-api
+
+on:
+  push:
+    branches:
+      - "**" # TEMP
+  pull_request:
+    branches:
+      - "features/**"  # temp
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Gather default environment variables
+        id: envx
+        run: |
+          cp ./etc/example.env .env
+          source .env
+
+      - name: Load environment variables from .env file
+        uses: xom9ikk/dotenv@v2
+      
+      # - name: Run Bento build action
+      #   uses: bento-platform/bento_build_action@v0.11.0
+      #   with:
+      #     context: "{{defaultContext}}:src/api"
+      #     build-args: |
+      #       BASE_IMAGE=${{ env.GOHAN_API_BASE_IMAGE }}
+      #     registry: ghcr.io
+      #     registry-username: ${{ github.actor }}
+      #     registry-password: ${{ secrets.GITHUB_TOKEN }}
+      #     image-name: ghcr.io/bento-platform/gohan-api
+      #     development-dockerfile: Dockerfile
+      #     dockerfile: Dockerfile
+      - name: API Test
+        run: |
+          sudo apt-get install -y tabix
+          make test-api
