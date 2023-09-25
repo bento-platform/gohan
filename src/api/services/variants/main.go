@@ -1,6 +1,7 @@
 package variantsService
 
 import (
+	"errors"
 	"fmt"
 	"gohan/api/models"
 	esRepo "gohan/api/repositories/elasticsearch"
@@ -23,7 +24,7 @@ func NewVariantService(cfg *models.Config) *VariantService {
 	return vs
 }
 
-func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) map[string]interface{} {
+func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[string]interface{}, error) {
 	resultsMap := map[string]interface{}{}
 	resultsMux := sync.RWMutex{}
 
@@ -70,6 +71,12 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) map[strin
 		resultsMux.Unlock()
 	}
 
+	// First, make sure the ES cluster is running - otherwise this will hang for a long time
+	_, err := es.Ping()
+	if err != nil {
+		return nil, errors.New("could not contact Elasticsearch - make sure it's running")
+	}
+
 	// get distribution of chromosomes
 	wg.Add(1)
 	go callGetBucketsByKeyword("chromosomes", "chrom.keyword", &wg)
@@ -92,5 +99,5 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) map[strin
 
 	wg.Wait()
 
-	return resultsMap
+	return resultsMap, nil
 }

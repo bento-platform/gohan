@@ -434,8 +434,14 @@ func GetVariantsOverview(c echo.Context) error {
 	es := c.(*contexts.GohanContext).Es7Client
 	cfg := c.(*contexts.GohanContext).Config
 
-	// TODO: refactor to handle errors better
-	resultsMap := variantService.GetVariantsOverview(es, cfg)
+	resultsMap, err := variantService.GetVariantsOverview(es, cfg)
+
+	if err != nil {
+		// Could not talk to Elasticsearch, return an error
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
 
 	return c.JSON(http.StatusOK, resultsMap)
 }

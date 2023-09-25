@@ -25,8 +25,15 @@ func GetDataTypes(c echo.Context) error {
 
 	// accumulate number of variants associated with each
 	// sampleId fetched from the variants overview
-	// TODO: refactor to handle errors better
-	resultsMap := variantService.GetVariantsOverview(es, cfg)
+	resultsMap, err := variantService.GetVariantsOverview(es, cfg)
+
+	if err != nil {
+		// Could not talk to Elasticsearch, return an error
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+
 	variantDataTypeJson["count"] = sumAllValues(resultsMap["sampleIDs"])
 
 	// Data types are basically stand-ins for schema blocks
