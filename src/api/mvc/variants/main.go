@@ -491,6 +491,40 @@ func GetDatasetVariantsCount(c echo.Context) int {
 	return int(totalVariantsCount)
 }
 
+func GetLastCreatedVariantForDataset(c echo.Context) string {
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
+
+	dataset := gc.Dataset
+	fmt.Printf("Fetching the last 'created' timestamp for dataset: %s\n", dataset)
+
+	var (
+		lastCreatedTimestamp string
+		g                    = new(errgroup.Group)
+	)
+
+	g.Go(func() error {
+		timestamp, timestampError := esRepo.GetMostRecentVariantTimestamp(cfg, es, dataset.String())
+		if timestampError != nil {
+			fmt.Printf("Failed to fetch the most recent 'created' timestamp for dataset %s. Error: %v\n", dataset, timestampError)
+			return timestampError
+		}
+
+		lastCreatedTimestamp = timestamp.Format(time.RFC3339)
+		fmt.Printf("Fetched timestamp for dataset %s is: %s\n", dataset, lastCreatedTimestamp)
+		return nil
+	})
+
+	// wait for the HTTP fetch to complete.
+	if err := g.Wait(); err != nil {
+		fmt.Printf("Encountered an error while fetching data: %v\n", err)
+	} else {
+		fmt.Printf("Successfully Obtained Dataset '%s' most recent 'created' timestamp: '%s' \n", dataset, lastCreatedTimestamp)
+	}
+	return lastCreatedTimestamp
+}
+
 func GetDatasetSummary(c echo.Context) error {
 
 	gc := c.(*contexts.GohanContext)
