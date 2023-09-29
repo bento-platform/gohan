@@ -634,24 +634,27 @@ func ClearDataset(c echo.Context) error {
 }
 
 type DataTypeSummary struct {
-	Id        string                 `json:"id"`
-	Label     string                 `json:"label"`
-	Queryable bool                   `json:"queryable"`
-	Schema    map[string]interface{} `json:"schema"`
-	Count     int                    `json:"count"`
+	Id          string                 `json:"id"`
+	Label       string                 `json:"label"`
+	Queryable   bool                   `json:"queryable"`
+	Schema      map[string]interface{} `json:"schema"`
+	Count       int                    `json:"count"`
+	LastCreated string                 `json:"last_created"`
 }
 
 type DataTypeResponseDto = []DataTypeSummary
 
 func GetDatasetDataTypes(c echo.Context) error {
 	count := GetDatasetVariantsCount(c)
+	last_created := GetLastCreatedVariantForDataset(c)
 	return c.JSON(http.StatusOK, &DataTypeResponseDto{
 		DataTypeSummary{
-			Id:        "variant",
-			Label:     "Variants",
-			Queryable: true,
-			Schema:    schemas.VARIANT_SCHEMA,
-			Count:     count,
+			Id:          "variant",
+			Label:       "Variants",
+			Queryable:   true,
+			Schema:      schemas.VARIANT_SCHEMA,
+			Count:       count,
+			LastCreated: last_created,
 		},
 	})
 }
