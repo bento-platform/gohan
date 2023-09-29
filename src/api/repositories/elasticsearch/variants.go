@@ -322,6 +322,83 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	return result, nil
 }
 
+func GetMostRecentVariantTimestamp(cfg *models.Config, es *elasticsearch.Client, dataset string) (time.Time, error) {
+	// Initialize a zero-value timestamp
+	var mostRecentTimestamp time.Time
+
+	// Setup the Elasticsearch query to fetch the most recent 'created' timestamp
+	var buf bytes.Buffer
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]string{
+				"dataset.keyword": dataset,
+			},
+		},
+		"size": 1,
+		"sort": []map[string]interface{}{
+			{
+				"createdTime": map[string]string{
+					"order": "desc",
+				},
+			},
+		},
+	}
+
+	// Encode the query to JSON
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		log.Fatalf("Error encoding query: %s\n", err)
+		return mostRecentTimestamp, err
+	}
+
+	// Print the constructed query for debugging
+	fmt.Println("Constructed Elasticsearch Query:", string(buf.Bytes()))
+
+	// Execute the query against Elasticsearch
+	res, searchErr := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex(wildcardVariantsIndex),
+		es.Search.WithBody(&buf),
+		es.Search.WithTrackTotalHits(true),
+		es.Search.WithPretty(),
+	)
+
+	if searchErr != nil {
+		fmt.Printf("Error executing search request: %s\n", searchErr)
+		return mostRecentTimestamp, searchErr
+	}
+	defer res.Body.Close()
+
+	// Parse the response
+	var result map[string]interface{}
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&result); err != nil {
+		fmt.Printf("Error unmarshalling Elasticsearch response: %s\n", err)
+		return mostRecentTimestamp, err
+	}
+
+	// Extract the 'created' timestamp from the first hit (if available)
+	if hits, found := result["hits"].(map[string]interface{}); found {
+		if hitSlice, hitFound := hits["hits"].([]interface{}); hitFound && len(hitSlice) > 0 {
+			if firstHit, firstHitFound := hitSlice[0].(map[string]interface{}); firstHitFound {
+				if source, sourceFound := firstHit["_source"].(map[string]interface{}); sourceFound {
+					if created, createdFound := source["createdTime"].(string); createdFound {
+						parsedTime, err := time.Parse(time.RFC3339, created)
+						if err == nil {
+							mostRecentTimestamp = parsedTime
+						} else {
+							fmt.Printf("Error parsing 'createdTime' timestamp: %s\n", err)
+						}
+					}
+				}
+			}
+		} else {
+			fmt.Println("No hits found for dataset:", dataset)
+		}
+	}
+
+	return mostRecentTimestamp, nil
+}
+
 func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, es *elasticsearch.Client,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string, datasetString string,
