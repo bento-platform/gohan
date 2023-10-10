@@ -1,6 +1,7 @@
 package dataTypes
 
 import (
+	"fmt"
 	"net/http"
 
 	"gohan/api/contexts"
@@ -20,12 +21,15 @@ var variantDataTypeJson = map[string]interface{}{
 }
 
 func GetDataTypes(c echo.Context) error {
-	es := c.(*contexts.GohanContext).Es7Client
-	cfg := c.(*contexts.GohanContext).Config
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
 
 	// accumulate number of variants associated with each
 	// sampleId fetched from the variants overview
 	resultsMap, err := variantService.GetVariantsOverview(es, cfg)
+
+	fmt.Printf("resultsMapDDD: %v\n", resultsMap)
 
 	if err != nil {
 		// Could not talk to Elasticsearch, return an error
@@ -35,6 +39,13 @@ func GetDataTypes(c echo.Context) error {
 	}
 
 	variantDataTypeJson["count"] = sumAllValues(resultsMap["sampleIDs"])
+
+	// Fetch the last_created value from resultsMap and add to variantDataTypeJson
+	if latestCreated, ok := resultsMap["last_created_time"].(string); ok {
+		variantDataTypeJson["last_created"] = latestCreated
+	}
+
+	fmt.Printf("variantDataTypeJson: %v\n", variantDataTypeJson)
 
 	// Data types are basically stand-ins for schema blocks
 	return c.JSON(http.StatusOK, []map[string]interface{}{

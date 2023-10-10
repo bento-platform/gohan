@@ -589,6 +589,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 
 func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, keyword string) (map[string]interface{}, error) {
 	// begin building the request body.
+	fmt.Printf("Query StartKEYWORD: %s\n", keyword)
 	var buf bytes.Buffer
 	aggMap := map[string]interface{}{
 		"size": "0",
@@ -600,6 +601,12 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 					"order": map[string]string{
 						"_key": "asc",
 					},
+				},
+			},
+			"latest_created": map[string]interface{}{
+				"max": map[string]interface{}{
+					"field":  "createdTime",
+					"format": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
 				},
 			},
 		},

@@ -33,6 +33,7 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 		defer _wg.Done()
 
 		results, bucketsError := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
+		fmt.Printf("resultsCFCFCF: %v\n", results)
 		if bucketsError != nil {
 			resultsMux.Lock()
 			defer resultsMux.Unlock()
@@ -45,14 +46,17 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 
 		// retrieve aggregations.items.buckets
 		bucketsMapped := []interface{}{}
-		if aggs, aggsOk := results["aggregations"]; aggsOk {
-			aggsMapped := aggs.(map[string]interface{})
-
-			if items, itemsOk := aggsMapped["items"]; itemsOk {
-				itemsMapped := items.(map[string]interface{})
-
-				if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
-					bucketsMapped = buckets.([]interface{})
+		if aggs, aggsOk := results["aggregations"].(map[string]interface{}); aggsOk {
+			if latest, latestOk := aggs["latest_created"].(map[string]interface{}); latestOk {
+				if valueAsString, valOk := latest["value_as_string"].(string); valOk {
+					resultsMux.Lock()
+					resultsMap["last_created_time"] = valueAsString
+					resultsMux.Unlock()
+				}
+			}
+			if items, itemsOk := aggs["items"].(map[string]interface{}); itemsOk {
+				if buckets, bucketsOk := items["buckets"].([]interface{}); bucketsOk {
+					bucketsMapped = buckets
 				}
 			}
 		}
@@ -75,6 +79,12 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 	_, err := es.Ping()
 	if err != nil {
 		return nil, errors.New("could not contact Elasticsearch - make sure it's running")
+	}
+
+	// Extract latest created time
+	if latest, exists := resultsMap["last_created"].(map[string]interface{}); exists {
+		latestCreatedTime := latest["value_as_string"].(string)
+		resultsMap["last_created_time"] = latestCreatedTime
 	}
 
 	// get distribution of chromosomes
