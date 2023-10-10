@@ -1,7 +1,6 @@
 package dataTypes
 
 import (
-	"fmt"
 	"net/http"
 
 	"gohan/api/contexts"
