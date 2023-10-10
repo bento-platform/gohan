@@ -639,14 +639,14 @@ type DataTypeSummary struct {
 	Queryable   bool                   `json:"queryable"`
 	Schema      map[string]interface{} `json:"schema"`
 	Count       int                    `json:"count"`
-	LastCreated string                 `json:"last_created"`
+	LastCreated string                 `json:"last_ingested"`
 }
 
 type DataTypeResponseDto = []DataTypeSummary
 
 func GetDatasetDataTypes(c echo.Context) error {
 	count := GetDatasetVariantsCount(c)
-	last_created := GetLastCreatedVariantForDataset(c)
+	last_ingested := GetLastCreatedVariantForDataset(c)
 	return c.JSON(http.StatusOK, &DataTypeResponseDto{
 		DataTypeSummary{
 			Id:          "variant",
@@ -654,7 +654,7 @@ func GetDatasetDataTypes(c echo.Context) error {
 			Queryable:   true,
 			Schema:      schemas.VARIANT_SCHEMA,
 			Count:       count,
-			LastCreated: last_created,
+			LastCreated: last_ingested,
 		},
 	})
 }

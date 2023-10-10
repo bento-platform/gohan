@@ -81,7 +81,7 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 	}
 
 	// Extract latest created time
-	if latest, exists := resultsMap["last_created"].(map[string]interface{}); exists {
+	if latest, exists := resultsMap["last_ingested"].(map[string]interface{}); exists {
 		latestCreatedTime := latest["value_as_string"].(string)
 		resultsMap["last_created_time"] = latestCreatedTime
 	}
