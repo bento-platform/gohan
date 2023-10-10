@@ -29,8 +29,6 @@ func GetDataTypes(c echo.Context) error {
 	// sampleId fetched from the variants overview
 	resultsMap, err := variantService.GetVariantsOverview(es, cfg)
 
-	fmt.Printf("resultsMapDDD: %v\n", resultsMap)
-
 	if err != nil {
 		// Could not talk to Elasticsearch, return an error
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{

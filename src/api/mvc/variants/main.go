@@ -506,10 +506,6 @@ func GetLastCreatedVariantForDataset(c echo.Context) string {
 
 	g.Go(func() error {
 		timestamp, timestampError := esRepo.GetMostRecentVariantTimestamp(cfg, es, dataset.String())
-		fmt.Printf("timestamp: %v\n", timestamp)
-		fmt.Printf("timestampError: %v\n", timestampError)
-		fmt.Printf("timestampError == nil: %v\n", es)
-		fmt.Printf("timestampError == nil: %v\n", dataset.String())
 		if timestampError != nil {
 			fmt.Printf("Failed to fetch the most recent 'created' timestamp for dataset %s. Error: %v\n", dataset, timestampError)
 			return timestampError

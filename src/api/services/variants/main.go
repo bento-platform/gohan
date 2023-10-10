@@ -33,7 +33,6 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 		defer _wg.Done()
 
 		results, bucketsError := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
-		fmt.Printf("resultsCFCFCF: %v\n", results)
 		if bucketsError != nil {
 			resultsMux.Lock()
 			defer resultsMux.Unlock()
