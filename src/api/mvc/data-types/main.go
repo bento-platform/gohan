@@ -50,40 +50,6 @@ func GetDataTypes(c echo.Context) error {
 	})
 }
 
-func GetReducedDataTypes(c echo.Context) error {
-	variantData, err := fetchVariantData(c)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": err.Error(),
-		})
-	}
-
-	if variantData == nil {
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"error": "Failed to retrieve variant data.",
-		})
-	}
-
-	count, _ := variantData["count"]
-	id, _ := variantData["id"].(string)
-	label, _ := variantData["label"].(string)
-	last_ingested, _ := variantData["last_ingested"].(string)
-	queryable, _ := variantData["queryable"].(bool)
-
-	// Create a reduced response
-	reducedResponse := map[string]interface{}{
-		"count":         count,
-		"id":            id,
-		"label":         label,
-		"last_ingested": last_ingested,
-		"queryable":     queryable,
-	}
-
-	return c.JSON(http.StatusOK, []map[string]interface{}{
-		reducedResponse,
-	})
-}
-
 func GetVariantDataType(c echo.Context) error {
 	return c.JSON(http.StatusOK, variantDataTypeJson)
 }
