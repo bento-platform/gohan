@@ -604,8 +604,7 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 			},
 			"latest_created": map[string]interface{}{
 				"max": map[string]interface{}{
-					"field":  "createdTime",
-					"format": "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+					"field": "createdTime",
 				},
 			},
 		},

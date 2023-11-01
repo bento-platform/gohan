@@ -6,6 +6,7 @@ import (
 	"gohan/api/models"
 	esRepo "gohan/api/repositories/elasticsearch"
 	"sync"
+	"time"
 
 	"github.com/elastic/go-elasticsearch/v7"
 )
@@ -47,9 +48,12 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 		bucketsMapped := []interface{}{}
 		if aggs, aggsOk := results["aggregations"].(map[string]interface{}); aggsOk {
 			if latest, latestOk := aggs["latest_created"].(map[string]interface{}); latestOk {
-				if valueAsString, valOk := latest["value_as_string"].(string); valOk {
+				if timestamp, timeStampOk := latest["value"].(float64); timeStampOk {
+					// convert the Unix timestamp time.Time object
+					formattedTime := time.UnixMilli(int64(timestamp)).UTC().Format(time.RFC3339)
+
 					resultsMux.Lock()
-					resultsMap["last_created_time"] = valueAsString
+					resultsMap["last_created_time"] = formattedTime
 					resultsMux.Unlock()
 				}
 			}
