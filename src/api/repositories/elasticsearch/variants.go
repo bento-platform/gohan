@@ -604,7 +604,7 @@ func GetVariantsBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client, k
 					},
 				},
 			},
-			"latest_created": map[string]interface{}{
+			"last_ingested": map[string]interface{}{
 				"max": map[string]interface{}{
 					"field": "createdTime",
 				},
@@ -753,7 +753,6 @@ func GetVariantsBucketsByKeywordAndDataset(cfg *models.Config, es *elasticsearch
 }
 
 func DeleteVariantsByDatasetId(cfg *models.Config, es *elasticsearch.Client, dataset string) (map[string]interface{}, error) {
-
 	var buf bytes.Buffer
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
