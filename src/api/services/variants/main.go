@@ -30,6 +30,32 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 	resultsMux := sync.RWMutex{}
 
 	var wg sync.WaitGroup
+
+	callProcessLatestCreated := func(key string, keyword string, _wg *sync.WaitGroup) {
+		defer _wg.Done()
+
+		results, err := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
+		if err != nil {
+			resultsMux.Lock()
+			resultsMap[key+"_error"] = "Failed to get latest created time."
+			resultsMux.Unlock()
+			return
+		}
+
+		var formattedTime string
+		if aggs, ok := results["aggregations"].(map[string]interface{}); ok {
+			if latest, ok := aggs["last_ingested"].(map[string]interface{}); ok {
+				if timestamp, ok := latest["value"].(float64); ok {
+					formattedTime = time.UnixMilli(int64(timestamp)).UTC().Format(time.RFC3339)
+				}
+			}
+		}
+
+		resultsMux.Lock()
+		resultsMap[key] = formattedTime
+		resultsMux.Unlock()
+	}
+
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
@@ -46,20 +72,14 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 
 		// retrieve aggregations.items.buckets
 		bucketsMapped := []interface{}{}
-		if aggs, aggsOk := results["aggregations"].(map[string]interface{}); aggsOk {
-			if latest, latestOk := aggs["latest_created"].(map[string]interface{}); latestOk {
-				if timestamp, timeStampOk := latest["value"].(float64); timeStampOk {
-					// convert the Unix timestamp time.Time object
-					formattedTime := time.UnixMilli(int64(timestamp)).UTC().Format(time.RFC3339)
+		if aggs, aggsOk := results["aggregations"]; aggsOk {
+			aggsMapped := aggs.(map[string]interface{})
 
-					resultsMux.Lock()
-					resultsMap["last_created_time"] = formattedTime
-					resultsMux.Unlock()
-				}
-			}
-			if items, itemsOk := aggs["items"].(map[string]interface{}); itemsOk {
-				if buckets, bucketsOk := items["buckets"].([]interface{}); bucketsOk {
-					bucketsMapped = buckets
+			if items, itemsOk := aggsMapped["items"]; itemsOk {
+				itemsMapped := items.(map[string]interface{})
+
+				if buckets, bucketsOk := itemsMapped["buckets"]; bucketsOk {
+					bucketsMapped = buckets.([]interface{})
 				}
 			}
 		}
@@ -84,12 +104,6 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 		return nil, errors.New("could not contact Elasticsearch - make sure it's running")
 	}
 
-	// Extract latest created time
-	if latest, exists := resultsMap["last_ingested"].(map[string]interface{}); exists {
-		latestCreatedTime := latest["value_as_string"].(string)
-		resultsMap["last_created_time"] = latestCreatedTime
-	}
-
 	// get distribution of chromosomes
 	wg.Add(1)
 	go callGetBucketsByKeyword("chromosomes", "chrom.keyword", &wg)
@@ -109,6 +123,10 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 	// get distribution of datasets
 	wg.Add(1)
 	go callGetBucketsByKeyword("datasets", "dataset.keyword", &wg)
+
+	// get last ingested variant
+	wg.Add(1)
+	go callProcessLatestCreated("last_ingested", "last_ingested.keyword", &wg)
 
 	wg.Wait()
 
