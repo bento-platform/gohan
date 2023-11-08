@@ -387,12 +387,14 @@ func GetMostRecentVariantTimestamp(cfg *models.Config, es *elasticsearch.Client,
 							mostRecentTimestamp = parsedTime
 						} else {
 							fmt.Printf("Error parsing 'createdTime' timestamp: %s\n", err)
+							return mostRecentTimestamp, err
 						}
 					}
 				}
 			}
 		} else {
-			fmt.Println("No hits found for dataset:", dataset)
+			fmt.Printf("No hits found for dataset: %s\n", dataset)
+			return mostRecentTimestamp, nil
 		}
 	}
 
