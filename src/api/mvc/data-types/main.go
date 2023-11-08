@@ -28,11 +28,8 @@ func fetchVariantData(c echo.Context) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	variantDataTypeJson["count"] = sumAllValues(resultsMap["sampleIDs"])
-	if latestCreated, ok := resultsMap["last_created_time"].(string); ok {
-		variantDataTypeJson["last_ingested"] = latestCreated
-	}
+	variantDataTypeJson["last_ingested"] = resultsMap["last_ingested"]
 
 	return variantDataTypeJson, nil
 }
