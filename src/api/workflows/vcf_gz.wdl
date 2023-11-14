@@ -2,21 +2,34 @@ workflow vcf_gz {
     String gohan_url
     Array[File] vcf_gz_file_names
     String assembly_id
-    String project_id
-    String dataset_id
+    String project_dataset
     String filter_out_references
-    String secret__access_token
+    String access_token
+
+    call project_and_dataset_id {
+        input: project_dataset = project_dataset
+    }
 
     scatter(file_name in vcf_gz_file_names) {
         call vcf_gz_gohan {
             input: gohan_url = gohan_url,
                    vcf_gz_file_name = file_name,
                    assembly_id = assembly_id,
-                   project = project_id,
-                   dataset = dataset_id,
+                   project = project_and_dataset_id.out[0],
+                   dataset = project_and_dataset_id.out[1],
                    filter_out_references = filter_out_references,
-                   access_token = secret__access_token,
+                   access_token = access_token,
         }
+    }
+}
+
+task project_and_dataset_id {
+    input {
+        String project_dataset
+    }
+    command <<< python3 -c 'import json; print(json.dumps("~{project_dataset}".split(":")))' >>>
+    output {
+        Array[String] out = read_json(stdout())
     }
 }
 

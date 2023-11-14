@@ -13,14 +13,20 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 			"name":        "Compressed-VCF Elasticsearch Indexing",
 			"description": "This ingestion workflow will validate and ingest a BGZip-Compressed-VCF into Elasticsearch.",
 			"data_type":   "variant",
+			"tags":        []string{"variant"},
 			"file":        "vcf_gz.wdl",
-			"action":     "ingestion",
+			"type":        "ingestion",
 			"inputs": []map[string]interface{}{
 				{
-					"id":         "vcf_gz_file_names",
-					"type":       "file[]",
-					"required":   true,
-					"extensions": []string{".vcf.gz"},
+					"id":       "project_dataset",
+					"type":     "project:dataset",
+					"required": true,
+				},
+				{
+					"id":       "vcf_gz_file_names",
+					"type":     "file[]",
+					"required": true,
+					"pattern":  "^.*\\.vcf\\.gz$",
 				},
 				{
 					"id":       "assembly_id",
@@ -37,26 +43,15 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"default":  "false",
 				},
 				{
-					"id":		"gohan_url",
-					"type":		"string",
-					"required":	true,
-					"value":	"FROM_CONFIG",
-					"hidden":	true,
-				},
-			},
-			"outputs": []map[string]interface{}{
-				{
-					"id":    "txt_output",
-					"type":  "file",
-					"value": "{txt_output}",
-				},
-				{
-					"id":    "err_output",
-					"type":  "file",
-					"value": "{err_output}",
+					"id":           "gohan_url",
+					"type":         "service-kind",
+					"required":     true,
+					"injected":     true,
+					"service_kind": "gohan",
 				},
 			},
 		},
 	},
 	"analysis": map[string]interface{}{},
+	"export":   map[string]interface{}{},
 }
