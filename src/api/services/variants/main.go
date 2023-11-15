@@ -31,6 +31,8 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 
 	var wg sync.WaitGroup
 
+	/* callProcessLatestCreated performs a Elasticsearch query for the latest created
+	time of variant and updates resultsMap with the formatted time.*/
 	callProcessLatestCreated := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
