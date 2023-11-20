@@ -827,6 +827,8 @@ func (i *IngestionService) ProcessVcf(
 					var resultingVariant indexes.Variant
 					mapstructure.Decode(tmpVariant, &resultingVariant)
 
+					resultingVariant.CreatedTime = time.Now()
+
 					// pass variant (along with a waitgroup) to the channel
 					i.IngestionBulkIndexingQueue <- &structs.IngestionQueueStructure{
 						Variant:   &resultingVariant,

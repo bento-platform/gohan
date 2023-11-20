@@ -6,6 +6,7 @@ import (
 	"gohan/api/models"
 	esRepo "gohan/api/repositories/elasticsearch"
 	"sync"
+	"time"
 
 	"github.com/elastic/go-elasticsearch/v7"
 )
@@ -29,6 +30,34 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 	resultsMux := sync.RWMutex{}
 
 	var wg sync.WaitGroup
+
+	/* callProcessLatestCreated performs a Elasticsearch query for the latest created
+	time of variant and updates resultsMap with the formatted time.*/
+	callProcessLatestCreated := func(key string, keyword string, _wg *sync.WaitGroup) {
+		defer _wg.Done()
+
+		results, err := esRepo.GetVariantsBucketsByKeyword(cfg, es, keyword)
+		if err != nil {
+			resultsMux.Lock()
+			resultsMap[key+"_error"] = "Failed to get latest created time."
+			resultsMux.Unlock()
+			return
+		}
+
+		var formattedTime string
+		if aggs, ok := results["aggregations"].(map[string]interface{}); ok {
+			if latest, ok := aggs["last_ingested"].(map[string]interface{}); ok {
+				if timestamp, ok := latest["value"].(float64); ok {
+					formattedTime = time.UnixMilli(int64(timestamp)).UTC().Format(time.RFC3339)
+				}
+			}
+		}
+
+		resultsMux.Lock()
+		resultsMap[key] = formattedTime
+		resultsMux.Unlock()
+	}
+
 	callGetBucketsByKeyword := func(key string, keyword string, _wg *sync.WaitGroup) {
 		defer _wg.Done()
 
@@ -96,6 +125,10 @@ func GetVariantsOverview(es *elasticsearch.Client, cfg *models.Config) (map[stri
 	// get distribution of datasets
 	wg.Add(1)
 	go callGetBucketsByKeyword("datasets", "dataset.keyword", &wg)
+
+	// get last ingested variant
+	wg.Add(1)
+	go callProcessLatestCreated("last_ingested", "last_ingested.keyword", &wg)
 
 	wg.Wait()
 

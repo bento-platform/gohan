@@ -2,6 +2,7 @@ package indexes
 
 import (
 	c "gohan/api/models/constants"
+	"time"
 )
 
 type Variant struct {
@@ -17,9 +18,10 @@ type Variant struct {
 
 	Sample Sample `json:"sample"`
 
-	FileId     string       `json:"fileId"`
-	Dataset    string       `json:"dataset"`
-	AssemblyId c.AssemblyId `json:"assemblyId"`
+	FileId      string       `json:"fileId"`
+	Dataset     string       `json:"dataset"`
+	AssemblyId  c.AssemblyId `json:"assemblyId"`
+	CreatedTime time.Time    `json:"createdTime"`
 }
 
 type Info struct {
