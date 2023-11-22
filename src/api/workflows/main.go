@@ -33,18 +33,16 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"type":     "enum",
 					"required": true,
 					"values":   []c.AssemblyId{a.GRCh38, a.GRCh37},
-					"default":  "GRCh38",
 				},
 				{
 					"id":       "filter_out_references",
-					"type":     "enum",
+					"type":     "boolean",
 					"required": true,
 					"values":   []string{"true", "false"}, // simulate boolean type
-					"default":  "false",
 				},
 				{
 					"id":           "gohan_url",
-					"type":         "service-kind",
+					"type":         "service-url",
 					"required":     true,
 					"injected":     true,
 					"service_kind": "gohan",
