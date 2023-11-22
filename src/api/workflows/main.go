@@ -17,6 +17,7 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 			"file":        "vcf_gz.wdl",
 			"type":        "ingestion",
 			"inputs": []map[string]interface{}{
+				// User inputs:
 				{
 					"id":       "project_dataset",
 					"type":     "project:dataset",
@@ -39,12 +40,20 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"type":     "boolean",
 					"required": true,
 				},
+				// Injected inputs:
 				{
 					"id":           "gohan_url",
 					"type":         "service-url",
 					"required":     true,
 					"injected":     true,
 					"service_kind": "gohan",
+				},
+				{
+					"id":       "access_token",
+					"type":     "secret",
+					"required": true,
+					"injected": true,
+					"key":      "access_token",
 				},
 				{
 					"id":       "validate_ssl",
