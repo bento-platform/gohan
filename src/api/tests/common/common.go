@@ -114,6 +114,10 @@ func GetVariantsOverview(_t *testing.T, _cfg *models.Config) map[string]interfac
 	assert.True(_t, sidkOk)
 	assert.NotNil(_t, sampleIDsKey)
 
+	lastIngestionKey, likOk := overviewRespJson["last_ingested"]
+	assert.True(_t, likOk)
+	assert.NotNil(_t, lastIngestionKey)
+
 	return overviewRespJson
 }
 

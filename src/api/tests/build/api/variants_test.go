@@ -169,13 +169,22 @@ func TestDemoVcfIngestion(t *testing.T) {
 		for oK, oV := range overviewJson {
 			assert.NotNil(t, oV)
 
-			assert.NotNil(t, overviewJson[oK])
-			assert.NotNil(t, overviewJson[oK].(map[string]interface{}))
+			// handle 'last_ingested' as a string
+			if oK == "last_ingested" {
+				_, ok := oV.(string)
+				assert.True(t, ok)
+				continue
+			}
 
-			for k, v := range oV.(map[string]interface{}) {
+			// assert the value is a map for other keys
+			mapValue, ok := oV.(map[string]interface{})
+			assert.True(t, ok)
+
+			for k, v := range mapValue {
 				key := k
 				assert.NotNil(t, v)
-				value := v.(float64)
+				value, ok := v.(float64)
+				assert.True(t, ok)
 				assert.NotNil(t, key)
 				assert.NotEmpty(t, key)
 				assert.NotEmpty(t, value)

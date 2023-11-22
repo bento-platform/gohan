@@ -491,6 +491,40 @@ func GetDatasetVariantsCount(c echo.Context) int {
 	return int(totalVariantsCount)
 }
 
+func GetLastCreatedVariantForDataset(c echo.Context) string {
+	gc := c.(*contexts.GohanContext)
+	cfg := gc.Config
+	es := gc.Es7Client
+
+	dataset := gc.Dataset
+	fmt.Printf("Fetching the last 'created' timestamp for dataset: %s\n", dataset)
+
+	var (
+		lastCreatedTimestamp string
+		g                    = new(errgroup.Group)
+	)
+
+	g.Go(func() error {
+		timestamp, timestampError := esRepo.GetMostRecentVariantTimestamp(cfg, es, dataset.String())
+		if timestampError != nil {
+			fmt.Printf("Failed to fetch the most recent 'created' timestamp for dataset %s. Error: %v\n", dataset, timestampError)
+			return timestampError
+		}
+
+		lastCreatedTimestamp = timestamp.Format(time.RFC3339)
+		fmt.Printf("Fetched timestamp for dataset %s is: %s\n", dataset, lastCreatedTimestamp)
+		return nil
+	})
+
+	// wait for the HTTP fetch to complete.
+	if err := g.Wait(); err != nil {
+		fmt.Printf("Encountered an error while fetching data: %v\n", err)
+	} else {
+		fmt.Printf("Successfully Obtained Dataset '%s' most recent 'created' timestamp: '%s' \n", dataset, lastCreatedTimestamp)
+	}
+	return lastCreatedTimestamp
+}
+
 func GetDatasetSummary(c echo.Context) error {
 
 	gc := c.(*contexts.GohanContext)
@@ -600,24 +634,27 @@ func ClearDataset(c echo.Context) error {
 }
 
 type DataTypeSummary struct {
-	Id        string                 `json:"id"`
-	Label     string                 `json:"label"`
-	Queryable bool                   `json:"queryable"`
-	Schema    map[string]interface{} `json:"schema"`
-	Count     int                    `json:"count"`
+	Id          string                 `json:"id"`
+	Label       string                 `json:"label"`
+	Queryable   bool                   `json:"queryable"`
+	Schema      map[string]interface{} `json:"schema"`
+	Count       int                    `json:"count"`
+	LastCreated string                 `json:"last_ingested"`
 }
 
 type DataTypeResponseDto = []DataTypeSummary
 
 func GetDatasetDataTypes(c echo.Context) error {
 	count := GetDatasetVariantsCount(c)
+	last_ingested := GetLastCreatedVariantForDataset(c)
 	return c.JSON(http.StatusOK, &DataTypeResponseDto{
 		DataTypeSummary{
-			Id:        "variant",
-			Label:     "Variants",
-			Queryable: true,
-			Schema:    schemas.VARIANT_SCHEMA,
-			Count:     count,
+			Id:          "variant",
+			Label:       "Variants",
+			Queryable:   true,
+			Schema:      schemas.VARIANT_SCHEMA,
+			Count:       count,
+			LastCreated: last_ingested,
 		},
 	})
 }
