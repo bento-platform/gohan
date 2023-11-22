@@ -10,8 +10,8 @@ type WorkflowSchema map[string]interface{}
 var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 	"ingestion": map[string]interface{}{
 		"vcf_gz": map[string]interface{}{
-			"name":        "Compressed-VCF Elasticsearch Indexing",
-			"description": "This ingestion workflow will validate and ingest a BGZip-Compressed-VCF into Elasticsearch.",
+			"name":        "Compressed VCF Elasticsearch Indexing",
+			"description": "This ingestion workflow will validate and ingest a BGZip-compressed VCF into Elasticsearch.",
 			"data_type":   "variant",
 			"tags":        []string{"variant"},
 			"file":        "vcf_gz.wdl",
