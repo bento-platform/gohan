@@ -38,7 +38,6 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"id":       "filter_out_references",
 					"type":     "boolean",
 					"required": true,
-					"values":   []string{"true", "false"}, // simulate boolean type
 				},
 				{
 					"id":           "gohan_url",
@@ -46,6 +45,13 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"required":     true,
 					"injected":     true,
 					"service_kind": "gohan",
+				},
+				{
+					"id":       "validate_ssl",
+					"type":     "config",
+					"required": true,
+					"injected": true,
+					"key":      "validate_ssl",
 				},
 			},
 		},
