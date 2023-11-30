@@ -81,7 +81,7 @@ task vcf_gz_gohan {
             REQUESTS=$(curl -vvv \
                 -H "${AUTH_HEADER}" \
                 ~{true="" false="-k" validate_ssl} \
-                "~{gohan_url}/private/variants/ingestion/requests" -k)
+                "~{gohan_url}/private/variants/ingestion/requests")
 
             echo "${REQUESTS}"
             
