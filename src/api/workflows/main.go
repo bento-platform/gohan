@@ -10,53 +10,61 @@ type WorkflowSchema map[string]interface{}
 var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 	"ingestion": map[string]interface{}{
 		"vcf_gz": map[string]interface{}{
-			"name":        "Compressed-VCF Elasticsearch Indexing",
-			"description": "This ingestion workflow will validate and ingest a BGZip-Compressed-VCF into Elasticsearch.",
+			"name":        "Compressed VCF Elasticsearch Indexing",
+			"description": "This ingestion workflow will validate and ingest a BGZip-compressed VCF into Elasticsearch.",
 			"data_type":   "variant",
+			"tags":        []string{"variant"},
 			"file":        "vcf_gz.wdl",
-			"action":     "ingestion",
+			"type":        "ingestion",
 			"inputs": []map[string]interface{}{
+				// User inputs:
 				{
-					"id":         "vcf_gz_file_names",
-					"type":       "file[]",
-					"required":   true,
-					"extensions": []string{".vcf.gz"},
+					"id":       "project_dataset",
+					"type":     "project:dataset",
+					"required": true,
+				},
+				{
+					"id":       "vcf_gz_file_names",
+					"type":     "file[]",
+					"required": true,
+					"pattern":  "^.*\\.vcf\\.gz$",
 				},
 				{
 					"id":       "assembly_id",
 					"type":     "enum",
 					"required": true,
 					"values":   []c.AssemblyId{a.GRCh38, a.GRCh37},
-					"default":  "GRCh38",
 				},
 				{
 					"id":       "filter_out_references",
-					"type":     "enum",
+					"type":     "boolean",
 					"required": true,
-					"values":   []string{"true", "false"}, // simulate boolean type
-					"default":  "false",
+				},
+				// Injected inputs:
+				{
+					"id":           "gohan_url",
+					"type":         "service-url",
+					"required":     true,
+					"injected":     true,
+					"service_kind": "gohan",
 				},
 				{
-					"id":		"gohan_url",
-					"type":		"string",
-					"required":	true,
-					"value":	"FROM_CONFIG",
-					"hidden":	true,
-				},
-			},
-			"outputs": []map[string]interface{}{
-				{
-					"id":    "txt_output",
-					"type":  "file",
-					"value": "{txt_output}",
+					"id":       "access_token",
+					"type":     "secret",
+					"required": true,
+					"injected": true,
+					"key":      "access_token",
 				},
 				{
-					"id":    "err_output",
-					"type":  "file",
-					"value": "{err_output}",
+					"id":       "validate_ssl",
+					"type":     "config",
+					"required": true,
+					"injected": true,
+					"key":      "validate_ssl",
 				},
 			},
 		},
 	},
 	"analysis": map[string]interface{}{},
+	"export":   map[string]interface{}{},
 }
