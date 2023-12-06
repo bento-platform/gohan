@@ -13,7 +13,6 @@ import (
 
 	"gohan/api/models"
 	c "gohan/api/models/constants"
-	a "gohan/api/models/constants/assembly-id"
 	gq "gohan/api/models/constants/genotype-query"
 	s "gohan/api/models/constants/sort"
 	z "gohan/api/models/constants/zygosity"
@@ -465,7 +464,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			}})
 	}
 
-	if assemblyId != "" && assemblyId != a.Unknown {
+	if assemblyId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": map[string]interface{}{
 				"assemblyId": map[string]interface{}{

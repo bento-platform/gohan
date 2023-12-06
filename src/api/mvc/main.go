@@ -3,7 +3,6 @@ package mvc
 import (
 	"gohan/api/contexts"
 	"gohan/api/models/constants"
-	a "gohan/api/models/constants/assembly-id"
 	gq "gohan/api/models/constants/genotype-query"
 	"strings"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/labstack/echo"
 )
 
-func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, []string, constants.GenotypeQuery, constants.AssemblyId, string) {
+func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int, int, string, string, []string, constants.GenotypeQuery, string, string) {
 	gc := c.(*contexts.GohanContext)
 	es := gc.Es7Client
 
@@ -48,11 +47,7 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 		}
 	}
 
-	assemblyId := a.Unknown
-	assemblyIdQP := c.QueryParam("assemblyId")
-	if len(assemblyIdQP) > 0 && a.IsKnownAssemblyId(assemblyIdQP) {
-		assemblyId = a.CastToAssemblyId(assemblyIdQP)
-	}
+	assemblyId := c.QueryParam("assemblyId")
 
 	return es, chromosome, lowerBound, upperBound, reference, alternative, alleles, genotype, assemblyId, datasetString
 }

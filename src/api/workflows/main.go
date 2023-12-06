@@ -1,10 +1,5 @@
 package workflows
 
-import (
-	c "gohan/api/models/constants"
-	a "gohan/api/models/constants/assembly-id"
-)
-
 type WorkflowSchema map[string]interface{}
 
 var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
@@ -22,6 +17,7 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"id":       "project_dataset",
 					"type":     "project:dataset",
 					"required": true,
+					"help":     "The dataset to ingest the variants into.",
 				},
 				{
 					"id":       "vcf_gz_file_names",
@@ -33,12 +29,14 @@ var WORKFLOW_VARIANT_SCHEMA WorkflowSchema = map[string]interface{}{
 					"id":       "assembly_id",
 					"type":     "enum",
 					"required": true,
-					"values":   []c.AssemblyId{a.GRCh38, a.GRCh37},
+					"values":   "{{ serviceUrls.reference }}/genomes?response_format=id_list",
 				},
 				{
 					"id":       "filter_out_references",
 					"type":     "boolean",
 					"required": true,
+					"help": "If this is checked, variant calls which are (0, 0) (i.e., homozygous reference " +
+						"calls) will not be ingested.",
 				},
 				// Injected inputs:
 				{

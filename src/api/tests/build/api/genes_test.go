@@ -6,8 +6,6 @@ import (
 	common "gohan/api/tests/common"
 
 	"gohan/api/models"
-	c "gohan/api/models/constants"
-	a "gohan/api/models/constants/assembly-id"
 	ingest "gohan/api/models/ingest"
 
 	"gohan/api/models/constants/chromosome"
@@ -205,10 +203,10 @@ func getAllDtosOfVariousCombinationsOfGenesAndAssemblyIDs(_t *testing.T) []dtos.
 				go func(_wg *sync.WaitGroup, _assemblyIdString string, _chromosomeString string) {
 					defer _wg.Done()
 
-					assemblyId := a.CastToAssemblyId(_assemblyIdString)
+					assemblyId := _assemblyIdString
 
 					// make the call
-					dto := buildQueryAndMakeGetGenesCall(_chromosomeString, "", assemblyId, _t, cfg)
+					dto := buildQueryAndMakeGetGenesCall(_chromosomeString, assemblyId, _t, cfg)
 
 					// ensure there is data returned
 					// (we'd be making a bad query, otherwise)
@@ -231,7 +229,7 @@ func getAllDtosOfVariousCombinationsOfGenesAndAssemblyIDs(_t *testing.T) []dtos.
 	return allDtoResponses
 }
 
-func buildQueryAndMakeGetGenesCall(chromosome string, term string, assemblyId c.AssemblyId, _t *testing.T, _cfg *models.Config) dtos.GenesResponseDTO {
+func buildQueryAndMakeGetGenesCall(chromosome string, assemblyId string, _t *testing.T, _cfg *models.Config) dtos.GenesResponseDTO {
 
 	queryString := fmt.Sprintf("?chromosome=%s&assemblyId=%s", chromosome, assemblyId)
 

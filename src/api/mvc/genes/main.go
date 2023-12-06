@@ -335,11 +335,7 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 	// Assembly ID
 	// perform wildcard search if empty/random parameter is passed
 	// - set to Unknown to trigger it
-	var assId constants.AssemblyId
-	if gc.AssemblyId != assemblyId.Unknown {
-		// retrieve passed parameter if is valid
-		assId = gc.AssemblyId
-	}
+	asmId := gc.AssemblyId
 
 	// Size
 	var (
@@ -354,10 +350,10 @@ func GenesGetByNomenclatureWildcard(c echo.Context) error {
 		}
 	}
 
-	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s (max size: %d)\n", term, assId, size)
+	fmt.Printf("Executing wildcard genes search for term %s, assemblyId %s (max size: %d)\n", term, asmId, size)
 
 	// Execute
-	docs, geneErr := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, assId, size)
+	docs, geneErr := esRepo.GetGeneDocumentsByTermWildcard(cfg, es, chromosomeSearchTerm, term, asmId, size)
 	if geneErr != nil {
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"status":  500,

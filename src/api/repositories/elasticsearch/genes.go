@@ -13,7 +13,6 @@ import (
 
 	"gohan/api/models"
 	"gohan/api/models/constants"
-	assemblyId "gohan/api/models/constants/assembly-id"
 	"gohan/api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
@@ -106,7 +105,7 @@ func GetGeneBucketsByKeyword(cfg *models.Config, es *elasticsearch.Client) (map[
 }
 
 func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client,
-	chromosomeSearchTerm string, term string, assId constants.AssemblyId, size int) (map[string]interface{}, error) {
+	chromosomeSearchTerm string, term string, asmId string, size int) (map[string]interface{}, error) {
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -115,10 +114,10 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 	// Nomenclature Search Term
 	nomenclatureStringTerm := fmt.Sprintf("*%s*", term)
 
-	// Assembly Id Search Term (wildcard by default)
+	// Assembly ID Search Term (wildcard by default)
 	assemblyIdStringTerm := "*"
-	if assId != assemblyId.Unknown {
-		assemblyIdStringTerm = string(assId)
+	if asmId != "" {
+		assemblyIdStringTerm = asmId
 	}
 
 	var buf bytes.Buffer
