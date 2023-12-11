@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"gohan/api/contexts"
-	"gohan/api/models/constants"
 	assemblyId "gohan/api/models/constants/assembly-id"
 	"gohan/api/models/constants/chromosome"
 	"gohan/api/models/dtos"
@@ -51,7 +50,7 @@ func GenesIngest(c echo.Context) error {
 			http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
 
-		assemblyIdMap := map[constants.AssemblyId]string{
+		assemblyIdMap := map[string]string{
 			assemblyId.GRCh38: "gencode.v38.annotation.gtf",
 			assemblyId.GRCh37: "gencode.v19.annotation.gtf",
 			// SKIP
@@ -59,7 +58,7 @@ func GenesIngest(c echo.Context) error {
 			// assemblyId.NCBI35: "hg17",
 			// assemblyId.NCBI34: "hg16",
 		}
-		assemblyIdGTFUrlMap := map[constants.AssemblyId]string{
+		assemblyIdGTFUrlMap := map[string]string{
 			assemblyId.GRCh38: "http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_38/gencode.v38.annotation.gtf.gz",
 			assemblyId.GRCh37: "http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz",
 			// SKIP
@@ -79,7 +78,7 @@ func GenesIngest(c echo.Context) error {
 				CreatedAt: fmt.Sprintf("%v", time.Now()),
 			}
 
-			go func(_assId constants.AssemblyId, _fileName string, _assemblyWg *sync.WaitGroup, reqStat *ingest.GeneIngestRequest) {
+			go func(_asmId string, _fileName string, _assemblyWg *sync.WaitGroup, reqStat *ingest.GeneIngestRequest) {
 				defer _assemblyWg.Done()
 
 				var (
@@ -89,7 +88,7 @@ func GenesIngest(c echo.Context) error {
 				gtfFile, err := os.Open(fmt.Sprintf("%s/%s", gtfPath, _fileName))
 				if err != nil {
 					// Download the file
-					fullURLFile := assemblyIdGTFUrlMap[_assId]
+					fullURLFile := assemblyIdGTFUrlMap[_asmId]
 
 					handleHardErr := func(err error) {
 						msg := "Something went wrong:  " + err.Error()
@@ -193,13 +192,13 @@ func GenesIngest(c echo.Context) error {
 				defer gtfFile.Close()
 
 				// clean out genes currently in elasticsearch by assembly id
-				fmt.Printf("Cleaning out %s gene documents from genes index (if any)\n", string(_assId))
-				esRepo.DeleteGenesByAssemblyId(cfg, es7Client, _assId)
+				fmt.Printf("Cleaning out %s gene documents from genes index (if any)\n", string(_asmId))
+				esRepo.DeleteGenesByAssemblyId(cfg, es7Client, _asmId)
 
 				fileScanner := bufio.NewScanner(gtfFile)
 				fileScanner.Split(bufio.ScanLines)
 
-				fmt.Printf("Ingesting %s\n", string(_assId))
+				fmt.Printf("Ingesting %s\n", string(_asmId))
 				reqStat.State = ingest.Running
 				iz.GeneIngestRequestChan <- reqStat
 
@@ -222,7 +221,7 @@ func GenesIngest(c echo.Context) error {
 					go func(rowText string, _chromHeaderKey int,
 						_startKey int, _endKey int,
 						_nameHeaderKeys []int, _geneNameHeaderKeys []int,
-						_assId constants.AssemblyId,
+						_assId string,
 						_gwg *sync.WaitGroup) {
 						// fmt.Printf("row : %s\n", row)
 
@@ -276,19 +275,19 @@ func GenesIngest(c echo.Context) error {
 							Chrom:      chromosomeClean,
 							Start:      start,
 							End:        end,
-							AssemblyId: _assId,
+							AssemblyId: _asmId,
 						}
 
 						iz.GeneIngestionBulkIndexingQueue <- &structs.GeneIngestionQueueStructure{
 							Gene:      discoveredGene,
 							WaitGroup: _gwg,
 						}
-					}(rowText, chromHeaderKey, startKey, endKey, nameHeaderKeys, geneNameHeaderKeys, _assId, &geneWg)
+					}(rowText, chromHeaderKey, startKey, endKey, nameHeaderKeys, geneNameHeaderKeys, _asmId, &geneWg)
 				}
 
 				geneWg.Wait()
 
-				fmt.Printf("%s ingestion done!\n", _assId)
+				fmt.Printf("%s ingestion done!\n", _asmId)
 				fmt.Printf("Deleting %s\n", unzippedFileName)
 				err = os.Remove(fmt.Sprintf("%s/%s", gtfPath, unzippedFileName))
 				if err != nil {

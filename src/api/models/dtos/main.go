@@ -1,7 +1,6 @@
 package dtos
 
 import (
-	"gohan/api/models/constants"
 	"gohan/api/models/indexes"
 	"time"
 )
@@ -21,11 +20,11 @@ type VariantCountReponse struct {
 }
 
 type VariantResult struct {
-	Query      string               `json:"query,omitempty"`
-	AssemblyId constants.AssemblyId `json:"assembly_id"`
-	Chromosome string               `json:"chromosome"`
-	Start      int                  `json:"start"`
-	End        int                  `json:"end"`
+	Query      string `json:"query,omitempty"`
+	AssemblyId string `json:"assembly_id"`
+	Chromosome string `json:"chromosome"`
+	Start      int    `json:"start"`
+	End        int    `json:"end"`
 }
 
 type VariantGetResult struct {
@@ -54,9 +53,9 @@ type VariantCall struct {
 	Alleles      []string `json:"alleles,omitempty"`
 	// TODO: GenotypeProbability, PhredScaleLikelyhood ?
 
-	AssemblyId constants.AssemblyId `json:"assemblyId,omitempty"`
-	Dataset    string               `json:"dataset,omitempty"`
-	DocumentId string               `json:"documentId,omitempty"`
+	AssemblyId string `json:"assemblyId,omitempty"`
+	Dataset    string `json:"dataset,omitempty"`
+	DocumentId string `json:"documentId,omitempty"`
 }
 
 // --- Dataset

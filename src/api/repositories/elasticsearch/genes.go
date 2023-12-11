@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"gohan/api/models"
-	"gohan/api/models/constants"
 	"gohan/api/utils"
 
 	"github.com/elastic/go-elasticsearch/v7"
@@ -216,7 +215,7 @@ func GetGeneDocumentsByTermWildcard(cfg *models.Config, es *elasticsearch.Client
 	return result, nil
 }
 
-func DeleteGenesByAssemblyId(cfg *models.Config, es *elasticsearch.Client, assId constants.AssemblyId) (map[string]interface{}, error) {
+func DeleteGenesByAssemblyId(cfg *models.Config, es *elasticsearch.Client, asmId string) (map[string]interface{}, error) {
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -226,7 +225,7 @@ func DeleteGenesByAssemblyId(cfg *models.Config, es *elasticsearch.Client, assId
 	query := map[string]interface{}{
 		"query": map[string]interface{}{
 			"match": map[string]interface{}{
-				"assemblyId": string(assId),
+				"assemblyId": asmId,
 			},
 		},
 	}
