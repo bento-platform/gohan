@@ -18,7 +18,6 @@ import (
 	"time"
 
 	c "gohan/api/models/constants"
-	a "gohan/api/models/constants/assembly-id"
 	gq "gohan/api/models/constants/genotype-query"
 	s "gohan/api/models/constants/sort"
 	z "gohan/api/models/constants/zygosity"
@@ -681,7 +680,7 @@ func getAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, inc
 
 			chrom := _combination[0]
 			sampleId := _combination[1]
-			assemblyId := a.CastToAssemblyId(_combination[2])
+			assemblyId := _combination[2]
 
 			// make the call
 			dto := common.BuildQueryAndMakeGetVariantsCall(chrom, sampleId, uuid.Nil, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", false, _t, cfg)

@@ -13,7 +13,6 @@ import (
 
 	"gohan/api/models"
 	c "gohan/api/models/constants"
-	a "gohan/api/models/constants/assembly-id"
 	gq "gohan/api/models/constants/genotype-query"
 	s "gohan/api/models/constants/sort"
 	z "gohan/api/models/constants/zygosity"
@@ -110,7 +109,7 @@ func GetDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config, e
 	reference string, alternative string, alleles []string,
 	size int, sortByPosition c.SortDirection,
 	includeInfoInResultSet bool,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId,
+	genotype c.GenotypeQuery, assemblyId string,
 	getSampleIdsOnly bool) (map[string]interface{}, error) {
 
 	// begin building the request body.
@@ -405,7 +404,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 	chromosome string, lowerBound int, upperBound int,
 	variantId string, sampleId string, datasetString string,
 	reference string, alternative string, alleles []string,
-	genotype c.GenotypeQuery, assemblyId c.AssemblyId) (map[string]interface{}, error) {
+	genotype c.GenotypeQuery, assemblyId string) (map[string]interface{}, error) {
 
 	// begin building the request body.
 	mustMap := []map[string]interface{}{{
@@ -465,7 +464,7 @@ func CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg *models.Config,
 			}})
 	}
 
-	if assemblyId != "" && assemblyId != a.Unknown {
+	if assemblyId != "" {
 		mustMap = append(mustMap, map[string]interface{}{
 			"match": map[string]interface{}{
 				"assemblyId": map[string]interface{}{

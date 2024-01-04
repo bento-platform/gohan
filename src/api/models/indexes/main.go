@@ -18,10 +18,10 @@ type Variant struct {
 
 	Sample Sample `json:"sample"`
 
-	FileId      string       `json:"fileId"`
-	Dataset     string       `json:"dataset"`
-	AssemblyId  c.AssemblyId `json:"assemblyId"`
-	CreatedTime time.Time    `json:"createdTime"`
+	FileId      string    `json:"fileId"`
+	Dataset     string    `json:"dataset"`
+	AssemblyId  string    `json:"assemblyId"`
+	CreatedTime time.Time `json:"createdTime"`
 }
 
 type Info struct {
@@ -51,9 +51,9 @@ type Genotype struct {
 }
 
 type Gene struct {
-	Name       string       `json:"name"`
-	Chrom      string       `json:"chrom"`
-	Start      int          `json:"start"`
-	End        int          `json:"end"`
-	AssemblyId c.AssemblyId `json:"assemblyId"`
+	Name       string `json:"name"`
+	Chrom      string `json:"chrom"`
+	Start      int    `json:"start"`
+	End        int    `json:"end"`
+	AssemblyId string `json:"assemblyId"`
 }

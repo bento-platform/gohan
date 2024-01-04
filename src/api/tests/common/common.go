@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"gohan/api/models"
 	c "gohan/api/models/constants"
-	a "gohan/api/models/constants/assembly-id"
 	gq "gohan/api/models/constants/genotype-query"
 	s "gohan/api/models/constants/sort"
 	testConsts "gohan/api/tests/common/constants"
@@ -215,7 +214,7 @@ func GetAndVerifyVariantsResults(_cfg *models.Config, _t *testing.T, dataset uui
 
 func BuildQueryAndMakeGetVariantsCall(
 	chromosome string, sampleId string, dataset uuid.UUID, includeInfo bool,
-	sortByPosition c.SortDirection, genotype c.GenotypeQuery, assemblyId c.AssemblyId,
+	sortByPosition c.SortDirection, genotype c.GenotypeQuery, assemblyId string,
 	referenceAllelePattern string, alternativeAllelePattern string, commaDeliminatedAlleles string,
 	ignoreStatusCode bool, _t *testing.T, _cfg *models.Config) dtos.VariantGetReponse {
 
@@ -286,7 +285,7 @@ func GetAllDtosOfVariousCombinationsOfChromosomesAndSampleIds(_t *testing.T, dat
 
 			chrom := _combination[0]
 			sampleId := _combination[1]
-			assemblyId := a.CastToAssemblyId(_combination[2])
+			assemblyId := _combination[2]
 
 			// make the call
 			dto := BuildQueryAndMakeGetVariantsCall(chrom, sampleId, dataset, includeInfo, sortByPosition, genotype, assemblyId, referenceAllelePattern, alternativeAllelePattern, "", false, _t, cfg)

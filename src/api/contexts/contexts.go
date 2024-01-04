@@ -25,7 +25,7 @@ type (
 
 	// Convenient storage for relevant http context data
 	QueryParameters struct {
-		AssemblyId constants.AssemblyId
+		AssemblyId string
 		Alleles    []string
 		Chromosome string
 		Genotype   constants.GenotypeQuery

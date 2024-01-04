@@ -350,7 +350,7 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 
 func (i *IngestionService) ProcessVcf(
 	gzippedFilePath string, drsFileId string, dataset uuid.UUID,
-	assemblyId constants.AssemblyId, filterOutReferences bool,
+	assemblyId string, filterOutReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
 	// ---   reopen gzipped file after having been copied to the temporary api-drs
