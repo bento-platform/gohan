@@ -25,7 +25,7 @@ RUN apt-get update -y && \
     apt-get install -y tabix && \
     rm -rf /var/lib/apt/lists/*
 
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/cosmtrek/air@v1.49.0
 
 COPY go.mod go.sum ./
 RUN go mod download && go mod vendor
