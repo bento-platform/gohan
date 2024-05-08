@@ -47,12 +47,6 @@ var VARIANT_SCHEMA Schema = map[string]interface{}{
 	"properties": map[string]interface{}{
 		"assembly_id": map[string]interface{}{
 			"description": "Reference genome assembly ID.",
-			"enum": []string{
-				"GRCh38",
-				"GRCh37",
-				"NCBI36",
-				"Other",
-			},
 			"search": map[string]interface{}{
 				"canNegate": false,
 				"operations": []string{
