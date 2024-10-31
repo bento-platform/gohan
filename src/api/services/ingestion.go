@@ -159,9 +159,9 @@ func (i *IngestionService) Init() {
 								defer wg.Done()
 								//atomic.AddUint64(&countFailed, 1)
 								if err != nil {
-									fmt.Printf("ERROR: %s", err)
+									fmt.Printf("ERROR: %s\n", err)
 								} else {
-									fmt.Printf("ERROR: %s: %s", res.Error.Type, res.Error.Reason)
+									fmt.Printf("ERROR: %s: %s\n", res.Error.Type, res.Error.Reason)
 								}
 							},
 						},
