@@ -142,7 +142,7 @@ func (i *IngestionService) Init() {
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
-							Index:  fmt.Sprintf("variants-%s", strings.ToLower(queuedVariant.Chrom)),
+							Index:  variantIndexName(queuedVariant.Chrom),
 
 							// Body is an `io.Reader` with the payload
 							Body: bytes.NewReader(variantData),
@@ -369,6 +369,7 @@ func (i *IngestionService) ProcessVcf(
 	defer gr.Close()
 
 	scanner := bufio.NewScanner(gr)
+	var contigs []string
 	var discoveredHeaders bool = false
 	var headers []string
 	headerSampleIds := make(map[int]string)
@@ -385,8 +386,15 @@ func (i *IngestionService) ProcessVcf(
 		//fmt.Println(scanner.Text())
 
 		// Gather Header row by seeking the CHROM string
+		// Collect contigs (chromosomes) to create indices
 		line := scanner.Text()
 		if !discoveredHeaders {
+			if line[0:8] == "##contig" {
+				contigs = append(
+					contigs,
+					strings.TrimSpace(strings.Replace(strings.Replace(strings.Replace(line, "##contig=<ID=", "", 1), ">", "", 1), "chr", "", 1)),
+				)
+			}
 			if line[0:6] == "#CHROM" {
 				// Split the string by tabs
 				headers = strings.Split(line, "\t")
@@ -400,10 +408,25 @@ func (i *IngestionService) ProcessVcf(
 					}
 				}
 
-				discoveredHeaders = true
+				// If we got to the VCF final header line, we've found all the contigs possible
+				// --> create required indices with mappings to ensure ES types are consistent
+				fmt.Printf("Got %d contigs: %v\n", len(contigs), contigs)
+				for _, c := range contigs {
+					var client = i.ElasticsearchClient
+
+					mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
+					var createBody = fmt.Sprintf(`{"mappings": %s}`, mappings)
+
+					res, _ := client.Indices.Create(
+						variantIndexName(c),
+						client.Indices.Create.WithBody(strings.NewReader(createBody)),
+					)
+
+					fmt.Printf("Creating contig index %s - got response: %s\n", c, res.String())
+				}
 
 				fmt.Println("Found the headers: ", headers)
-				continue
+				discoveredHeaders = true
 			}
 			continue
 		}
@@ -864,4 +887,8 @@ func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
 		}
 	}
 	return false
+}
+
+func variantIndexName(contig string) string {
+	return fmt.Sprintf("variants-%s", strings.ToLower(contig))
 }
