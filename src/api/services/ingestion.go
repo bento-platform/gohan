@@ -417,10 +417,12 @@ func (i *IngestionService) ProcessVcf(
 					mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
 					var createBody = fmt.Sprintf(`{"mappings": %s}`, mappings)
 
-					client.Indices.Create(
+					res, _ := client.Indices.Create(
 						variantIndexName(c),
 						client.Indices.Create.WithBody(strings.NewReader(createBody)),
 					)
+
+					fmt.Printf("Creating contig index %s - got response: %s\n", c, res.String())
 				}
 
 				fmt.Println("Found the headers: ", headers)
