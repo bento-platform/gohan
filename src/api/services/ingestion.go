@@ -408,25 +408,25 @@ func (i *IngestionService) ProcessVcf(
 					}
 				}
 
-				discoveredHeaders = true
+				// If we got to the VCF final header line, we've found all the contigs possible
+				// --> create required indices with mappings to ensure ES types are consistent
+				fmt.Printf("Got %d contigs: %v\n", len(contigs), contigs)
+				for _, c := range contigs {
+					var client = i.ElasticsearchClient
+
+					mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
+					var createBody = fmt.Sprintf(`{"mappings": %s}`, mappings)
+
+					client.Indices.Create(
+						variantIndexName(c),
+						client.Indices.Create.WithBody(strings.NewReader(createBody)),
+					)
+				}
 
 				fmt.Println("Found the headers: ", headers)
-				continue
+				discoveredHeaders = true
 			}
 			continue
-		}
-
-		// Create required indices with mappings to ensure ES types are cosnsitent
-		for _, c := range contigs {
-			var client = i.ElasticsearchClient
-
-			mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
-			var createBody = fmt.Sprintf(`{"mappings": %s}`, mappings)
-
-			client.Indices.Create(
-				variantIndexName(c),
-				client.Indices.Create.WithBody(strings.NewReader(createBody)),
-			)
 		}
 
 		// take a spot in the queue
