@@ -369,6 +369,7 @@ func (i *IngestionService) ProcessVcf(
 	defer gr.Close()
 
 	scanner := bufio.NewScanner(gr)
+	var contigs []string
 	var discoveredHeaders bool = false
 	var headers []string
 	headerSampleIds := make(map[int]string)
@@ -385,8 +386,15 @@ func (i *IngestionService) ProcessVcf(
 		//fmt.Println(scanner.Text())
 
 		// Gather Header row by seeking the CHROM string
+		// Collect contigs (chromosomes) to create indices
 		line := scanner.Text()
 		if !discoveredHeaders {
+			if line[0:8] == "##contig" {
+				contigs = append(
+					contigs,
+					strings.TrimSpace(strings.Replace(strings.Replace(strings.Replace(line, "##contig=<ID=", "", 1), ">", "", 1), "chr", "", 1)),
+				)
+			}
 			if line[0:6] == "#CHROM" {
 				// Split the string by tabs
 				headers = strings.Split(line, "\t")
@@ -406,6 +414,19 @@ func (i *IngestionService) ProcessVcf(
 				continue
 			}
 			continue
+		}
+
+		// Create required indices with mappings to ensure ES types are cosnsitent
+		for _, c := range contigs {
+			var client = i.ElasticsearchClient
+
+			mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
+			var createBody = fmt.Sprintf(`{"mappings": %s}`, mappings)
+
+			client.Indices.Create(
+				"variants-"+c,
+				client.Indices.Create.WithBody(strings.NewReader(createBody)),
+			)
 		}
 
 		// take a spot in the queue
