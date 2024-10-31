@@ -142,7 +142,7 @@ func (i *IngestionService) Init() {
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
-							Index:  fmt.Sprintf("variants-%s", strings.ToLower(queuedVariant.Chrom)),
+							Index:  variantIndexName(queuedVariant.Chrom),
 
 							// Body is an `io.Reader` with the payload
 							Body: bytes.NewReader(variantData),
@@ -424,7 +424,7 @@ func (i *IngestionService) ProcessVcf(
 			var createBody = fmt.Sprintf(`{"mappings": %s}`, mappings)
 
 			client.Indices.Create(
-				"variants-"+c,
+				variantIndexName(c),
 				client.Indices.Create.WithBody(strings.NewReader(createBody)),
 			)
 		}
@@ -885,4 +885,8 @@ func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
 		}
 	}
 	return false
+}
+
+func variantIndexName(contig string) string {
+	return fmt.Sprintf("variants-%s", strings.ToLower(contig))
 }
