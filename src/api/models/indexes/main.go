@@ -71,7 +71,7 @@ var VARIANT_INDEX_MAPPING = map[string]interface{}{
 		"info.value":                            MAPPING_TEXT,
 		"sample.id":                             MAPPING_TEXT,
 		"sample.variation.genotype.phased":      MAPPING_BOOL,
-		"sample.variation.genotype.zygosity.":   MAPPING_INT,
+		"sample.variation.genotype.zygosity":    MAPPING_INT,
 		"sample.variation.genotypeProbability":  MAPPING_FLOAT64,
 		"sample.variation.phredScaleLikelyhood": MAPPING_FLOAT64,
 		"sample.variation.alleles.left":         MAPPING_TEXT,
