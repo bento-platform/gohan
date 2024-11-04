@@ -384,6 +384,8 @@ func (i *IngestionService) ProcessVcf(
 	lineProcessingQueue := make(chan bool, lineProcessingConcurrencyLevel)
 
 	// pattern for contig headers
+	// - sectioning off the chr prefix strips it from the contig name prior to ingestion, more or less preserving
+	//   previous Gohan behaviour (which did a find and replace.)
 	var contig_pattern = regexp.MustCompile(`##contig=<ID=(chr)?([a-zA-Z0-9_\-.]+)(,.*)?`)
 
 	for scanner.Scan() {
