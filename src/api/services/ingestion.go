@@ -369,7 +369,7 @@ func (i *IngestionService) ProcessVcf(
 	defer gr.Close()
 
 	scanner := bufio.NewScanner(gr)
-	var contigs []string
+	var contigs []string // To collect contigs as defined in VCF header
 	var discoveredHeaders bool = false
 	var headers []string
 	headerSampleIds := make(map[int]string)
@@ -383,8 +383,6 @@ func (i *IngestionService) ProcessVcf(
 	lineProcessingQueue := make(chan bool, lineProcessingConcurrencyLevel)
 
 	for scanner.Scan() {
-		//fmt.Println(scanner.Text())
-
 		// Gather Header row by seeking the CHROM string
 		// Collect contigs (chromosomes) to create indices
 		line := scanner.Text()
@@ -409,24 +407,24 @@ func (i *IngestionService) ProcessVcf(
 				}
 
 				// If we got to the VCF final header line, we've found all the contigs possible
-				// --> create required indices with mappings to ensure ES types are consistent
+				// --> create required indices (one per contig) with mappings to ensure ES types are consistent and
+				//     mitigate issues we've encountered with e.g., SIGNATURE, where a date field was detected for
+				//     info.value.
 				fmt.Printf("Got %d contigs: %v\n", len(contigs), contigs)
 				for _, c := range contigs {
 					var client = i.ElasticsearchClient
 
 					mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
-					var createBody = fmt.Sprintf(`{"mappings": %s}`, mappings)
-
 					res, _ := client.Indices.Create(
 						variantIndexName(c),
-						client.Indices.Create.WithBody(strings.NewReader(createBody)),
+						client.Indices.Create.WithBody(strings.NewReader(fmt.Sprintf(`{"mappings": %s}`, mappings))),
 					)
 
 					fmt.Printf("Creating contig index %s - got response: %s\n", c, res.String())
 				}
 
-				fmt.Println("Found the headers: ", headers)
 				discoveredHeaders = true
+				fmt.Println("Found the headers: ", headers)
 			}
 			continue
 		}
