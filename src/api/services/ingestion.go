@@ -413,14 +413,22 @@ func (i *IngestionService) ProcessVcf(
 				fmt.Printf("Got %d contigs: %v\n", len(contigs), contigs)
 				for _, c := range contigs {
 					var client = i.ElasticsearchClient
+					var contigIndex = variantIndexName(c)
 
-					mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
-					res, _ := client.Indices.Create(
-						variantIndexName(c),
-						client.Indices.Create.WithBody(strings.NewReader(fmt.Sprintf(`{"mappings": %s}`, mappings))),
-					)
+					res, err := client.Indices.Exists([]string{contigIndex})
+					if res.StatusCode == 404 {
+						mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
+						res, _ := client.Indices.Create(
+							contigIndex,
+							client.Indices.Create.WithBody(strings.NewReader(fmt.Sprintf(`{"mappings": %s}`, mappings))),
+						)
 
-					fmt.Printf("Creating contig index %s - got response: %s\n", c, res.String())
+						fmt.Printf("Creating contig index %s - got response: %s\n", c, res.String())
+					} else if err != nil {
+						fmt.Printf("Contig index %s existence-check got error: %s\n", c, err)
+					} else {
+						fmt.Printf("Contig index %s already exists; skipping creation\n", c)
+					}
 				}
 
 				discoveredHeaders = true
