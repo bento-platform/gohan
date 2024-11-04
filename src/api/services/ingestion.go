@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -382,16 +383,24 @@ func (i *IngestionService) ProcessVcf(
 	// - manage # of lines being concurrently processed per file at any given time
 	lineProcessingQueue := make(chan bool, lineProcessingConcurrencyLevel)
 
+	// pattern for contig headers
+	var contig_pattern = regexp.MustCompile(`##contig=<ID=(chr)?([a-zA-Z0-9_\-.]+)(,.*)?`)
+
 	for scanner.Scan() {
 		// Gather Header row by seeking the CHROM string
 		// Collect contigs (chromosomes) to create indices
 		line := scanner.Text()
 		if !discoveredHeaders {
 			if line[0:8] == "##contig" {
-				contigs = append(
-					contigs,
-					strings.TrimSpace(strings.Replace(strings.Replace(strings.Replace(line, "##contig=<ID=", "", 1), ">", "", 1), "chr", "", 1)),
-				)
+				var matches = contig_pattern.FindStringSubmatch(line)
+
+				if len(matches) == 0 || matches[2] == "" {
+					// Invalid contig name - error
+					fmt.Printf("Error: got invalid contig header '%s' (matches: %v)\n", line, matches)
+				} else {
+					// Valid
+					contigs = append(contigs, matches[2])
+				}
 			}
 			if line[0:6] == "#CHROM" {
 				// Split the string by tabs
