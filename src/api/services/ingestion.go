@@ -425,8 +425,10 @@ func (i *IngestionService) ProcessVcf(
 
 						fmt.Printf("Creating contig index %s - got response: %s\n", c, res.String())
 					} else if err != nil {
+						// The actual check didn't work properly (e.g., couldn't contact ES).
 						fmt.Printf("Contig index %s existence-check got error: %s\n", c, err)
 					} else {
+						// The check worked and the index already exists, so we shouldn't try to recreate it.
 						fmt.Printf("Contig index %s already exists; skipping creation\n", c)
 					}
 				}
