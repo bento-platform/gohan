@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"gohan/api/models"
 	"gohan/api/models/constants"
-	"gohan/api/models/constants/chromosome"
 	p "gohan/api/models/constants/ploidy"
 	z "gohan/api/models/constants/zygosity"
 	"gohan/api/models/ingest"
@@ -467,23 +466,12 @@ func (i *IngestionService) ProcessVcf(
 
 						// filter field type by column name
 						if key == "chrom" {
-							// Strip out all non-numeric characters
+							// Strip out chr prefix for some normalization with human/model-organism contigs
 							value = strings.ReplaceAll(value, "chr", "")
 
-							// ems if value is valid chromosome
-							if chromosome.IsValidHumanChromosome(value) {
-								tmpVariantMapMutex.Lock()
-								tmpVariant[key] = value
-								tmpVariantMapMutex.Unlock()
-							} else {
-								// skip this call
-								skipThisCall = true
-
-								// redundant?
-								tmpVariantMapMutex.Lock()
-								tmpVariant[key] = "err"
-								tmpVariantMapMutex.Unlock()
-							}
+							tmpVariantMapMutex.Lock()
+							tmpVariant[key] = value
+							tmpVariantMapMutex.Unlock()
 						} else if key == "pos" || key == "qual" {
 
 							// // Convert string's to int's, if possible

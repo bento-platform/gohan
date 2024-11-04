@@ -10,7 +10,7 @@
 ## Prerequisites
 - Golang >= 1.19
   - installation: https://golang.org/doc/install
-  - other references 
+  - other references
     - https://linguinecode.com/post/install-golang-linux-terminal
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
@@ -57,19 +57,19 @@
 
 
   # build services
-  make build-gateway 
-  make build-api 
+  make build-gateway
+  make build-api
 
   # run services
   make run-gateway
   make run-elasticsearch
   make run-drs
   make run-api
-  
-  
+
+
   # initiate genes catlogue:
   curl -k https://gohan.local/genes/ingestion/run
-  
+
   # monitor progress:
   curl -k https://gohan.local/genes/ingestion/requests
   curl -k https://gohan.local/genes/ingestion/stats
@@ -81,7 +81,7 @@
 
   # ingest vcf.gz
   curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutReferences=true\&dataset=00000000-0000-0000-0000-000000000000
-  
+
   # monitor progress:
   curl -k https://gohan.local/variants/ingestion/requests
   curl -k https://gohan.local/variants/ingestion/stats
@@ -105,7 +105,7 @@ cp ./etc/example.env .env
 <br >
 
 ### **Initialization**
-Run 
+Run
 ```
 make init
 ```
@@ -115,9 +115,9 @@ make init
 
 ### **Elasticsearch & Kibana :**
 
-Run 
+Run
 ```
-make run-elasticsearch 
+make run-elasticsearch
 ```
 and *(optionally)*
 ```
@@ -130,7 +130,7 @@ make run-kibana
 
 ### **DRS :**
 
-Run 
+Run
 ```
 make run-drs
 ```
@@ -140,7 +140,7 @@ make run-drs
 
 ### **Data Access Authorization with OPA (more on this to come..) :**
 
-Run 
+Run
 ```
 make build-authz
 make run-authz
@@ -197,7 +197,7 @@ make run-api
 
 &nbsp;This can be done multiple ways.
 
-  1. `Terminal` : From the project root, run 
+  1. `Terminal` : From the project root, run
 ```
 # load variables from local file
 set -a
@@ -215,11 +215,11 @@ go run .
 
     - configure the `.vscode/launch.json` to inject the above mentioned variables as recommended by https://stackoverflow.com/questions/29971572/how-do-i-add-environment-variables-to-launch-json-in-vscode
 
-    - click 'Run & Debug' > "Play" 
+    - click 'Run & Debug' > "Play"
 
 <b>Local Release</b>
 
-&nbsp;To build / test from source; 
+&nbsp;To build / test from source;
 
 ```
 make build-api-local-binaries
@@ -297,8 +297,8 @@ Response
 
 Requests
 > &nbsp;&nbsp;**GET** `/variants/get/by/variantId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, MT )`
+> &nbsp;&nbsp;&nbsp;params:
+>   - chromosome : **string**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele ( "A" | "C" | "G" | "T" | "N" or some combination thereof )`
@@ -312,8 +312,8 @@ Requests
 >   - getSampleIdsOnly : **bool**  *`(optional) -  default: false  `*
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, MT )`
+> &nbsp;&nbsp;&nbsp;params:
+>   - chromosome : **string**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -323,8 +323,8 @@ Requests
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, MT )`
+> &nbsp;&nbsp;&nbsp;params:
+>   - chromosome : **string**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -337,8 +337,8 @@ Requests
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, MT )`
+> &nbsp;&nbsp;&nbsp;params:
+>   - chromosome : **string**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -352,7 +352,7 @@ Requests
 
 Generalized Response Body Structure
 
->```json  
+>```json
 >{
 >     "status":  `number` (200 - 500),
 >     "message": `string` ("Success" | "Error"),
@@ -363,7 +363,7 @@ Generalized Response Body Structure
 >             "count":  `number`,   // this field is only present when performing a COUNT query
 >             "start":  `number`,   // reflective of the provided lowerBound parameter, 0 if none
 >             "end":  `number`,     // reflective of the provided upperBound parameter, 0 if none
->             "chromosome":  `string`,       // reflective of the chromosome queried for
+>             "chromosome":  `string`,       // reflective of the chromosome queried for - no `chr` prefix
 >             "calls": [            // this field is only present when performing a GET query
 >                 {
 >                    "id": `string`, // variantId
@@ -404,7 +404,7 @@ Generalized Response Body Structure
 <br />
 
 - http://localhost:5000/variants/get/by/sampleId?ids=HG00097&size=1000&sortByPosition=asc
-  
+
 <br />
 
 - http://localhost:5000/variants/count/by/variantId?chromosome=8
@@ -424,13 +424,13 @@ Generalized Response Body Structure
 
 Request
 > &nbsp;&nbsp;**GET** `/variants/ingestion/run`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
+> &nbsp;&nbsp;&nbsp;params:
 >   - filename : **string** `(required)`
 
 <br/>
 
 Response
->```json  
+>```json
 > {
 >     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
 >     "id": `string`,
@@ -449,7 +449,7 @@ Request
 <br/>
 
 Response
->```json  
+>```json
 > [
 >   {
 >     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
@@ -471,11 +471,11 @@ Response
 
 ## Deployments :
 
-All in all, run 
+All in all, run
 ```
-make run-elasticsearch 
+make run-elasticsearch
 make run-drs
-make build-gateway && make run-gateway 
+make build-gateway && make run-gateway
 make build-api && make run-api
 
 # and optionally
@@ -490,7 +490,7 @@ For other handy tools, see the Makefile. Among those already mentionned here, yo
 
 ## Tests :
 
-Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run 
+Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run
 ```
 make test-api-dev
 ```

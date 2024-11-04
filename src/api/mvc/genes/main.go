@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"gohan/api/contexts"
 	assemblyId "gohan/api/models/constants/assembly-id"
-	"gohan/api/models/constants/chromosome"
 	"gohan/api/models/dtos"
 	"gohan/api/models/ingest"
 	"gohan/api/models/ingest/structs"
@@ -242,11 +241,6 @@ func GenesIngest(c echo.Context) error {
 
 						//clean chromosome
 						chromosomeClean := strings.ReplaceAll(rowSplits[_chromHeaderKey], "chr", "")
-
-						if !chromosome.IsValidHumanChromosome(chromosomeClean) {
-							defer _gwg.Done()
-							return
-						}
 
 						// clean start/end
 						chromStartClean := strings.ReplaceAll(strings.ReplaceAll(rowSplits[_startKey], ",", ""), " ", "")
