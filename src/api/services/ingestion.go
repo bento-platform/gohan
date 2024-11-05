@@ -472,7 +472,7 @@ func (i *IngestionService) ProcessVcf(
 			var rowWg sync.WaitGroup
 			rowWg.Add(len(rowComponents))
 
-			for rowIndex, rowComponent := range rowComponents {
+			for colIdx, colVal := range rowComponents {
 				go func(h int, rc string, rwg *sync.WaitGroup) {
 					defer rwg.Done()
 					key := strings.ToLower(strings.TrimSpace(strings.Replace(headers[h], "#", "", -1)))
@@ -603,7 +603,7 @@ func (i *IngestionService) ProcessVcf(
 						})
 						tmpSamplesMutex.Unlock()
 					}
-				}(rowIndex, rowComponent, &rowWg)
+				}(colIdx, colVal, &rowWg)
 			}
 
 			rowWg.Wait()
