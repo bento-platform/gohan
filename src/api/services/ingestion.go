@@ -415,12 +415,12 @@ func (i *IngestionService) ProcessVcf(
 				// Split the string by tabs
 				headers = strings.Split(line, "\t")
 
-				for id, header := range headers {
+				for idx, header := range headers {
 					// determine if header is a default VCF header.
 					// if it is not, assume it's a sampleId and keep
 					// track of it with an id
 					if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), constants.VcfHeaders) {
-						headerSampleIds[len(constants.VcfHeaders)-id] = header
+						headerSampleIds[len(constants.VcfHeaders)-idx] = header
 					}
 				}
 
