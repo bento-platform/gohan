@@ -483,7 +483,7 @@ func (i *IngestionService) ProcessVcf(
 
 						// filter field type by column name
 						if key == "chrom" {
-							// Strip out all non-numeric characters
+							// Strip out chr prefix
 							value = strings.ReplaceAll(value, "chr", "")
 
 							if !preMadeContigIndices {
