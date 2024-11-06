@@ -142,7 +142,7 @@ func (i *IngestionService) Init() {
 						esutil.BulkIndexerItem{
 							// Action field configures the operation to perform (index, create, delete, update)
 							Action: "index",
-							Index:  fmt.Sprintf("variants-%s", strings.ToLower(queuedVariant.Chrom)),
+							Index:  variantIndexName(queuedVariant.Chrom),
 
 							// Body is an `io.Reader` with the payload
 							Body: bytes.NewReader(variantData),
@@ -369,6 +369,10 @@ func (i *IngestionService) ProcessVcf(
 	defer gr.Close()
 
 	scanner := bufio.NewScanner(gr)
+
+	contigs := make(map[string]struct{}) // To collect contigs as defined in VCF header
+	var contigMutex = sync.RWMutex{}
+
 	var discoveredHeaders bool = false
 	var headers []string
 	headerSampleIds := make(map[int]string)
@@ -382,28 +386,25 @@ func (i *IngestionService) ProcessVcf(
 	lineProcessingQueue := make(chan bool, lineProcessingConcurrencyLevel)
 
 	for scanner.Scan() {
-		//fmt.Println(scanner.Text())
-
 		// Gather Header row by seeking the CHROM string
+		// Collect contigs (chromosomes) to create indices
 		line := scanner.Text()
 		if !discoveredHeaders {
 			if line[0:6] == "#CHROM" {
 				// Split the string by tabs
 				headers = strings.Split(line, "\t")
 
-				for id, header := range headers {
+				for idx, header := range headers {
 					// determine if header is a default VCF header.
 					// if it is not, assume it's a sampleId and keep
 					// track of it with an id
 					if !utils.StringInSlice(strings.ToLower(strings.TrimSpace(strings.ReplaceAll(header, "#", ""))), constants.VcfHeaders) {
-						headerSampleIds[len(constants.VcfHeaders)-id] = header
+						headerSampleIds[len(constants.VcfHeaders)-idx] = header
 					}
 				}
 
 				discoveredHeaders = true
-
-				fmt.Println("Found the headers: ", headers)
-				continue
+				fmt.Printf("Found %d headers: %v\n", len(headers), headers)
 			}
 			continue
 		}
@@ -435,10 +436,10 @@ func (i *IngestionService) ProcessVcf(
 			var rowWg sync.WaitGroup
 			rowWg.Add(len(rowComponents))
 
-			for rowIndex, rowComponent := range rowComponents {
-				go func(i int, rc string, rwg *sync.WaitGroup) {
+			for colIdx, colVal := range rowComponents {
+				go func(h int, rc string, rwg *sync.WaitGroup) {
 					defer rwg.Done()
-					key := strings.ToLower(strings.TrimSpace(strings.Replace(headers[i], "#", "", -1)))
+					key := strings.ToLower(strings.TrimSpace(strings.Replace(headers[h], "#", "", -1)))
 					value := strings.TrimSpace(rc)
 
 					// if not a vcf header, assume it's a sampleId header
@@ -446,8 +447,18 @@ func (i *IngestionService) ProcessVcf(
 
 						// filter field type by column name
 						if key == "chrom" {
-							// Strip out all non-numeric characters
+							// Strip out chr prefix
 							value = strings.ReplaceAll(value, "chr", "")
+
+							// We're making contig indices on the fly - check if we haven't created the contig yet.
+							// If we haven't, create the index and add it to the contigs "set" (map).
+							contigMutex.Lock()
+							_, indexExists := contigs[value]
+							if !indexExists {
+								i.MakeVariantIndex(value)
+								contigs[value] = struct{}{} // add contig to the "set" of created configs
+							}
+							contigMutex.Unlock()
 
 							// ems if value is valid chromosome
 							if chromosome.IsValidHumanChromosome(value) {
@@ -554,7 +565,7 @@ func (i *IngestionService) ProcessVcf(
 						})
 						tmpSamplesMutex.Unlock()
 					}
-				}(rowIndex, rowComponent, &rowWg)
+				}(colIdx, colVal, &rowWg)
 			}
 
 			rowWg.Wait()
@@ -864,4 +875,30 @@ func (i *IngestionService) FilenameAlreadyRunning(filename string) bool {
 		}
 	}
 	return false
+}
+
+func (i *IngestionService) MakeVariantIndex(c string) {
+	var client = i.ElasticsearchClient
+	var contigIndex = variantIndexName(c)
+
+	res, err := client.Indices.Exists([]string{contigIndex})
+	if res.StatusCode == 404 {
+		mappings, _ := json.Marshal(indexes.VARIANT_INDEX_MAPPING)
+		res, _ := client.Indices.Create(
+			contigIndex,
+			client.Indices.Create.WithBody(strings.NewReader(fmt.Sprintf(`{"mappings": %s}`, mappings))),
+		)
+
+		fmt.Printf("Creating contig index %s - got response: %s\n", c, res.String())
+	} else if err != nil {
+		// The actual check didn't work properly (e.g., couldn't contact ES).
+		fmt.Printf("Contig index %s existence-check got error: %s\n", c, err)
+	} else {
+		// The check worked and the index already exists, so we shouldn't try to recreate it.
+		fmt.Printf("Contig index %s already exists; skipping creation\n", c)
+	}
+}
+
+func variantIndexName(contig string) string {
+	return fmt.Sprintf("variants-%s", strings.ToLower(contig))
 }
