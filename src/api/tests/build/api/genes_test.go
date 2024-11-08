@@ -8,7 +8,6 @@ import (
 	"gohan/api/models"
 	ingest "gohan/api/models/ingest"
 
-	"gohan/api/models/constants/chromosome"
 	"gohan/api/models/dtos"
 	"gohan/api/models/indexes"
 
@@ -130,7 +129,6 @@ func TestGenesIngestion(t *testing.T) {
 				// ensure the gene is legit
 				assert.NotNil(t, gene.Name)
 				assert.NotNil(t, gene.AssemblyId)
-				assert.True(t, chromosome.IsValidHumanChromosome(gene.Chrom))
 				assert.Greater(t, gene.End, gene.Start)
 			})
 		})

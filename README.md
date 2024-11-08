@@ -10,7 +10,7 @@
 ## Prerequisites
 - Golang >= 1.19
   - installation: https://golang.org/doc/install
-  - other references 
+  - other references
     - https://linguinecode.com/post/install-golang-linux-terminal
 - Elasticsearch
   - getting started: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started.html
@@ -39,55 +39,56 @@
 ## TL;DR
 
 ### Typical use-case walkthrough
+
 ```
-  # environment
-  cp ./etc/example.env .env # modify to your needs
+# environment
+cp ./etc/example.env .env # modify to your needs
 
-  # kickstart dockerized gohan environment
-  make init
+# kickstart dockerized gohan environment
+make init
 
-  # (optional): if you plan on modifying the api codebase before deploying
-  make init-dev
+# (optional): if you plan on modifying the api codebase before deploying
+make init-dev
 
-  # gateway & certificates
-  mkdir -p gateway/certs/dev
+# gateway & certificates
+mkdir -p gateway/certs/dev
 
-  openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
-  openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/es_gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/es_gohan_fullchain1.crt
+openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/gohan_fullchain1.crt
+openssl req -newkey rsa:2048 -nodes -keyout gateway/certs/dev/es_gohan_privkey1.key -x509 -days 365 -out gateway/certs/dev/es_gohan_fullchain1.crt
 
 
-  # build services
-  make build-gateway 
-  make build-api 
+# build services
+make build-gateway
+make build-api
 
-  # run services
-  make run-gateway
-  make run-elasticsearch
-  make run-drs
-  make run-api
-  
-  
-  # initiate genes catlogue:
-  curl -k https://gohan.local/genes/ingestion/run
-  
-  # monitor progress:
-  curl -k https://gohan.local/genes/ingestion/requests
-  curl -k https://gohan.local/genes/ingestion/stats
+# run services
+make run-gateway
+make run-elasticsearch
+make run-drs
+make run-api
 
-  # view catalogue
-  curl -k https://gohan.local/genes/overview
 
-  # move vcf.gz files to `$GOHAN_API_VCF_PATH`
+# initiate genes catlogue:
+curl -k https://gohan.local/genes/ingestion/run
 
-  # ingest vcf.gz
-  curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutReferences=true\&dataset=00000000-0000-0000-0000-000000000000
-  
-  # monitor progress:
-  curl -k https://gohan.local/variants/ingestion/requests
-  curl -k https://gohan.local/variants/ingestion/stats
+# monitor progress:
+curl -k https://gohan.local/genes/ingestion/requests
+curl -k https://gohan.local/genes/ingestion/stats
 
-  # view variants
-  curl -k https://gohan.local/variants/overview
+# view catalogue
+curl -k https://gohan.local/genes/overview
+
+# move vcf.gz files to `$GOHAN_API_VCF_PATH`
+
+# ingest vcf.gz
+curl -k https://gohan.local/variants/ingestion/run\?fileNames=<filename>\&assemblyId=GRCh37\&filterOutReferences=true\&dataset=00000000-0000-0000-0000-000000000000
+
+# monitor progress:
+curl -k https://gohan.local/variants/ingestion/requests
+curl -k https://gohan.local/variants/ingestion/stats
+
+# view variants
+curl -k https://gohan.local/variants/overview
 ```
 
 ## Getting started
@@ -105,7 +106,7 @@ cp ./etc/example.env .env
 <br >
 
 ### **Initialization**
-Run 
+Run
 ```
 make init
 ```
@@ -115,11 +116,14 @@ make init
 
 ### **Elasticsearch & Kibana :**
 
-Run 
+Run
+
 ```
-make run-elasticsearch 
+make run-elasticsearch
 ```
+
 and *(optionally)*
+
 ```
 make run-kibana
 ```
@@ -130,7 +134,7 @@ make run-kibana
 
 ### **DRS :**
 
-Run 
+Run
 ```
 make run-drs
 ```
@@ -140,7 +144,7 @@ make run-drs
 
 ### **Data Access Authorization with OPA (more on this to come..) :**
 
-Run 
+Run
 ```
 make build-authz
 make run-authz
@@ -158,6 +162,7 @@ make run-authz
 
 ### **Gateway**
 To create and use development certs from the project root, run
+
 ```
 mkdir -p gateway/certs/dev
 
@@ -179,7 +184,7 @@ make run-gateway
 
 
 ### **API**
-<b>Containerized : </b>
+**Containerized:**
 
 &nbsp;To simply run a working instance of the api "out of the box", build the `docker image` and spawn the `container` with an fresh binary build by running
 
@@ -193,21 +198,21 @@ make run-api
 
 <br />
 
-<b>Local Development :</b>
+**Local Development:**
 
 &nbsp;This can be done multiple ways.
 
-  1. `Terminal` : From the project root, run 
-```
-# load variables from local file
-set -a
-. ./.env
-set +a
+  1. `Terminal` : From the project root, run
+  ```
+  # load variables from local file
+  set -a
+  . ./.env
+  set +a
 
-cd src/api
+  cd src/api
 
-go run .
-```
+  go run .
+  ```
 
   2. `IDE (preferably VSCode)`
 
@@ -215,11 +220,11 @@ go run .
 
     - configure the `.vscode/launch.json` to inject the above mentioned variables as recommended by https://stackoverflow.com/questions/29971572/how-do-i-add-environment-variables-to-launch-json-in-vscode
 
-    - click 'Run & Debug' > "Play" 
+    - click 'Run & Debug' > "Play"
 
 <b>Local Release</b>
 
-&nbsp;To build / test from source; 
+&nbsp;To build / test from source;
 
 ```
 make build-api-local-binaries
@@ -243,7 +248,7 @@ cd bin/
 
 
 
-<b>Endpoints :</b>
+**Endpoints:**
 
 **`/variants`**
 
@@ -255,50 +260,49 @@ Request
 <br/>
 
 Response
->```json
-> {
->     "chromosomes": {
->         "<CHROMOSOME>": `number`,
->         ...
->     },
->     "sampleIDs": {
->         "<SAMPLEID>": `number`,
->         ...
->     },
->     "variantIDs": {
->         "<VARIANTID>": `number`,
->         ...
->     }
-> }
->
->```
+```js
+{
+    "chromosomes": {
+        "<CHROMOSOME>": `number`,
+        // ...
+    },
+    "sampleIDs": {
+        "<SAMPLEID>": `number`,
+        // ...
+    },
+    "variantIDs": {
+        "<VARIANTID>": `number`,
+        // ...
+    }
+}
+```
 <br />
 
-<b>Example :</b>
->```json
-> {
->     "chromosomes": {
->         "21": 90548
->     },
->     "sampleIDs": {
->         "hg00096": 33664,
->         "hg00099": 31227,
->         "hg00111": 25657
->     },
->     "variantIDs": {
->         ".": 90548
->     }
-> }
->
->```
+**Example:**
+```json
+ {
+     "chromosomes": {
+         "21": 90548
+     },
+     "sampleIDs": {
+         "hg00096": 33664,
+         "hg00099": 31227,
+         "hg00111": 25657
+     },
+     "variantIDs": {
+         ".": 90548
+     }
+ }
+
+```
 
 <br />
 <br />
 
 Requests
 > &nbsp;&nbsp;**GET** `/variants/get/by/variantId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, MT )`
+> &nbsp;&nbsp;&nbsp;params:
+>   - chromosome : **string**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele ( "A" | "C" | "G" | "T" | "N" or some combination thereof )`
@@ -312,8 +316,8 @@ Requests
 >   - getSampleIdsOnly : **bool**  *`(optional) -  default: false  `*
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/variantId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, MT )`
+> &nbsp;&nbsp;&nbsp;params:
+>   - chromosome : **string**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -323,8 +327,8 @@ Requests
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 
 > &nbsp;&nbsp;**GET** `/variants/get/by/sampleId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, MT )`
+> &nbsp;&nbsp;&nbsp;params:
+>   - chromosome : **string**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -337,8 +341,8 @@ Requests
 >   - genotype : **string** `( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`
 >
 > &nbsp;&nbsp;**GET** `/variants/count/by/sampleId`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
->   - chromosome : **string** `( 1-23, X, Y, MT )`
+> &nbsp;&nbsp;&nbsp;params:
+>   - chromosome : **string**
 >   - lowerBound : **number**
 >   - upperBound : **number**
 >   - reference : **string** `an allele`
@@ -352,46 +356,46 @@ Requests
 
 Generalized Response Body Structure
 
->```json  
->{
->     "status":  `number` (200 - 500),
->     "message": `string` ("Success" | "Error"),
->     "results": [
->         {
->             "query":  `string`,       // reflective of the type of id queried for, i.e 'variantId:abc123', or 'sampleId:HG0001
->             "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),    // reflective of the assembly id queried for
->             "count":  `number`,   // this field is only present when performing a COUNT query
->             "start":  `number`,   // reflective of the provided lowerBound parameter, 0 if none
->             "end":  `number`,     // reflective of the provided upperBound parameter, 0 if none
->             "chromosome":  `string`,       // reflective of the chromosome queried for
->             "calls": [            // this field is only present when performing a GET query
->                 {
->                    "id": `string`, // variantId
->                    "chrom":  `string`,
->                    "pos": `number`,
->                    "ref": `[]string`,  // list of alleles
->                    "alt": `[]string`,  // list of alleles
->                    "alleles": `[]string`,  // ordereed list of alleles
->                    "info": [
->                        {
->                            "id": `string`,
->                            "value": `string`,
->                        },
->                        ...
->                    ],
->                    "format":`string`,
->                    "qual": `number`,
->                    "filter": `string`,
->                    "sampleId": `string`,
->                    "genotype_type": `string ( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`,
->                    "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),
->                 },
->                 ...
->             ]
->         },
->     ]
-> }
-> ```
+```js
+{
+    "status":  `number` (200 - 500),
+    "message": `string` ("Success" | "Error"),
+    "results": [
+        {
+            "query":  `string`,       // reflective of the type of id queried for, i.e 'variantId:abc123', or 'sampleId:HG0001
+            "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),    // reflective of the assembly id queried for
+            "count":  `number`,   // this field is only present when performing a COUNT query
+            "start":  `number`,   // reflective of the provided lowerBound parameter, 0 if none
+            "end":  `number`,     // reflective of the provided upperBound parameter, 0 if none
+            "chromosome":  `string`,       // reflective of the chromosome queried for - no `chr` prefix
+            "calls": [            // this field is only present when performing a GET query
+                {
+                   "id": `string`, // variantId
+                   "chrom":  `string`,
+                   "pos": `number`,
+                   "ref": `[]string`,  // list of alleles
+                   "alt": `[]string`,  // list of alleles
+                   "alleles": `[]string`,  // ordereed list of alleles
+                   "info": [
+                       {
+                           "id": `string`,
+                           "value": `string`,
+                       },
+                       ...
+                   ],
+                   "format":`string`,
+                   "qual": `number`,
+                   "filter": `string`,
+                   "sampleId": `string`,
+                   "genotype_type": `string ( "HETEROZYGOUS" | "HOMOZYGOUS_REFERENCE" | "HOMOZYGOUS_ALTERNATE" )`,
+                   "assemblyId": `string` ("GRCh38" | "GRCh37" | "NCBI36" | "Other"),
+                },
+                ...
+            ]
+        },
+    ]
+}
+```
 
 <br />
 
@@ -404,7 +408,7 @@ Generalized Response Body Structure
 <br />
 
 - http://localhost:5000/variants/get/by/sampleId?ids=HG00097&size=1000&sortByPosition=asc
-  
+
 <br />
 
 - http://localhost:5000/variants/count/by/variantId?chromosome=8
@@ -424,20 +428,20 @@ Generalized Response Body Structure
 
 Request
 > &nbsp;&nbsp;**GET** `/variants/ingestion/run`<br/>
-> &nbsp;&nbsp;&nbsp;params: 
+> &nbsp;&nbsp;&nbsp;params:
 >   - filename : **string** `(required)`
 
 <br/>
 
 Response
->```json  
-> {
->     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
->     "id": `string`,
->     "filename": `string`,
->     "message": `string`,
-> }
-> ```
+```js
+ {
+     "state":  `number` // ("Queuing" | "Running" | "Done" | "Error"),
+     "id": `string`,
+     "filename": `string`,
+     "message": `string`,
+ }
+ ```
 
 <br />
 <br />
@@ -449,19 +453,19 @@ Request
 <br/>
 
 Response
->```json  
-> [
->   {
->     "state":  `number` ("Queuing" | "Running" | "Done" | "Error"),
->     "id": `string`,
->     "filename": `string`,
->     "message": `string`,
->     "createdAt": `timestamp string`,
->     "updatedAt": `timestamp string`
->   },
->   ...
-> ]
-> ```
+```js
+[
+  {
+    "state":  `number` // ("Queuing" | "Running" | "Done" | "Error"),
+    "id": `string`,
+    "filename": `string`,
+    "message": `string`,
+    "createdAt": `timestamp string`,
+    "updatedAt": `timestamp string`
+  },
+  ...
+]
+```
 
 
 <br />
@@ -471,11 +475,11 @@ Response
 
 ## Deployments :
 
-All in all, run 
+All in all, run
 ```
-make run-elasticsearch 
+make run-elasticsearch
 make run-drs
-make build-gateway && make run-gateway 
+make build-gateway && make run-gateway
 make build-api && make run-api
 
 # and optionally
@@ -490,7 +494,7 @@ For other handy tools, see the Makefile. Among those already mentionned here, yo
 
 ## Tests :
 
-Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run 
+Once `elasticsearch`, `drs`, the `api`, and the `gateway` are up, run
 ```
 make test-api-dev
 ```
