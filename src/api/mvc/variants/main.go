@@ -105,6 +105,7 @@ func VariantsIngest(c echo.Context) error {
 	cfg := gc.Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
+	dropBoxUrl := cfg.DropBox.Url
 
 	// query parameters
 	assemblyId := gc.AssemblyId
@@ -155,9 +156,10 @@ func VariantsIngest(c echo.Context) error {
 
 	c.Logger().Debug(authHeader, datasetId)
 
+	// TODO: remove? doesnt seem to be used
 	dirName := c.QueryParam("directory")
 	if dirName != "" {
-		if strings.HasPrefix(dirName, cfg.Drs.BridgeDirectory) {
+		if strings.HasPrefix(dirName, cfg.Drs.BridgeDirectory) { // TODO: use network instead
 			replaced := strings.Replace(dirName, cfg.Drs.BridgeDirectory, "", 1)
 
 			replacedFullPath, replacedDirName := path.Split(replaced)

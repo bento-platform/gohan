@@ -6,15 +6,18 @@ type Config struct {
 	ServiceContact string `yaml:"serviceContact" envconfig:"GOHAN_SERVICE_CONTACT"`
 
 	Api struct {
-		Url                            string `yaml:"url" envconfig:"GOHAN_PUBLIC_URL"`
-		Port                           string `yaml:"port" envconfig:"GOHAN_API_INTERNAL_PORT"`
-		VcfPath                        string `yaml:"vcfPath" envconfig:"GOHAN_API_VCF_PATH"`
+		Url  string `yaml:"url" envconfig:"GOHAN_PUBLIC_URL"`
+		Port string `yaml:"port" envconfig:"GOHAN_API_INTERNAL_PORT"`
+		// TODO: rm and use Drop-Box calls
+		VcfPath string `yaml:"vcfPath" envconfig:"GOHAN_API_VCF_PATH"`
+		// TODO: rm and use Drop-Box calls
 		LocalVcfPath                   string `yaml:"localVcfPath" envconfig:"GOHAN_API_VCF_PATH"`
 		BulkIndexingCap                int    `yaml:"BulkIndexingCap" envconfig:"GOHAN_API_BULK_INDEXING_CAP"`
 		FileProcessingConcurrencyLevel int    `yaml:"fileProcessingConcurrencyLevel" envconfig:"GOHAN_API_FILE_PROC_CONC_LVL"`
 		LineProcessingConcurrencyLevel int    `yaml:"lineProcessingConcurrencyLevel" envconfig:"GOHAN_API_LINE_PROC_CONC_LVL"`
 		GtfPath                        string `yaml:"gtfPath" envconfig:"GOHAN_API_GTF_PATH"`
-		BridgeDirectory                string `yaml:"bridgeDirectory" envconfig:"GOHAN_API_API_DRS_BRIDGE_DIR"`
+		// TODO: rm and use DRS calls
+		BridgeDirectory string `yaml:"bridgeDirectory" envconfig:"GOHAN_API_API_DRS_BRIDGE_DIR"`
 	} `yaml:"api"`
 
 	Elasticsearch struct {
@@ -27,8 +30,12 @@ type Config struct {
 		Url             string `yaml:"url" envconfig:"GOHAN_DRS_URL"`
 		Username        string `yaml:"username" envconfig:"GOHAN_DRS_BASIC_AUTH_USERNAME"`
 		Password        string `yaml:"password" envconfig:"GOHAN_DRS_BASIC_AUTH_PASSWORD"`
-		BridgeDirectory string `yaml:"bridgeDirectory" envconfig:"GOHAN_DRS_API_DRS_BRIDGE_DIR"`
+		BridgeDirectory string `yaml:"bridgeDirectory" envconfig:"GOHAN_DRS_API_DRS_BRIDGE_DIR"` // TODO: rm
 	} `yaml:"drs"`
+
+	DropBox struct {
+		Url string `yaml:"url" envconfig:"GOHAN_DROP_BOX_URL"`
+	} `yaml:"dropbox"`
 
 	AuthX struct {
 		IsAuthorizationEnabled  bool   `yaml:"isAuthorizationEnabled" envconfig:"GOHAN_AUTHZ_ENABLED"`

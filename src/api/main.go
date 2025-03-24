@@ -49,6 +49,7 @@ func main() {
 		"\tElasticsearch Url : %s \n"+
 		"\tElasticsearch Username : %s\n\n"+
 
+		// TODO: rm
 		"\tAPI's API-DRS Bridge Directory : %s\n"+
 		"\tDRS's API-DRS Bridge Directory : %s\n"+
 		"\tDRS Url : %s\n"+

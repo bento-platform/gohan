@@ -15,6 +15,7 @@ import (
 	"gohan/api/models/ingest"
 	"gohan/api/models/ingest/structs"
 	"gohan/api/utils"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -239,12 +240,38 @@ func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string
 	return dir, file, nil
 }
 
+func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileName string, dropBoxUrl string, authHeader string) string {
+	// Tmp file
+	tmpPath := cfg.Api.VcfPath + fileName
+	out, err := os.Create(tmpPath)
+	if err != nil {
+		fmt.Printf("ERROR: %s", err)
+	}
+	defer out.Close()
+
+	// Download
+	dropBoxFileUrl := cfg.DropBox.Url + "/objects" + fileName
+	resp, err := http.Get(dropBoxFileUrl)
+	if err != nil {
+		fmt.Printf("ERROR: %s", err)
+	}
+	defer resp.Body.Close()
+
+	// Copy content to tmp file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		fmt.Printf("ERROR: %s", err)
+	}
+	return tmpPath
+}
+
 func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirectory string, gzippedFileName string, drsUrl string, project_id, dataset_id string, authHeader string) string {
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
+	// TODO: DRS via network
 	path := fmt.Sprintf("%s/%s", drsBridgeDirectory, gzippedFileName)
 
 	var (
