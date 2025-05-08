@@ -409,8 +409,7 @@ func (i *IngestionService) ProcessVcf(
 	assemblyId string, filterOutReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
-	// ---   reopen gzipped file after having been copied to the temporary api-drs
-	//       bridge directory, as the stream depletes and needs a refresh
+	// ---   reopen gzipped file after having been copied to the temporary location
 	f, err := os.Open(gzippedFilePath)
 	if err != nil {
 		fmt.Println("Failed to open file - ", err)

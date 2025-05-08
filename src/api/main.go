@@ -49,9 +49,6 @@ func main() {
 		"\tElasticsearch Url : %s \n"+
 		"\tElasticsearch Username : %s\n\n"+
 
-		// TODO: rm
-		"\tAPI's API-DRS Bridge Directory : %s\n"+
-		"\tDRS's API-DRS Bridge Directory : %s\n"+
 		"\tDRS Url : %s\n"+
 		"\tDRS Username : %s\n\n"+
 
@@ -71,7 +68,6 @@ func main() {
 		cfg.Api.FileProcessingConcurrencyLevel,
 		cfg.Api.LineProcessingConcurrencyLevel,
 		cfg.Elasticsearch.Url, cfg.Elasticsearch.Username,
-		cfg.Api.BridgeDirectory, cfg.Drs.BridgeDirectory,
 		cfg.Drs.Url, cfg.Drs.Username,
 		cfg.AuthX.IsAuthorizationEnabled,
 		cfg.AuthX.OidcPublicJwksUrl,

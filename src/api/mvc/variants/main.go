@@ -5,13 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 
-	"regexp"
 	"time"
 
 	"gohan/api/contexts"
@@ -111,39 +108,6 @@ func VariantsIngest(c echo.Context) error {
 	// retrieve query parameters (comman separated)
 	var fileNames []string
 
-	// helper function
-	accumulatorWalkFunc := func(bucket *[]string) func(absoluteFileName string, info os.FileInfo, err error) error {
-		return func(absoluteFileName string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if absoluteFileName == vcfPath {
-				// skip
-				return nil
-			}
-
-			// keep track of relative path
-			relativePathFileName := strings.ReplaceAll(absoluteFileName, vcfPath, "")
-
-			// verify if there is a relative path
-			directoryPath, fileName := path.Split(relativePathFileName)
-			if directoryPath == "/" {
-				relativePathFileName = fileName // effectively strips the leading '/' away
-			}
-
-			// Filter only .vcf.gz files
-			if matched, _ := regexp.MatchString(".vcf.gz", relativePathFileName); matched {
-				*bucket = append(*bucket, relativePathFileName)
-			} else {
-				fmt.Printf("Skipping %s\n", relativePathFileName)
-			}
-
-			return nil
-		}
-	}
-	//
-
 	// Authz related
 	authHeader := c.Request().Header.Get("Authorization")
 	datasetId := c.QueryParam("dataset")
@@ -151,27 +115,11 @@ func VariantsIngest(c echo.Context) error {
 
 	c.Logger().Debug(authHeader, datasetId)
 
-	// TODO: remove? doesnt seem to be used
 	dirName := c.QueryParam("directory")
 	if dirName != "" {
-		if strings.HasPrefix(dirName, cfg.Drs.BridgeDirectory) { // TODO: use network instead
-			replaced := strings.Replace(dirName, cfg.Drs.BridgeDirectory, "", 1)
-
-			replacedFullPath, replacedDirName := path.Split(replaced)
-			// strip the leading '/' away
-			if replacedFullPath == "/" {
-				dirName = replacedDirName
-			} else {
-				dirName = replaced
-			}
-		}
-
-		err := filepath.Walk(fmt.Sprintf("%s/%s", vcfPath, dirName), accumulatorWalkFunc(&fileNames))
-		if err != nil {
-			log.Println(err)
-		}
+		// TODO: support this? not used at the moment
+		return c.JSON(http.StatusNotImplemented, "{\"error\" : \"Directory ingestion is not yet supported\"}")
 	} else {
-		// Gohan no longer has a DRS bridge volume, so "fileNames" are drop-box URLs
 		fileNames = strings.Split(c.QueryParam("fileNames"), ",")
 		for i, fileName := range fileNames {
 			if fileName == "" {
@@ -281,7 +229,7 @@ func VariantsIngest(c echo.Context) error {
 					return
 				}
 
-				tabixFileNameWithRelativePath := fmt.Sprintf("%s/%s", cfg.Api.VcfPath, tabixFileName)
+				tabixFileNameWithRelativePath := fmt.Sprintf("%s/%s", vcfPath, tabixFileName)
 
 				// ---   push compressed to DRS
 				fmt.Printf("Uploading %s to DRS !\n", gzippedFileName)
