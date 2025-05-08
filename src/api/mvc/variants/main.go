@@ -2,7 +2,6 @@ package variants
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -25,7 +24,6 @@ import (
 	"gohan/api/mvc"
 	esRepo "gohan/api/repositories/elasticsearch"
 	variantService "gohan/api/services/variants"
-	"gohan/api/utils"
 
 	"gohan/api/models/constants/zygosity"
 
@@ -105,7 +103,6 @@ func VariantsIngest(c echo.Context) error {
 	cfg := gc.Config
 	vcfPath := cfg.Api.VcfPath
 	drsUrl := cfg.Drs.Url
-	dropBoxUrl := cfg.DropBox.Url
 
 	// query parameters
 	assemblyId := gc.AssemblyId
@@ -113,8 +110,6 @@ func VariantsIngest(c echo.Context) error {
 
 	// retrieve query parameters (comman separated)
 	var fileNames []string
-	// get vcf files
-	var vcfGzfiles []string
 
 	// helper function
 	accumulatorWalkFunc := func(bucket *[]string) func(absoluteFileName string, info os.FileInfo, err error) error {
@@ -176,43 +171,18 @@ func VariantsIngest(c echo.Context) error {
 			log.Println(err)
 		}
 	} else {
+		// Gohan no longer has a DRS bridge volume, so "fileNames" are drop-box URLs
 		fileNames = strings.Split(c.QueryParam("fileNames"), ",")
 		for i, fileName := range fileNames {
 			if fileName == "" {
 				// TODO: create a standard response object
 				return c.JSON(http.StatusBadRequest, "{\"error\" : \"Missing 'fileNames' query parameter!\"}")
 			} else {
-				// remove DRS bridge directory base path from the requested filenames (if present)
-				if strings.HasPrefix(fileName, cfg.Drs.BridgeDirectory) {
-					replaced := strings.Replace(fileName, cfg.Drs.BridgeDirectory, "", 1)
-
-					replacedDirectory, replacedFileName := path.Split(replaced)
-					// strip the leading '/' away
-					if replacedDirectory == "/" {
-						fileNames[i] = replacedFileName
-					} else {
-						fileNames[i] = replaced
-					}
-				}
+				tmpPath := gc.IngestionService.DownloadFromDropBox(cfg, fileName, authHeader)
+				fileNames[i] = tmpPath
+				log.Println("Temporary VCF " + fileName + "downloaded at: " + tmpPath)
 			}
 		}
-
-		// TODO: simply load files by filename provided
-		// rather than load all available files and looping over them
-		// -----
-		// Read all files and temporarily catalog all .vcf.gz files
-		err := filepath.Walk(vcfPath, accumulatorWalkFunc(&vcfGzfiles))
-		if err != nil {
-			log.Println(err)
-		}
-
-		// Locate fileName from request inside found files
-		for _, fileName := range fileNames {
-			if !utils.StringInSlice(fileName, vcfGzfiles) {
-				return c.JSON(http.StatusBadRequest, "{\"error\" : \"file "+fileName+" not found! Aborted -- \"}")
-			}
-		}
-		// -----
 	}
 
 	// -- optional filter
@@ -283,14 +253,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 open vcf.gz
 
 				fmt.Printf("Opening %s !\n", gzippedFileName)
-				var separator string
-				if strings.HasPrefix(gzippedFileName, "/") {
-					separator = ""
-				} else {
-					separator = "/"
-				}
-
-				gzippedFilePath := fmt.Sprintf("%s%s%s", vcfPath, separator, gzippedFileName)
+				gzippedFilePath := gzippedFileName
 				r, err := os.Open(gzippedFilePath)
 				if err != nil {
 					msg := fmt.Sprintf("error opening %s: %s\n", gzippedFileName, err)
@@ -303,48 +266,8 @@ func VariantsIngest(c echo.Context) error {
 					return
 				}
 
-				// ---   copy gzipped file over to a temp folder that is common to DRS and gohan
-				// 	     such that DRS can load the file into memory to process rather than receiving
-				//       the file from an upload, thus utilizing it's already-exisiting /private/ingest endpoind
-				// -----
-				tmpDestinationFileName := fmt.Sprintf("%s%s%s", cfg.Api.BridgeDirectory, separator, gzippedFileName)
-
-				// prepare directory inside bridge directory
-				partialTmpDir, _ := path.Split(gzippedFileName)
-				fullTmpDir, _ := path.Split(tmpDestinationFileName)
-				if partialTmpDir != "" {
-					if _, err := os.Stat(fullTmpDir); os.IsNotExist(err) {
-						os.MkdirAll(fullTmpDir, 0700) // Create your file
-					}
-				}
-
-				destination, err := os.Create(tmpDestinationFileName)
-				if err != nil {
-					msg := fmt.Sprintf("error creating temporary bridge file for %s: %s\n", gzippedFileName, err)
-					fmt.Println(msg)
-
-					reqStat.State = ingest.Error
-					reqStat.Message = msg
-					ingestionService.IngestRequestChan <- reqStat
-
-					return
-				}
-				defer destination.Close()
-
-				_, err = io.Copy(destination, r)
-				if err != nil {
-					msg := fmt.Sprintf("error copying to temporary bridge file from %s to %s: %s\n", gzippedFileName, tmpDestinationFileName, err)
-					fmt.Println(msg)
-
-					reqStat.State = ingest.Error
-					reqStat.Message = msg
-					ingestionService.IngestRequestChan <- reqStat
-
-					return
-				}
-				// -----
-
 				// --- tabix generation
+				tmpDestinationFileName := gzippedFileName
 				fmt.Printf("Generating Tabix %s !\n", tmpDestinationFileName)
 				tabixFileDir, tabixFileName, tabixErr := ingestionService.GenerateTabix(tmpDestinationFileName)
 				if tabixErr != nil {
@@ -357,11 +280,12 @@ func VariantsIngest(c echo.Context) error {
 
 					return
 				}
-				tabixFileNameWithRelativePath := fmt.Sprintf("%s%s", partialTmpDir, tabixFileName)
+
+				tabixFileNameWithRelativePath := fmt.Sprintf("%s/%s", cfg.Api.VcfPath, tabixFileName)
 
 				// ---   push compressed to DRS
 				fmt.Printf("Uploading %s to DRS !\n", gzippedFileName)
-				drsFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, gzippedFileName, drsUrl, projectId, datasetId, authHeader)
+				drsFileId := ingestionService.UploadVcfGzToDrs(cfg, gzippedFileName, drsUrl, projectId, datasetId, authHeader)
 				if drsFileId == "" {
 					msg := "Something went wrong: DRS File Id is empty for " + gzippedFileName
 					fmt.Println(msg)
@@ -375,7 +299,7 @@ func VariantsIngest(c echo.Context) error {
 
 				// -- push tabix to DRS
 				fmt.Printf("Uploading %s to DRS !\n", tabixFileNameWithRelativePath)
-				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg, cfg.Drs.BridgeDirectory, tabixFileNameWithRelativePath, drsUrl, projectId, datasetId, authHeader)
+				drsTabixFileId := ingestionService.UploadVcfGzToDrs(cfg, tabixFileNameWithRelativePath, drsUrl, projectId, datasetId, authHeader)
 				if drsTabixFileId == "" {
 					msg := "Something went wrong: DRS Tabix File Id is empty for " + tabixFileNameWithRelativePath
 					fmt.Println(msg)
@@ -386,6 +310,13 @@ func VariantsIngest(c echo.Context) error {
 
 					return
 				}
+				defer r.Close()
+
+				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
+				beginProcessingTime := time.Now()
+				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
+				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, dataset, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				// ---   remove temporary files now that they have been ingested successfully into DRS
 				fmt.Printf("Removing %s !\n", tmpDestinationFileName)
@@ -411,14 +342,6 @@ func VariantsIngest(c echo.Context) error {
 
 					return
 				}
-
-				defer r.Close()
-
-				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
-				beginProcessingTime := time.Now()
-				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, dataset, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
-				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
 
 				reqStat.State = ingest.Done
 				ingestionService.IngestRequestChan <- reqStat

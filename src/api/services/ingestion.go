@@ -18,11 +18,12 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -240,9 +241,12 @@ func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string
 	return dir, file, nil
 }
 
-func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileName string, dropBoxUrl string, authHeader string) string {
+func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileUrl string, authHeader string) string {
 	// Tmp file
-	tmpPath := cfg.Api.VcfPath + fileName
+	valSSL := cfg.ValidateSSL
+	objPath := strings.Split(fileUrl, "/")
+	filePath := objPath[len(objPath)-1]
+	tmpPath := cfg.Api.VcfPath + "/" + filePath
 	out, err := os.Create(tmpPath)
 	if err != nil {
 		fmt.Printf("ERROR: %s", err)
@@ -250,8 +254,13 @@ func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileName stri
 	defer out.Close()
 
 	// Download
-	dropBoxFileUrl := cfg.DropBox.Url + "/objects" + fileName
-	resp, err := http.Get(dropBoxFileUrl)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: !valSSL},
+	}
+	client := &http.Client{Transport: tr}
+	req, _ := http.NewRequest("GET", fileUrl, nil)
+	req.Header.Set("Authorization", authHeader)
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("ERROR: %s", err)
 	}
@@ -265,14 +274,11 @@ func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileName stri
 	return tmpPath
 }
 
-func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirectory string, gzippedFileName string, drsUrl string, project_id, dataset_id string, authHeader string) string {
+func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, gzippedFileName string, drsUrl string, project_id, dataset_id string, authHeader string) string {
 
 	if cfg.Debug {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
-
-	// TODO: DRS via network
-	path := fmt.Sprintf("%s/%s", drsBridgeDirectory, gzippedFileName)
 
 	var (
 		drsId           string
@@ -283,17 +289,41 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, drsBridgeDirecto
 		waitTimeSeconds int = 3
 	)
 	for {
-		// prepare upload request to drs
-		form := url.Values{}
-		form.Add("path", path)
-		form.Add("dataset_id", dataset_id)
-		form.Add("project_id", project_id)
-		form.Add("data_type", "variant")
+		// OPEN FILE
+		file, err := os.Open(gzippedFileName)
+		if err != nil {
+			fmt.Println("Failed to open file - ", err)
+			return ""
+		}
+		defer file.Close()
 
-		r, _ := http.NewRequest("POST", drsUrl+"/ingest", strings.NewReader(form.Encode()))
+		// PREPARE FILE BODY
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		part, err := writer.CreateFormFile("file", filepath.Base(gzippedFileName))
+		if err != nil {
+			fmt.Println("Failed to create form file: ", err)
+			return ""
+		}
+		_, err = io.Copy(part, file)
+		if err != nil {
+			fmt.Println("Failed to copy file data into form: ", err)
+			return ""
+		}
+		writer.WriteField("dataset_id", dataset_id)
+		writer.WriteField("project_id", project_id)
+		writer.WriteField("data_type", "variant")
+		err = writer.Close()
+		if err != nil {
+			fmt.Println("Failed to create form body: ", err)
+			return ""
+		}
+
+		r, _ := http.NewRequest("POST", drsUrl+"/ingest", body)
 
 		r.Header.Add("Authorization", authHeader)
-		r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		// r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		r.Header.Set("Content-Type", writer.FormDataContentType())
 
 		client := &http.Client{}
 
