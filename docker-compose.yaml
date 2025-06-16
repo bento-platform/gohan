@@ -46,8 +46,7 @@ services:
     container_name: ${GOHAN_API_CONTAINER_NAME}
     environment:
       # Image
-      - BENTO_UID=${UID}
-      - BENTO_GID=${GID}
+      - BENTO_UID
 
       # API
       - GOHAN_DEBUG=${GOHAN_DEBUG}
@@ -99,8 +98,7 @@ services:
       - ${GOHAN_DOCKER_NET}
     environment:
       # Image
-      - BENTO_UID=${UID}
-      - BENTO_GID=${GID}
+      - BENTO_UID
 
       # ES
       - ELASTIC_USERNAME=${GOHAN_ES_USERNAME}
@@ -143,6 +141,7 @@ services:
     networks:
       - ${GOHAN_DOCKER_NET}
     environment: 
+      - BENTO_UID
       # Runtime
       - FLASK_DEBUG=False
       - FLASK_APP=app

@@ -241,10 +241,10 @@ func (i *IngestionService) GenerateTabix(gzippedFilePath string) (string, string
 	return dir, file, nil
 }
 
-func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileUrl string, authHeader string) string {
+func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileName string, authHeader string) string {
 	// Tmp file
 	valSSL := cfg.ValidateSSL
-	objPath := strings.Split(fileUrl, "/")
+	objPath := strings.Split(fileName, "/")
 	filePath := objPath[len(objPath)-1]
 	tmpPath := cfg.Api.VcfPath + "/" + filePath
 	out, err := os.Create(tmpPath)
@@ -254,11 +254,13 @@ func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileUrl strin
 	defer out.Close()
 
 	// Download
+
+	url = cfg.DropBox.Url + "/objects/" + fileName
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: !valSSL},
 	}
 	client := &http.Client{Transport: tr}
-	req, _ := http.NewRequest("GET", fileUrl, nil)
+	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", authHeader)
 	resp, err := client.Do(req)
 	if err != nil {

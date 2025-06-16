@@ -87,7 +87,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 		// - ingest
 		assemblyId := "GRCh38"
-		containerizedVcfFilePath := "/data/" + filepath.Base(newGzFile)
+		containerizedVcfFilePath := "/vcfs/" + filepath.Base(newGzFile)
 
 		queryString := fmt.Sprintf("assemblyId=%s&fileNames=%s&dataset=%s", assemblyId, containerizedVcfFilePath, dataset.String())
 		ingestUrl := fmt.Sprintf("%s/variants/ingestion/run?%s", cfg.Api.Url, queryString)

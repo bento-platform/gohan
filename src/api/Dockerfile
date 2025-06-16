@@ -2,7 +2,7 @@ ARG BUILDER_BASE_IMAGE
 ARG BASE_PROD_IMAGE
 
 # Stage 1 - builder
-FROM $BUILDER_BASE_IMAGE as builder
+FROM $BUILDER_BASE_IMAGE AS builder
 
 # Maintainer
 LABEL maintainer="Brennan Brouillette <brennan.brouillette@computationalgenomics.ca>"
