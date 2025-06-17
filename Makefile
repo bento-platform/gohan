@@ -76,6 +76,7 @@ init-data-dirs:
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_GTF_PATH}
 	chmod -R 777 ${GOHAN_API_GTF_PATH}
 	
+	chmod -R 777 ${GOHAN_DATA_ROOT}
 	@echo ".. done!"
 
 
