@@ -255,7 +255,7 @@ func (i *IngestionService) DownloadFromDropBox(cfg *models.Config, fileName stri
 
 	// Download
 
-	url = cfg.DropBox.Url + "/objects/" + fileName
+	url := cfg.DropBox.Url + "/objects" + fileName
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: !valSSL},
 	}

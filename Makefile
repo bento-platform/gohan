@@ -55,6 +55,11 @@ init-data-dirs:
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR}
 	chmod -R 777 ${GOHAN_DRS_DATA_DIR}
 
+	mkdir -p ${DROP_BOX_DATA_DIR}
+	mkdir -p ${DROP_BOX_DATA_DIR}/vcfs
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${DROP_BOX_DATA_DIR}
+	chmod -R 777 ${DROP_BOX_DATA_DIR}
+
 	mkdir -p ${GOHAN_ES_DATA_DIR}
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR}
 	chmod -R 777 ${GOHAN_ES_DATA_DIR}

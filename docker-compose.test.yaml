@@ -8,6 +8,8 @@ services:
   api:
     ports:
       - "${GOHAN_API_EXTERNAL_PORT}:${GOHAN_API_INTERNAL_PORT}"
+    environment:
+      - GOHAN_DROP_BOX_URL=http://${DROP_BOX_CONTAINER_NAME}:${DROP_BOX_INTERNAL_PORT}
     extends:
       file: docker-compose.yaml
       service: api
@@ -29,10 +31,9 @@ services:
   
   drop-box:
     image: ${DROP_BOX_IMAGE}:${DROP_BOX_VERSION}
-    container_name: "drop-box"
+    container_name: ${DROP_BOX_CONTAINER_NAME}
     volumes:
-      - ${GOHAN_API_VCF_PATH}:/data/vcfs
-      - ${GOHAN_API_GTF_PATH}:/data/gtfs
+      - ${DROP_BOX_DATA_DIR}:/data
     environment:
       - BENTO_UID
       - BENTO_DEBUG=False
@@ -40,7 +41,7 @@ services:
       - BENTO_AUTHZ_ENABLED=False
       - BENTO_AUTHZ_SERVICE_URL=""
       - CORS_ORIGINS="*"
-    ports:
-      - "${DROP_BOX_EXTERNAL_PORT}:${DROP_BOX_INTERNAL_PORT}"
+    expose:
+      - ${DROP_BOX_INTERNAL_PORT}
     networks:
       - ${GOHAN_DOCKER_NET}
