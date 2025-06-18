@@ -45,6 +45,11 @@ jobs:
       #     image-name: ghcr.io/bento-platform/gohan-api
       #     development-dockerfile: Dockerfile
       #     dockerfile: Dockerfile
+
+      - name: Init dirs and permissions for test data
+        run: |
+          make init-data-dirs
+          sudo chmod -R 777 ./data
       - name: API Test
         run: |
           make test-api
