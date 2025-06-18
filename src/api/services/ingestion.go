@@ -324,7 +324,6 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, gzippedFileName 
 		r, _ := http.NewRequest("POST", drsUrl+"/ingest", body)
 
 		r.Header.Add("Authorization", authHeader)
-		// r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		r.Header.Set("Content-Type", writer.FormDataContentType())
 
 		client := &http.Client{}
