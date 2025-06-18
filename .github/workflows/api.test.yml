@@ -24,6 +24,7 @@ jobs:
         id: envx
         run: |
           cp ./etc/example.env .env
+          echo "BENTO_UID=$(id -u)" >> .env
           source .env
 
       - name: Load environment variables from .env file
@@ -46,10 +47,6 @@ jobs:
       #     development-dockerfile: Dockerfile
       #     dockerfile: Dockerfile
 
-      - name: Init dirs and permissions for test data
-        run: |
-          sudo mkdir -p ./data/drop-box/vcfs
-          sudo chmod -R 777 ./data
       - name: API Test
         run: |
           make test-api

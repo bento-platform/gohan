@@ -76,7 +76,6 @@ init-data-dirs:
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_GTF_PATH}
 	chmod -R 777 ${GOHAN_API_GTF_PATH}
 	
-	chmod -R 777 ${GOHAN_DATA_ROOT}
 	@echo ".. done!"
 
 
@@ -194,7 +193,10 @@ test-api: init prepare-test-config
 	
 	@# restart any running containers and print
 	docker compose -f docker-compose.test.yaml down
-	docker compose -f docker-compose.test.yaml up -d
+	docker compose -f docker-compose.test.yaml up -d --wait
+
+	@# reset permissions after containers are started
+	chmod -R 777 ${GOHAN_DATA_ROOT}
 	
 	@# run build tests
 	@# - print api and drs logs in the
