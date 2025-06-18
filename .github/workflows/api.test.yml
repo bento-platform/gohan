@@ -48,7 +48,7 @@ jobs:
 
       - name: Init dirs and permissions for test data
         run: |
-          make init-data-dirs
+          sudo mkdir -p ./data/drop-box/vcfs
           sudo chmod -R 777 ./data
       - name: API Test
         run: |
