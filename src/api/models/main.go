@@ -7,9 +7,9 @@ type Config struct {
 	ValidateSSL    bool   `yaml:"validateSSL" envconfig:"BENTO_VALIDATE_SSL"`
 
 	Api struct {
-		Url  						   string `yaml:"url" envconfig:"GOHAN_PUBLIC_URL"`
-		Port 						   string `yaml:"port" envconfig:"GOHAN_API_INTERNAL_PORT"`
-		VcfPath 					   string `yaml:"vcfPath" envconfig:"GOHAN_API_VCF_PATH"`
+		Url                            string `yaml:"url" envconfig:"GOHAN_PUBLIC_URL"`
+		Port                           string `yaml:"port" envconfig:"GOHAN_API_INTERNAL_PORT"`
+		VcfPath                        string `yaml:"vcfPath" envconfig:"GOHAN_API_VCF_PATH"`
 		LocalVcfPath                   string `yaml:"localVcfPath" envconfig:"GOHAN_API_VCF_PATH"`
 		BulkIndexingCap                int    `yaml:"BulkIndexingCap" envconfig:"GOHAN_API_BULK_INDEXING_CAP"`
 		FileProcessingConcurrencyLevel int    `yaml:"fileProcessingConcurrencyLevel" envconfig:"GOHAN_API_FILE_PROC_CONC_LVL"`
