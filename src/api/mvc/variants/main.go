@@ -128,7 +128,7 @@ func VariantsIngest(c echo.Context) error {
 			} else {
 				tmpPath := gc.IngestionService.DownloadFromDropBox(cfg, fileName, authHeader)
 				fileNames[i] = tmpPath
-				log.Println("Temporary VCF " + fileName + "downloaded at: " + tmpPath)
+				fmt.Printf("Temporary VCF %s downloaded at: %s \n", fileName, tmpPath)
 			}
 		}
 	}
@@ -201,8 +201,7 @@ func VariantsIngest(c echo.Context) error {
 				// ---	 open vcf.gz
 
 				fmt.Printf("Opening %s !\n", gzippedFileName)
-				gzippedFilePath := gzippedFileName
-				r, err := os.Open(gzippedFilePath)
+				r, err := os.Open(gzippedFileName)
 				if err != nil {
 					msg := fmt.Sprintf("error opening %s: %s\n", gzippedFileName, err)
 					fmt.Println(msg)
@@ -215,9 +214,8 @@ func VariantsIngest(c echo.Context) error {
 				}
 
 				// --- tabix generation
-				tmpDestinationFileName := gzippedFileName
-				fmt.Printf("Generating Tabix %s !\n", tmpDestinationFileName)
-				tabixFileDir, tabixFileName, tabixErr := ingestionService.GenerateTabix(tmpDestinationFileName)
+				fmt.Printf("Generating Tabix %s !\n", gzippedFileName)
+				tabixFileDir, tabixFileName, tabixErr := ingestionService.GenerateTabix(gzippedFileName)
 				if tabixErr != nil {
 					msg := "Something went wrong: Tabix problem " + gzippedFileName
 					fmt.Println(msg)
@@ -262,14 +260,14 @@ func VariantsIngest(c echo.Context) error {
 
 				// ---	 load vcf into memory and ingest the vcf file into elasticsearch
 				beginProcessingTime := time.Now()
-				fmt.Printf("Begin processing %s at [%s]\n", gzippedFilePath, beginProcessingTime)
-				ingestionService.ProcessVcf(gzippedFilePath, drsFileId, dataset, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
-				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFilePath, time.Since(beginProcessingTime))
+				fmt.Printf("Begin processing %s at [%s]\n", gzippedFileName, beginProcessingTime)
+				ingestionService.ProcessVcf(gzippedFileName, drsFileId, dataset, assemblyId, filterOutReferences, cfg.Api.LineProcessingConcurrencyLevel)
+				fmt.Printf("Ingest duration for file at %s : %s\n", gzippedFileName, time.Since(beginProcessingTime))
 
 				// ---   remove temporary files now that they have been ingested successfully into DRS
-				fmt.Printf("Removing %s !\n", tmpDestinationFileName)
-				if tmpFileRemovalErr := os.Remove(tmpDestinationFileName); tmpFileRemovalErr != nil {
-					msg := fmt.Sprintf("Something went wrong: trying to remove temporary file at %s : %s\n", tmpDestinationFileName, tmpFileRemovalErr)
+				fmt.Printf("Removing %s !\n", gzippedFileName)
+				if tmpFileRemovalErr := os.Remove(gzippedFileName); tmpFileRemovalErr != nil {
+					msg := fmt.Sprintf("Something went wrong: trying to remove temporary file at %s : %s\n", gzippedFileName, tmpFileRemovalErr)
 					fmt.Println(msg)
 
 					reqStat.State = ingest.Error
