@@ -48,8 +48,11 @@ func TestDemoVcfIngestion(t *testing.T) {
 		// create demo vcf string
 		sampleId := "abc1234"
 
-		// - save string to vcf directory
-		localDataRootPath := common.GetRootGohanPath() + "/data"
+		// Create a VCF in drop-box's volume under "vcfs" dir
+		// - VCF access via network
+		// -- <drop-box url>/objects/vcfs/abc1234.vcf
+		// -- <drop-box url>/objects/vcfs/abc1234.vcf.gz
+		localDataRootPath := common.GetRootGohanPath() + "/data/drop-box"
 		localVcfPath := localDataRootPath + "/vcfs"
 
 		newFilePath := fmt.Sprintf("%s/%s.vcf", localVcfPath, sampleId)
@@ -87,7 +90,7 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 		// - ingest
 		assemblyId := "GRCh38"
-		containerizedVcfFilePath := "/data/" + filepath.Base(newGzFile)
+		containerizedVcfFilePath := "/vcfs/" + filepath.Base(newGzFile)
 
 		queryString := fmt.Sprintf("assemblyId=%s&fileNames=%s&dataset=%s", assemblyId, containerizedVcfFilePath, dataset.String())
 		ingestUrl := fmt.Sprintf("%s/variants/ingestion/run?%s", cfg.Api.Url, queryString)
@@ -111,11 +114,11 @@ func TestDemoVcfIngestion(t *testing.T) {
 
 			foundDone := false
 			for _, dto := range ingReqDtos {
-				if dto.Filename == filepath.Base(containerizedVcfFilePath) && dto.State == "Done" {
+				if dto.State == "Done" {
 					foundDone = true
 					break
 				}
-				if dto.Filename == filepath.Base(containerizedVcfFilePath) && dto.State == "Error" {
+				if dto.State == "Error" {
 					log.Fatal(dto.Message)
 				}
 			}

@@ -104,9 +104,13 @@ task vcf_gz_gohan {
                     WITH_ERROR_MESSAGE=" in error!" 
                     echo "This is what we found from the /variants/ingestion/requests :"
                     echo "${THIS_FILE_RESULT}"
+                    echo "File ~{vcf_gz_file_name} with assembly id ~{assembly_id} done processing with an error: ${WITH_ERROR_MESSAGE}"
+                    # Exit with non zero code on first error encountered.
+                    # Otherwise Gohan workflows will silently fail and be marked as comleted.
+                    exit 1
                 fi
 
-                echo "File ~{vcf_gz_file_name} with assembly id ~{assembly_id} done processing ${WITH_ERROR_MESSAGE}"
+                echo "File ~{vcf_gz_file_name} with assembly id ~{assembly_id} done processing"
 
                 break
             elif [ "${THIS_FILE_RESULT}" == "" ]; then

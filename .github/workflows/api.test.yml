@@ -24,11 +24,16 @@ jobs:
         id: envx
         run: |
           cp ./etc/example.env .env
+          echo "BENTO_UID=$(id -u)" >> .env
           source .env
 
       - name: Load environment variables from .env file
         uses: xom9ikk/dotenv@v2
-      
+
+      - name: Install tabix
+        run: |
+          sudo apt-get install -y tabix
+
       # - name: Run Bento build action
       #   uses: bento-platform/bento_build_action@v0.11.0
       #   with:
@@ -41,7 +46,7 @@ jobs:
       #     image-name: ghcr.io/bento-platform/gohan-api
       #     development-dockerfile: Dockerfile
       #     dockerfile: Dockerfile
+
       - name: API Test
         run: |
-          sudo apt-get install -y tabix
           make test-api

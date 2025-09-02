@@ -46,8 +46,7 @@ services:
     container_name: ${GOHAN_API_CONTAINER_NAME}
     environment:
       # Image
-      - BENTO_UID=${UID}
-      - BENTO_GID=${GID}
+      - BENTO_UID
 
       # API
       - GOHAN_DEBUG=${GOHAN_DEBUG}
@@ -55,7 +54,6 @@ services:
       - GOHAN_SEMVER=${GOHAN_SEMVER}
       - GOHAN_API_VCF_PATH=${GOHAN_API_CONTAINERIZED_VCF_PATH}
       - GOHAN_API_GTF_PATH=${GOHAN_API_CONTAINERIZED_GTF_PATH}
-      - GOHAN_API_API_DRS_BRIDGE_DIR=${GOHAN_API_API_DRS_BRIDGE_DIR_CONTAINERIZED}
       - GOHAN_API_BULK_INDEXING_CAP=${GOHAN_API_BULK_INDEXING_CAP}
       - GOHAN_API_FILE_PROC_CONC_LVL=${GOHAN_API_FILE_PROC_CONC_LVL}
       - GOHAN_API_LINE_PROC_CONC_LVL=${GOHAN_API_LINE_PROC_CONC_LVL}
@@ -76,11 +74,9 @@ services:
       - GOHAN_DRS_URL=${GOHAN_PRIVATE_DRS_URL}
       - GOHAN_DRS_BASIC_AUTH_USERNAME=${GOHAN_DRS_BASIC_AUTH_USERNAME}
       - GOHAN_DRS_BASIC_AUTH_PASSWORD=${GOHAN_DRS_BASIC_AUTH_PASSWORD}
-      - GOHAN_DRS_API_DRS_BRIDGE_DIR=${GOHAN_DRS_API_DRS_BRIDGE_DIR_CONTAINERIZED}
     volumes: 
       - ${GOHAN_API_VCF_PATH}:${GOHAN_API_CONTAINERIZED_VCF_PATH}
       - ${GOHAN_API_GTF_PATH}:${GOHAN_API_CONTAINERIZED_GTF_PATH}
-      - ${GOHAN_API_DRS_BRIDGE_HOST_DIR}:${GOHAN_API_API_DRS_BRIDGE_DIR_CONTAINERIZED}
     healthcheck:
       test: [ "CMD", "curl", "http://localhost:${GOHAN_API_INTERNAL_PORT}" ]
       timeout: 5s
@@ -102,8 +98,7 @@ services:
       - ${GOHAN_DOCKER_NET}
     environment:
       # Image
-      - BENTO_UID=${UID}
-      - BENTO_GID=${GID}
+      - BENTO_UID
 
       # ES
       - ELASTIC_USERNAME=${GOHAN_ES_USERNAME}
@@ -146,6 +141,7 @@ services:
     networks:
       - ${GOHAN_DOCKER_NET}
     environment: 
+      - BENTO_UID
       # Runtime
       - FLASK_DEBUG=False
       - FLASK_APP=app
@@ -155,7 +151,6 @@ services:
       - AUTHZ_ENABLED=False
     volumes:
       - ${GOHAN_DRS_DATA_DIR}:/drs/bento_drs/data
-      - ${GOHAN_API_DRS_BRIDGE_HOST_DIR}:${GOHAN_DRS_API_DRS_BRIDGE_DIR_CONTAINERIZED}
     healthcheck:
       test: [ "CMD", "curl", "http://localhost:${GOHAN_DRS_INTERNAL_PORT}" ]
       timeout: 5s

@@ -4,6 +4,7 @@ type Config struct {
 	Debug          bool   `yaml:"debug" envconfig:"GOHAN_DEBUG"`
 	SemVer         string `yaml:"semver" envconfig:"GOHAN_SEMVER"`
 	ServiceContact string `yaml:"serviceContact" envconfig:"GOHAN_SERVICE_CONTACT"`
+	ValidateSSL    bool   `yaml:"validateSSL" envconfig:"BENTO_VALIDATE_SSL"`
 
 	Api struct {
 		Url                            string `yaml:"url" envconfig:"GOHAN_PUBLIC_URL"`
@@ -14,7 +15,6 @@ type Config struct {
 		FileProcessingConcurrencyLevel int    `yaml:"fileProcessingConcurrencyLevel" envconfig:"GOHAN_API_FILE_PROC_CONC_LVL"`
 		LineProcessingConcurrencyLevel int    `yaml:"lineProcessingConcurrencyLevel" envconfig:"GOHAN_API_LINE_PROC_CONC_LVL"`
 		GtfPath                        string `yaml:"gtfPath" envconfig:"GOHAN_API_GTF_PATH"`
-		BridgeDirectory                string `yaml:"bridgeDirectory" envconfig:"GOHAN_API_API_DRS_BRIDGE_DIR"`
 	} `yaml:"api"`
 
 	Elasticsearch struct {
@@ -24,11 +24,14 @@ type Config struct {
 	} `yaml:"elasticsearch"`
 
 	Drs struct {
-		Url             string `yaml:"url" envconfig:"GOHAN_DRS_URL"`
-		Username        string `yaml:"username" envconfig:"GOHAN_DRS_BASIC_AUTH_USERNAME"`
-		Password        string `yaml:"password" envconfig:"GOHAN_DRS_BASIC_AUTH_PASSWORD"`
-		BridgeDirectory string `yaml:"bridgeDirectory" envconfig:"GOHAN_DRS_API_DRS_BRIDGE_DIR"`
+		Url      string `yaml:"url" envconfig:"GOHAN_DRS_URL"`
+		Username string `yaml:"username" envconfig:"GOHAN_DRS_BASIC_AUTH_USERNAME"`
+		Password string `yaml:"password" envconfig:"GOHAN_DRS_BASIC_AUTH_PASSWORD"`
 	} `yaml:"drs"`
+
+	DropBox struct {
+		Url string `yaml:"url" envconfig:"GOHAN_DROP_BOX_URL"`
+	} `yaml:"dropbox"`
 
 	AuthX struct {
 		IsAuthorizationEnabled  bool   `yaml:"isAuthorizationEnabled" envconfig:"GOHAN_AUTHZ_ENABLED"`

@@ -49,15 +49,16 @@ init-vendor:
 	cd src/api && go mod tidy && go mod vendor
 
 init-data-dirs:
-	mkdir -p ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
-	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
-	chmod -R 777 ${GOHAN_API_DRS_BRIDGE_HOST_DIR}
-
 	mkdir -p ${GOHAN_DRS_DATA_DIR}
 	mkdir -p ${GOHAN_DRS_DATA_DIR}/db
 	mkdir -p ${GOHAN_DRS_DATA_DIR}/obj
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_DRS_DATA_DIR}
 	chmod -R 777 ${GOHAN_DRS_DATA_DIR}
+
+	mkdir -p ${DROP_BOX_DATA_DIR}
+	mkdir -p ${DROP_BOX_DATA_DIR}/vcfs
+	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${DROP_BOX_DATA_DIR}
+	chmod -R 777 ${DROP_BOX_DATA_DIR}
 
 	mkdir -p ${GOHAN_ES_DATA_DIR}
 	chown -R ${HOST_USER_UID}:${HOST_USER_GID} ${GOHAN_ES_DATA_DIR}
@@ -183,20 +184,6 @@ clean-drs-data:
 		echo "-- Skipping.. --" ; \
 	fi
 
-## -- WARNING: DELETES ALL LOCAL API-DRS-BRIDGE DATA
-clean-api-drs-bridge-data:
-	@read -p "Are you sure you want to clean out all api-drs-bridge data? (yes/no) : " answer; \
-	if [ "$$answer" == "yes" ]; then \
-		echo "-- Cleaning! --" ; \
-		docker-compose -f docker-compose.yaml down && \
-		sudo rm -rf ${GOHAN_API_DRS_BRIDGE_HOST_DIR} ; \
-		echo "-- Done! --" ; \
-	else \
-		echo "-- Skipping.. --" ; \
-	fi
-
-	
-
 ## Tests
 test-api: init prepare-test-config
 	# # @# Run the tests directly from the api source directory
@@ -206,7 +193,10 @@ test-api: init prepare-test-config
 	
 	@# restart any running containers and print
 	docker compose -f docker-compose.test.yaml down
-	docker compose -f docker-compose.test.yaml up -d
+	docker compose -f docker-compose.test.yaml up -d --wait
+
+	@# reset permissions after containers are started
+	chmod -R 777 ${GOHAN_DATA_ROOT}
 	
 	@# run build tests
 	@# - print api and drs logs in the
