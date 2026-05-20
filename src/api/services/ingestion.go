@@ -35,7 +35,6 @@ import (
 	"github.com/Jeffail/gabs"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esutil"
-	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -406,7 +405,7 @@ func (i *IngestionService) UploadVcfGzToDrs(cfg *models.Config, gzippedFileName 
 }
 
 func (i *IngestionService) ProcessVcf(
-	gzippedFilePath string, drsFileId string, dataset uuid.UUID,
+	gzippedFilePath string, drsFileId string, dataset string,
 	assemblyId string, filterOutReferences bool,
 	lineProcessingConcurrencyLevel int) {
 
@@ -484,7 +483,7 @@ func (i *IngestionService) ProcessVcf(
 
 			tmpVariant["fileId"] = drsFileId
 			tmpVariant["assemblyId"] = assemblyId
-			tmpVariant["dataset"] = dataset.String()
+			tmpVariant["dataset"] = dataset
 
 			// skip this call if need be
 			skipThisCall := false

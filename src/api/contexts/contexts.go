@@ -7,7 +7,6 @@ import (
 	variantsService "gohan/api/services/variants"
 
 	es7 "github.com/elastic/go-elasticsearch/v7"
-	"github.com/google/uuid"
 	"github.com/labstack/echo"
 )
 
@@ -30,7 +29,7 @@ type (
 		Chromosome string
 		Genotype   constants.GenotypeQuery
 		SampleIds  []string
-		Dataset    uuid.UUID
+		Dataset    string
 		DataType   string
 		PositionBounds
 	}

@@ -4,37 +4,30 @@ import (
 	"fmt"
 	"gohan/api/contexts"
 	"gohan/api/models/dtos/errors"
-	"gohan/api/utils"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo"
 )
+
+const maxDatasetLen = 128
 
 /*
 Echo middleware to ensure a valid `dataset` HTTP query parameter was provided
 */
 func MandateDatasetAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// check for dataset query parameter
 		dataset := c.QueryParam("dataset")
 		if len(dataset) == 0 {
-			// if no id was provided, or is invalid, return an error
 			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("missing dataset"))
 		}
 
-		// verify dataset is a valid UUID
-		// - assume it's a valid dataset if it's a uuid,
-		//   further verification is done later
-		if !utils.IsValidUUID(dataset) {
+		if len(dataset) > maxDatasetLen {
 			fmt.Printf("Invalid dataset %s\n", dataset)
-
-			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset %s - please provide a valid uuid", dataset)))
+			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset - must be at most %d characters", maxDatasetLen)))
 		}
 
-		// forward a type-safe value down the pipeline
 		gc := c.(*contexts.GohanContext)
-		gc.Dataset = uuid.MustParse(dataset)
+		gc.Dataset = dataset
 
 		return next(gc)
 	}
@@ -43,14 +36,17 @@ func MandateDatasetAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 func MandateDatasetPathParam(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		dataset := c.Param("dataset")
-		if !utils.IsValidUUID(dataset) {
-			fmt.Printf("Invalid dataset %s\n", dataset)
+		if len(dataset) == 0 {
+			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("missing dataset"))
+		}
 
-			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset %s - please provide a valid uuid", dataset)))
+		if len(dataset) > maxDatasetLen {
+			fmt.Printf("Invalid dataset %s\n", dataset)
+			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset - must be at most %d characters", maxDatasetLen)))
 		}
 
 		gc := c.(*contexts.GohanContext)
-		gc.Dataset = uuid.MustParse(dataset)
+		gc.Dataset = dataset
 
 		return next(gc)
 	}
@@ -78,20 +74,14 @@ func OptionalDatasetAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		gc := c.(*contexts.GohanContext)
 
-		// check for dataset query parameter
 		dataset := c.QueryParam("dataset")
 		if len(dataset) > 0 {
-			// verify dataset is a valid UUID
-			// - assume it's a valid dataset if it's a uuid,
-			//   further verification is done later
-			if !utils.IsValidUUID(dataset) {
+			if len(dataset) > maxDatasetLen {
 				fmt.Printf("Invalid dataset %s\n", dataset)
-
-				return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset %s - please provide a valid uuid", dataset)))
+				return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset - must be at most %d characters", maxDatasetLen)))
 			}
 
-			// forward a type-safe value down the pipeline
-			gc.Dataset = uuid.MustParse(dataset)
+			gc.Dataset = dataset
 		}
 
 		return next(gc)

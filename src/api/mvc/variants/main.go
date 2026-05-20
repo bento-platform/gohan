@@ -350,7 +350,7 @@ func GetDatasetVariantsCount(c echo.Context) int {
 	g.Go(func() error {
 		docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 			"*", 0, 0,
-			"", "", dataset.String(), // note : both variantId and sampleId are deliberately set to ""
+			"", "", dataset, // note : both variantId and sampleId are deliberately set to ""
 			"", "", []string{}, "", "")
 		if countError != nil {
 			fmt.Printf("Failed to count variants in dataset %s\n", dataset)
@@ -382,7 +382,7 @@ func GetLastCreatedVariantForDataset(c echo.Context) string {
 	)
 
 	g.Go(func() error {
-		timestamp, timestampError := esRepo.GetMostRecentVariantTimestamp(cfg, es, dataset.String())
+		timestamp, timestampError := esRepo.GetMostRecentVariantTimestamp(cfg, es, dataset)
 		if timestampError != nil {
 			fmt.Printf("Failed to fetch the most recent 'created' timestamp for dataset %s. Error: %v\n", dataset, timestampError)
 			return timestampError
@@ -409,7 +409,7 @@ func GetDatasetSummary(c echo.Context) error {
 	es := gc.Es7Client
 
 	dataset := gc.Dataset
-	fmt.Printf("[%s] - GetDatasetSummary hit: [%s]!\n", time.Now(), dataset.String())
+	fmt.Printf("[%s] - GetDatasetSummary hit: [%s]!\n", time.Now(), dataset)
 
 	// parallelize these two es queries
 
@@ -422,7 +422,7 @@ func GetDatasetSummary(c echo.Context) error {
 	g.Go(func() error {
 		docs, countError := esRepo.CountDocumentsContainerVariantOrSampleIdInPositionRange(cfg, es,
 			"*", 0, 0,
-			"", "", dataset.String(), // note : both variantId and sampleId are deliberately set to ""
+			"", "", dataset, // note : both variantId and sampleId are deliberately set to ""
 			"", "", []string{}, "", "")
 		if countError != nil {
 			fmt.Printf("Failed to count variants in dataset %s\n", dataset)
@@ -436,7 +436,7 @@ func GetDatasetSummary(c echo.Context) error {
 	// request #2
 	g.Go(func() error {
 		// obtain number of samples associated with this dataset
-		resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset.String())
+		resultingBuckets, bucketsError := esRepo.GetVariantsBucketsByKeywordAndDataset(cfg, es, "sample.id.keyword", dataset)
 		if bucketsError != nil {
 			fmt.Printf("Failed to bucket dataset %s variants\n", dataset)
 			return bucketsError
@@ -482,7 +482,7 @@ func ClearDataset(c echo.Context) error {
 
 	dataset := gc.Dataset
 	dataType := gc.DataType
-	fmt.Printf("[%s] - ClearDataset hit: [%s] - [%s]!\n", time.Now(), dataset.String(), dataType)
+	fmt.Printf("[%s] - ClearDataset hit: [%s] - [%s]!\n", time.Now(), dataset, dataType)
 
 	var (
 		deletionCount = 0.0
@@ -490,7 +490,7 @@ func ClearDataset(c echo.Context) error {
 	)
 	// request #1
 	g.Go(func() error {
-		deleteResponse, delErr := esRepo.DeleteVariantsByDatasetId(cfg, es, dataset.String())
+		deleteResponse, delErr := esRepo.DeleteVariantsByDatasetId(cfg, es, dataset)
 
 		if delErr != nil {
 			fmt.Printf("Failed to delete dataset %s variants\n", dataset)

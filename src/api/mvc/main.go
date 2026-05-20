@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/google/uuid"
 	"github.com/labstack/echo"
 )
 
@@ -21,10 +20,7 @@ func RetrieveCommonElements(c echo.Context) (*elasticsearch.Client, string, int,
 	upperBound := gc.UpperBound
 
 	// optional
-	datasetString := ""
-	if gc.Dataset != uuid.Nil {
-		datasetString = gc.Dataset.String()
-	}
+	datasetString := gc.Dataset
 
 	reference := c.QueryParam("reference")
 	alternative := c.QueryParam("alternative")
