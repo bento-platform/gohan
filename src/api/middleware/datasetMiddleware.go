@@ -9,8 +9,6 @@ import (
 	"github.com/labstack/echo"
 )
 
-const maxDatasetLen = 128
-
 /*
 Echo middleware to ensure a valid `dataset` HTTP query parameter was provided
 */
@@ -19,11 +17,6 @@ func MandateDatasetAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 		dataset := c.QueryParam("dataset")
 		if len(dataset) == 0 {
 			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("missing dataset"))
-		}
-
-		if len(dataset) > maxDatasetLen {
-			fmt.Printf("Invalid dataset %s\n", dataset)
-			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset - must be at most %d characters", maxDatasetLen)))
 		}
 
 		gc := c.(*contexts.GohanContext)
@@ -38,11 +31,6 @@ func MandateDatasetPathParam(next echo.HandlerFunc) echo.HandlerFunc {
 		dataset := c.Param("dataset")
 		if len(dataset) == 0 {
 			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest("missing dataset"))
-		}
-
-		if len(dataset) > maxDatasetLen {
-			fmt.Printf("Invalid dataset %s\n", dataset)
-			return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset - must be at most %d characters", maxDatasetLen)))
 		}
 
 		gc := c.(*contexts.GohanContext)
@@ -76,11 +64,6 @@ func OptionalDatasetAttribute(next echo.HandlerFunc) echo.HandlerFunc {
 
 		dataset := c.QueryParam("dataset")
 		if len(dataset) > 0 {
-			if len(dataset) > maxDatasetLen {
-				fmt.Printf("Invalid dataset %s\n", dataset)
-				return c.JSON(http.StatusBadRequest, errors.CreateSimpleBadRequest(fmt.Sprintf("invalid dataset - must be at most %d characters", maxDatasetLen)))
-			}
-
 			gc.Dataset = dataset
 		}
 
