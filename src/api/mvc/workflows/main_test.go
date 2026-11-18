@@ -68,4 +68,7 @@ func TestServeFileWDL(t *testing.T) {
 
 func TestServeFileRejectsTraversal(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, serve(t, "../secret.wdl").Code)
+	// echo v3 does not URL-decode path params, so an encoded "../" stays a literal
+	// (nonexistent) file name: it must never be served.
+	assert.Equal(t, http.StatusNotFound, serve(t, "..%2fsecret.wdl").Code)
 }
